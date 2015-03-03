@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Yjs test</title>
+    <script src="./y.js"></script>
+    <script src="./y-xmpp.js"></script>
+    <script src="./y-webrtc.js"></script>
+    <script src="//simplewebrtc.com/latest.js"></script>
+    <!--<script src="http://cdn.peerjs.com/0.3/peer.min.js"></script>-->
+</head>
+<body>
+<label for="B">Is it working for you? If not, send me a mail
+    (<a href="mailto:corentin.cadiou@linagora.com?Subject=Bug%20in%20P2P%20real-time%20text%20editor">@ccadiou</a>)</label>
+<textarea id="B" style="width: 100%;height:5em">
+    Please bind me :)
+</textarea>
+    <script>
+        var webrtc = new Y.WebRTC("test", {url: "http://cphyc.me:8889"});
+        console.log(webrtc);
+
+        var ywebrtc = new Y(webrtc);
+
+        webrtc.whenSynced(function() {
+            if (ywebrtc.val("textarea") == null) {
+                ywebrtc.val("textarea", "", "mutable");
+            }
+            ywebrtc.val("textarea").bind(document.querySelector("#B"));
+        });
+//var peer = new Peer({key: 'u1x8ndtj7nq7u8fr'});
+//peer.on('open', function(id) {
+//    console.log('My peer ID is: ' + id);
+//});
+    </script>
+</body>
+</html>
