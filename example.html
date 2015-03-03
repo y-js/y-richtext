@@ -5,9 +5,7 @@
     <title>Yjs test</title>
     <script src="./y.js"></script>
     <script src="./y-xmpp.js"></script>
-    <script src="./y-webrtc.js"></script>
-    <script src="//simplewebrtc.com/latest.js"></script>
-    <!--<script src="http://cdn.peerjs.com/0.3/peer.min.js"></script>-->
+    <script src="./config.js"></script>
 </head>
 <body>
 <label for="B">Is it working for you? If not, send me a mail
@@ -16,7 +14,8 @@
     Please bind me :)
 </textarea>
     <script>
-        var webrtc = new Y.WebRTC("test", {url: "http://cphyc.me:8889"});
+        var webrtc = new Y.WebRTC("test", {url: config.server});
+        console.log(config);
         console.log(webrtc);
 
         var ywebrtc = new Y(webrtc);
