@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Yjs test</title>
     <script src="./y.js"></script>
-    <script src="./y-xmpp.js"></script>
+    <script src="./y-webrtc.js"></script>
     <script src="./config.js"></script>
 </head>
 <body>
@@ -13,7 +13,7 @@
 <textarea id="B" style="width: 100%;height:5em">
     Please bind me :)
 </textarea>
-    <script>
+<script>
         var webrtc = new Y.WebRTC("test", {url: config.server});
         console.log(config);
         console.log(webrtc);
@@ -26,10 +26,6 @@
             }
             ywebrtc.val("textarea").bind(document.querySelector("#B"));
         });
-//var peer = new Peer({key: 'u1x8ndtj7nq7u8fr'});
-//peer.on('open', function(id) {
-//    console.log('My peer ID is: ' + id);
-//});
     </script>
 </body>
 </html>
