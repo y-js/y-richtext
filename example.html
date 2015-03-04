@@ -5,16 +5,17 @@
     <title>Yjs test</title>
     <script src="./y.js"></script>
     <script src="./y-webrtc.js"></script>
+    <script src="./y-list.js"></script>
+    <script src="./y-xml.js"></script>
     <script src="./config.js"></script>
     <script src="//tinymce.cachefly.net/4.1/tinymce.min.js"></script>
-    <script>tinymce.init({selector:'textarea'});</script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
   </head>
   <body>
     <label for="B">Is it working for you? If not, send me a mail
       (<a href="mailto:corentin.cadiou@linagora.com?Subject=Bug%20in%20P2P%20real-time%20text%20editor">@ccadiou</a>)</label>
-    <div contentEditable id="content" style="display:none"></div>
-    <textarea></textarea>
+    <textarea id="content"></textarea>
+    <div id="output"></div>
     <script>
      var connector = new Y.WebRTC("test", {url: config.server});
      console.log(config);
@@ -29,6 +30,15 @@
        connection.val("textarea").bind(document.querySelector("#content"));
      });
      
+
+     // Set up TinyMCE
+     var keypress = function(event) {
+       $('#output').html(tinyMCE.activeEditor.getContent());
+     }
+     tinymce.init({selector: 'textarea',
+		   setup: function (ed) {
+	 ed.on('keypress', keypress);
+       }});
     </script>
   </body>
 </html>
