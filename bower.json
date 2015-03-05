@@ -26,6 +26,6 @@
     "y-webrtc": "~0.4.0",
     "y-list": "git@github.com:rwth-acis/y-list.git",
     "y-xml": "git@github.com:rwth-acis/y-xml.git",
-    "yjs": "~0.4.1"
+    "yjs": "0.5"
   }
 }
