@@ -3,7 +3,7 @@
   <head lang="en">
     <meta charset="UTF-8">
     <title>Yjs test</title>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+    <script src="jquery.min.js"></script>
     <script src="bower_components/webcomponentsjs/webcomponents.js"></script>
     <script src="bower_components/yjs/y.js"></script>
     <script src="bower_components/yjs/y-object.js"></script>
@@ -11,13 +11,14 @@
     <script src="bower_components/y-xml/y-xml.js"></script>
     <script src="bower_components/y-webrtc/y-webrtc.js"></script>
     <script src="config.js"></script>
+    <script src="//cdn.ckeditor.com/4.4.7/standard/ckeditor.js"></script>
   </head>
   <body>
-    <div id="shared_div">
+    <div id="shared_div" contentEditable>
       <h1> yjs HTML </h1>
       <p> Collaborative editing on HTML with <a href="https://github.com/rwth-acis/yjs/">yjs</a>
 	and WebRTC Connector. </p>
-      <p> Everything that is in the #shared_div is shared among the peers. You can modify the dom directly or use jquery. Here are some things you could try: </p>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec a diam lectus. Sed sit amet ipsum mauris. Maecenas congue ligula ac quam viverra nec consectetur ante hendrerit. Donec et mollis dolor. Praesent et diam eget libero egestas mattis sit amet vitae augue. Nam tincidunt congue enim, ut porta lorem lacinia consectetur. Donec ut libero sed arcu vehicula ultricies a non tortor. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean ut gravida lorem. Ut turpis felis, pulvinar a semper sed, adipiscing id dolor. Pellentesque auctor nisi id magna consequat sagittis. Curabitur dapibus enim sit amet elit pharetra tincidunt feugiat nisl imperdiet. Ut convallis libero in urna ultrices accumsan. Donec sed odio eros. Donec viverra mi quis quam pulvinar at malesuada arcu rhoncus. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. In rutrum accumsan ultricies. Mauris vitae nisi at sem facilisis semper ac in est.</p>
       <pre> document.querySelector("#shared_div").setAttribute("style","color:blue")</pre>
       <pre> $("#shared_div").attr("style","color:red")</pre>
       <pre> $("#shared_div p").after("&lt;p&gt;After every p element.&lt;/p&gt;")</pre>
@@ -26,6 +27,8 @@
     </div>
   </body>
   <script>
+   CKEDITOR.replace("shared_div");
+   
    connector = new Y.WebRTC("xml-webrtc-example", {url: config.server});
    connector.debug = true;
    y = new Y(connector);
@@ -36,20 +39,35 @@
 	 window.shared_div = document.querySelector("#shared_div");
 	 y.val("dom", new Y.Xml(window.shared_div));
        }
+       if(y.val("body") == null){
+	 y.val("body", $("iframe").contents().find("body").html())
+       }
        var p = document.createElement("b")
        shared_div.insertBefore(p,null)
      })
      y.observe(function(events){
        for(i in events){
-	 if(events[i].type === "add" || events[i].type === "update"){
-	   // Everytime the "dom" is replaced, remove the old one from the body and but the new one there instead
-	   document.querySelector("#shared_div").remove();
-	   window.shared_div = y.val("dom").getDom();
-	   var body = document.querySelector("body");
-	   body.insertBefore(window.shared_div, body.firstChild);
+	 if(events[i].type === "add" || events[i].type === "update") {
+	   if (events[i].name === "dom") {
+	     console.log(events[i]);
+	     document.querySelector("#shared_div").remove();
+	     window.shared_div = y.val("dom").getDom();
+	     var body = document.querySelector("body");
+	     body.insertBefore(window.shared_div, body.firstChild);
+	   }
+	   if (events[i].name === "body") {
+	     console.log("Updating body");
+	     $("iframe").contents().find("body").html(y.val("body"));
+	   }
 	 }
        }
      })
+     $("iframe").contents().find("body").on("input", function(){
+       console.log("Event detected.");
+       y.val("body", $(this).html());
+     })
+
    };
+   
   </script>
 </html>
