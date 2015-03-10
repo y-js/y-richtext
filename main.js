@@ -1,29 +1,19 @@
 function track() {
     console.log('In track');
     var selection = window.getSelection();
+    var old = selection.anchorNode;
 
-    var range = document.getSelection().getRangeAt(0),
-        old = selection.anchorNode;
-    var so = range.startOffset,
-        eo = range.endOffset;
+    // Every shared dom object has a property _y_xml, whereby old.
+    // y_xml.getDom() === dom
+    // The Y.Xml.Text Type now has an update function.
+    // It graps the current content of the Text Dom Element and updates itself.
+    old._y_xml.update()
 
-    old._y_xml.update();
-
-    // // Replace the carret at the right position
-    // var newRange = document.createRange();
-    // newRange.selectNode(newer);
-    // newRange.setStart(newer, so);
-    // newRange.setEnd(newer, eo);
-
-    // selection.removeAllRanges();
-    // selection.addRange(newRange);
     console.log('Out track');
 }
 
-
-
 // Initialize Yjs variables
-connector = new Y.XMPP().join('xml-xmpp-example', {syncMode: 'syncAll'});
+var connector = new Y.WebRTC('xml-webrtc-debug'); //, {url: config.server});
 var y = new Y(connector);
 
 connector.debug = true;
@@ -34,6 +24,7 @@ connector.whenSynced(function() {
         y.val('dom', new Y.Xml.Element($('#shared_div').get(0)));
     }
 });
+
 // Add callback to yjs
 y.observe(function(events) {
     for (i in events) {
@@ -42,7 +33,10 @@ y.observe(function(events) {
                 // Replace by new dom
                 $('#shared_div').replaceWith(y.val('dom').getDom());
             }
-            $('#shared_div').on('input', track);
+            // Track the changes on the shared div
+            $('#shared_div').on('input', function() {
+                track();
+            });
         }
         console.log(events[i]);
     }
