@@ -1,41 +1,49 @@
-$(document).ready(function() {
-    CKEDITOR.replace("shared_div");
+function track() {
+    console.log('In track');
+    var selection = window.getSelection();
 
-    connector = new Y.WebRTC("xml-webrtc-example"); //, {url: config.server});
-    connector.debug = true;
-    y = new Y(connector);
+    var range = document.getSelection().getRangeAt(0),
+        old = selection.anchorNode;
+    var so = range.startOffset,
+        eo = range.endOffset;
 
-    connector.whenSynced(function(){
-        if(y.val("dom") == null){
-            // check if dom was already assigned
-            window.shared_div = document.querySelector("#shared_div");
-            y.val("dom", new Y.Xml(window.shared_div));
-        }
-        if(y.val("body") == null){
-            y.val("body", $("iframe").contents().find("body").html());
-        }
-        var p = document.createElement("b");
-        shared_div.insertBefore(p,null);
-    });
-    y.observe(function(events){
-        for(i in events){
-            if(events[i].type === "add" || events[i].type === "update") {
-                if (events[i].name === "dom") {
-                    console.log(events[i]);
-                    document.querySelector("#shared_div").remove();
-                    window.shared_div = y.val("dom").getDom();
-                    var body = document.querySelector("body");
-                    body.insertBefore(window.shared_div, body.firstChild);
-                }
-                if (events[i].name === "body") {
-                    console.log("Updating body");
-                    $("iframe").contents().find("body").html(y.val("body"));
-                }
+    old._y_xml.update();
+
+    // // Replace the carret at the right position
+    // var newRange = document.createRange();
+    // newRange.selectNode(newer);
+    // newRange.setStart(newer, so);
+    // newRange.setEnd(newer, eo);
+
+    // selection.removeAllRanges();
+    // selection.addRange(newRange);
+    console.log('Out track');
+}
+
+
+
+// Initialize Yjs variables
+connector = new Y.XMPP().join('xml-xmpp-example', {syncMode: 'syncAll'});
+var y = new Y(connector);
+
+connector.debug = true;
+
+// Set up shared object
+connector.whenSynced(function() {
+    if (y.val('dom') == null) {
+        y.val('dom', new Y.Xml.Element($('#shared_div').get(0)));
+    }
+});
+// Add callback to yjs
+y.observe(function(events) {
+    for (i in events) {
+        if (events[i].type === 'add' || events[i].type === 'update') {
+            if (events[i].name === 'dom') {
+                // Replace by new dom
+                $('#shared_div').replaceWith(y.val('dom').getDom());
             }
+            $('#shared_div').on('input', track);
         }
-    });
-    $("iframe").contents().find("body").on("input", function(){
-        console.log("Event detected.");
-        y.val("body", $(this).html());
-    });
+        console.log(events[i]);
+    }
 });
