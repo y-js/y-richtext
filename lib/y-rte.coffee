@@ -1,3 +1,14 @@
+class Word
+  @word = ''
+  @selections = []
+  constructor: (@word) ->
+  removeSel: (selToRemove) ->
+    @selections.forEach sel, index, array ->
+      if sel.equals(selToRemove)
+        array.splice(index, 1)
+
+
+
 class Selection
   constructor: (a, b, c, d, e)->
     if a? and b? and c? and d?
@@ -9,7 +20,7 @@ class Selection
       @startPos = {word: a, pos: b}
       @endPos = {word: c, pos: d}
 
-      attr = e
+      style = e
 
     else if a? and b? and c?
       if !( typeof a is "number" and
@@ -17,19 +28,19 @@ class Selection
         throw new Error "Expecting numbers as arguments"
       c.constructor is "Rte"
 
-      [@startPos, @endPos] = @relativeFromAbsolute(a, b, c)
-      attr = d
+      [@startPos, @endPos] = @_relativeFromAbsolute(a, b, c)
+      style = d
 
     else if a? and b? and a.pos? and a.word? and b.pos? and b.word?
       @startPos = a
       @endPos = b
 
-      attr = c
+      style = c
 
     else throw new Error "Wrong set of parameters #{[a, b, c, d, e]}"
 
-    if attr?
-      @attr = attr
+    if style?
+      @style = style
 
     @startPos.lt = @endPos.lt = (s) ->
       @word < s.word or (@word == s.word and @pos <= s.pos)
@@ -43,7 +54,7 @@ class Selection
 
     words = rte._rte.words
     for i in [0..words.length-1]
-      l = words[i].length
+      l = rte.getWord(i).length
       if l >= untilStart
         spp = untilStart
         untilStart = 0
@@ -63,12 +74,27 @@ class Selection
 
     [{word: spw, pos: spp}, {word: epw, pos: epp}]
 
+  # Compares *the bounds* of two selections
+  #
+  # @param [Selection] s the selection to compare to this
+  #
   equals: (s)->
     @startPos.word == s.startPos.word and
     @startPos.pos == s.startPos.pos and
     @endPos.word == s.endPos.word and
     @endPos.pos == s.endPos.pos
 
+  # Compares *the bounds* of two selections
+  #
+  # @param [Selection] s the selection to compare to this
+  #
+  notEquals: (s) ->
+    not equals(s)
+
+  # Returns true if the given selection is in the current selection
+  #
+  # @param [Selection] s the selection to compare to this
+  #
   in: (s) ->
     @startPos.lt(s) and @endPos.gt(s)
 
@@ -78,7 +104,8 @@ class Selection
   overlaps: (s) ->
     @startPos.lt(s.endPos) or @endPos.gt(s.startPos)
 
-  setAttr: (@attr) ->
+  #TODO
+  setStyle: (@style) ->
 
   clone: ->
     new Selection(@startPos, @endPos)
@@ -86,26 +113,55 @@ class Selection
   isValid: ->
     @startPos.lt(@endPos)
 
-class Rte # Rich Text Editor
-  constructor: (content = '')->
-    if content.constructor is String
-      @_rte = {}
-      # TODO: convert HTML
-      @_rte.align = 'left'
-      @_rte.style = []
-      @_rte.selections = []
-      @_rte.cursorInformation = {}
-      @_rte.words = []
-      @push(content)
+
+  # Try to merge this selection with the one given in argument
+  #
+  merge: (s, rte) ->
+    # Check if their contiguous
+    if s.endPos.word == @startPos.word or
+       (s.endPos.word == @startPos.word -1 and
+        s.endPos.loc == rte.getWord(s.endPos.word).length() and
+        @startPos.loc == 0)
+      # boundaries of new selection
+      start = s.startPos
+      end = @endPos
+      # remove link of middle words to selection
+      rte.getWord(s.endPos.word).removeSel(s)
+      rte.getWord(@startPos.word).removeSel(@)
+    else if @endPos.word == s.startPos.word or
+       (@endPos.word == s.startPos.word -1 and
+        @endPos.loc == rte.getWord(@endPos.word).length() and
+        s.startPos.loc == 0)
+      start = @startPos
+      end = s.endPos
+      rte.getWord(@endPos.word).removeSel(@)
+      rte.getWord(s.endPos.word).removeSel(s)
     else
+      return
+
+    nSelec = new Selection start, end, s.style
+    rte.getWord()
+
+
+# Class describing the Rich Text Editor type
+#
+class Rte
+  # @property [Options] _rte the RTE object
+  # @param [String] content the initial content to set
+  # @option _rte [Array<Selection>] selections array containing all the current selections
+  # @option _rte [Array<String>] words array containing all the words of the text
+  #
+  constructor: (content = '')->
+    if content.constructor isnt String
       throw new Error "Only accepts strings."
+    @_rte = {}
+    @_rte.styles = []
+    @_rte.selections = []
+    @_rte.cursorInformation = {}
+    @_rte.words = []
+    @push(content)
 
   _name: "Rich Text Editor"
-
-  # _getModel:
-  # _setModel:
-  # observe:
-  # unobserve:
 
   val: (content)->
     if content?
@@ -115,11 +171,30 @@ class Rte # Rich Text Editor
       @push(content)
     else
       # TODO: support breaks (br, new paragraph, …)
-      (e for e in @_rte.words).join(' ')
+      (e.word for e in @_rte.words).join(' ')
+
+  # Split the content around ' ' and append all the words created to the object
+  #
+  getWord: (index) ->
+    if not (0 <= index < @_rte.words.length)
+      throw new Error "Index out of bounds"
+    @_rte.words[index].word
+
+  getWords: (begin, end) ->
+    if not end?
+      end = @_rte.words.length
+    out = wObj for wObj in @_rte.words[begin..end]
+
+  setWord: (index, content="") ->
+    if not (0 <= index < @_rte.words.length)
+      throw new Error "Index out of bounds"
+    @_rte.words[index].word = content
 
   push: (content) ->
     for w in content.split(' ')
-      @_rte.words.push(w)
+      wObj = new Word(w)
+
+      @_rte.words.push(wObj)
 
 
   insertWords: (position, words)->
@@ -132,10 +207,11 @@ class Rte # Rich Text Editor
       if position == 0
         before = []
       else
-        before = @_rte.words[..position-1]
-      after = @_rte.words[position..]
-      @_rte.words = before.concat(words).concat(after)
-      @updateInsertWords(position, words.length)
+        before = @getWords(0, position-1)
+      wordsObj = (new Word w for w in words)
+      after = @getWords(position)
+      @_rte.words = before.concat(wordsObj).concat(after)
+
     else
       throw new Error 'Index #{position} out of bound in word list'
 
@@ -177,14 +253,14 @@ class Rte # Rich Text Editor
       if start - 1 < 0
         before = []
       else
-        before = @_rte.words[..start-1]
+        before = @getWords(0, start-1)
 
-      @_rte.words = before.concat(@_rte.words[end..])
+      @_rte.words = before.concat(@getWords(end))
     @_rte.words
 
   merge: (n) ->
     if 0 <= n < @_rte.words.length
-      w = @_rte.words[n]
+      w = @getWord(n)
       @deleteWords(n)
       @insert({startPos: {word: n, pos:0}}, w)
     else
@@ -193,25 +269,25 @@ class Rte # Rich Text Editor
   deleteSel: (sel) ->
     if not sel.isValid()
       throw new Error "Invalid selection"
-    if not 0 <= sel.startPos.loc <= @_rte.words[sel.startPos.word].length
+    if not 0 <= sel.startPos.loc <= @getWord(sel.startPos.word).length
       throw new Error "Invalid selection"
-    if not 0 <= sel.endPos.loc <= @_rte.words[sel.endPos.word].length
+    if not 0 <= sel.endPos.loc <= @getWord(sel.endPos.word).length
       throw new Error "Invalid selection"
 
     s = sel.startPos.word
     e = sel.endPos.word
 
-    newLeft = @_rte.words[s].substring(0, sel.startPos.pos)
-    newRight = @_rte.words[e].substring(sel.endPos.pos)
+    newLeft = @getWord(s).substring(0, sel.startPos.pos)
+    newRight = @getWord(e).substring(sel.endPos.pos)
 
     if s == e
-      @_rte.words[s] = newLeft + newRight
+      @setWord(s, newLeft + newRight)
 
       # delete the words in between
       @deleteWords(s+1, e)
     else
-      @_rte.words[s] = newLeft
-      @_rte.words[e] = newRight
+      @setWord(s, newLeft)
+      @setWord(e, newRight)
 
       # delete the words in between
       @deleteWords(s+1, e)
@@ -229,11 +305,8 @@ class Rte # Rich Text Editor
     #TODO: check boundaries
     n = sel.startPos.word
     pos = sel.startPos.pos
-    word = @_rte.words[n]
-
-    # throw new Error @_rte.words[n]
-
-    @_rte.words[n] = word.substring(0, pos) + content + word.substring(pos)
+    word = @getWord(n)
+    @setWord(n, word.substring(0, pos) + content + word.substring(pos))
 
   # relative jump from position
   _jump: (position, relJump) ->
@@ -246,7 +319,7 @@ class Rte # Rich Text Editor
         if pos < jump
           word -= 1
           jump -= pos
-          pos = @_rte.words[word].length - 1
+          pos = @getWord(word).length - 1
 
           if word < 0
             return null
@@ -269,62 +342,25 @@ class Rte # Rich Text Editor
       pos = pos
     {word: word, pos: pos}
 
-  # get all selections with right (or left end) at location
-  _getSel: (location, rightOrLeft) ->
-    ret = []
-    if rightOrLeft == 'right'
-      selList = @_rte.words[location.word].refRight
-      for sel in selList
-        if sel.endPos.pos == location.pos
-          ret.push(sel)
-
-    else if rightOrLeft == 'left'
-      selList = @_rte.words[location.word].refLeft
-      for sel in selList
-        if sel.startPos.pos == location.pos
-          ret.push(sel)
-
-    else
-      throw new Error "Error in second argument of _getSel"
-
-    ret
-
-  # set the attribute to the selection and try to extend as much
+  # Set the style of the selection and try to extend as much
   # as possible existing ones
-  setAttr: (thisSel)->
+  #
+  setStyle: (selection, style)->
     if not thisSel.isValid()
       throw new Error "Invalid selection"
-    # goto left of selection, see if extendable
-    leftPos = _jump(thisSel.startPos, (-1))
-    if leftPos isnt null
-      w = @_rte.words[leftPos.word]
-      doLeft = true
-      # pop and repush references except if merge possible
-      while s = w.refRight.pop()
-        if s.type == thisSel.type and s.endPos.pos == leftPos.pos
-          doLeft = false
-        else
-          w.push(s)
 
-      if doLeft
-        @_rte.words[thisSel.startPos.word].refLeft.push(thisSel)
+    # Try to merge with previous / next contiguous selection
+    {prevWord, position} = @_jump(s.startPos, -1)
+    {nextWord, position} = @_jump(s.endPos,   +1)
+    for s in prevWord.selections when selection.style == s.style
+      s.merge selection, @
+    for s in nextWord.selections when selection.style == s.style
+      s.merge selection, @
 
-    rightPos = _jump(thisSel.startPos, 1)
-    if rightPos isnt null
-      w = @_rte.words[rightPos.word]
-      doRight = true
-      # pop and repush references except if merge possible
-      while s = w.refRight.pop()
-        if s.type == thisSel.type and s.startPos.pos == rightPos.pos
-          doRight = false
-        else
-          w.push(s)
-
-      if doRight
-        @_rte.words[rightPos.left].refRight.push(thisSel)
-
-
-  apply: (deltas)->
+  # Apply a delta to the object
+  # @see http://quilljs.com/docs/deltas/
+  #
+  delta: (deltas) ->
     position = 0
     for delta in deltas.ops
       if delta.retain?
@@ -338,7 +374,7 @@ class Rte # Rich Text Editor
 
       if delta.attributes?
         for attr in delta.attributes
-          @setAttr(selection.clone().attr = attr)
+          @setAttr(selection.clone().style = attr)
 
 if window?
   window.Rte = Rte
