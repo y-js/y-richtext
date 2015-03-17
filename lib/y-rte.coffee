@@ -1,12 +1,32 @@
+buildWord = (word, prepend='', append='') ->
+  tmp = word.split ' '
+  tmp2 = []
+
+  if tmp.length == 1
+    tmp2.push (new Word (prepend+tmp.pop()+append))
+  else
+    tmp2.push (new Word (prepend+tmp.pop(0)))
+    while tmp.length > 1
+      tmp2.push (new Word (tmp.pop(0) + ' '))
+
+    tmp2.push (new Word (tmp.pop() + append + ' '))
+
+  tmp2.reverse()
+
+# Simple class that contains a word and links to the selections pointing
+# to it
 class Word
   @word = ''
   @selections = []
+
+  # Construct a new list of words
+  # @param [String] word The initial string value
+  # @return [Word] a word instance
   constructor: (@word) ->
   removeSel: (selToRemove) ->
     @selections.forEach sel, index, array ->
       if sel.equals(selToRemove)
         array.splice(index, 1)
-
 
 
 class Selection
@@ -117,7 +137,7 @@ class Selection
   # Try to merge this selection with the one given in argument
   #
   merge: (s, rte) ->
-    # Check if their contiguous
+    # Check if they're contiguous
     if s.endPos.word == @startPos.word or
        (s.endPos.word == @startPos.word -1 and
         s.endPos.loc == rte.getWord(s.endPos.word).length() and
@@ -171,30 +191,43 @@ class Rte
       @push(content)
     else
       # TODO: support breaks (br, new paragraph, …)
-      (e.word for e in @_rte.words).join(' ')
+      (e.word for e in @_rte.words).join('')
 
-  # Split the content around ' ' and append all the words created to the object
-  #
+  # Returns the string representation of a word.
+  # @param index [Integer] the index of the word to return
   getWord: (index) ->
     if not (0 <= index < @_rte.words.length)
       throw new Error "Index out of bounds"
-    @_rte.words[index].word
+    i = j = 0                   # i : index in array, j : index of word
+    while j < index
+      if (@_rte.words[i].word isnt '' and @_rte.words[i] isnt ' ')
+        j += 1
+      i += 1
+    @_rte.words[i].word
 
   getWords: (begin, end) ->
     if not end?
       end = @_rte.words.length
-    out = wObj for wObj in @_rte.words[begin..end]
+    if not (0 <= begin <= end <= @_rte.words.length)
+      throw new Error "Index out of bounds: #{[begin, end]}"
 
-  setWord: (index, content="") ->
+    ret = @_rte.words[begin..end]
+    if ret?
+      ret
+    else
+      []
+
+  # Set the content of a word
+  # @param index [Integer] the index of the word to modify
+  # @param content [String] the content to set the word to
+  setWord: (index, content) ->
     if not (0 <= index < @_rte.words.length)
       throw new Error "Index out of bounds"
     @_rte.words[index].word = content
 
   push: (content) ->
-    for w in content.split(' ')
-      wObj = new Word(w)
-
-      @_rte.words.push(wObj)
+    wObj = buildWord content
+    @_rte.words = @_rte.words.concat(wObj)
 
 
   insertWords: (position, words)->
@@ -204,45 +237,19 @@ class Rte
     if words.constructor isnt Array
       throw new Error 'Expected a string array as second parameter'
     if 0 <= position <= @_rte.words.length
+      after = [new Word ' '].concat(@getWords(position))
+      before = @getWords(0, Math.max(position-1, 0)).append(new Word ' ')
       if position == 0
         before = []
-      else
-        before = @getWords(0, position-1)
+      if position == @_rte.words.length - 1
+        after = []
+
       wordsObj = (new Word w for w in words)
-      after = @getWords(position)
+
       @_rte.words = before.concat(wordsObj).concat(after)
 
     else
       throw new Error 'Index #{position} out of bound in word list'
-
-  # insert l words at pos wNum
-  updateInsertWords: (wNum, n)->
-    # TODO: check that we don't get negative positions
-    if typeof wNum isnt "number"
-      throw new Error "Expected a number as first parameter"
-    if typeof n isnt "number"
-      throw new Error "Expected a number as second parameter"
-
-    for pt in @_rte.selections when pt.endPos.word >= wNum
-      if pt.startPos.word >= wNum
-        pt.startPos.word += n
-      pt.endPos.word += n
-
-  # insert n caracters in word wNum at position pos
-  updateInsert: (wNum, pos, n)->
-    # TODO: check that we don't get negative positions
-    if typeof wNum isnt "number"
-      throw new Error "Expected a number as first parameter"
-    if typeof pos isnt "number"
-      throw new Error "Expected a number as second parameter"
-    if typeof n isnt "number"
-      throw new Error "Expected a number as third parameter"
-
-    for pt in @_rte.selections
-      if pt.startPos.word == wNum and pt.startPos.pos >= pos
-        pt.startPos.pos += n
-      if pt.endPos.word == wNum and pt.endPos.pos >= pos
-        pt.endPos.pos += n
 
 
   deleteWords: (start, end) ->
@@ -260,7 +267,7 @@ class Rte
 
   merge: (n) ->
     if 0 <= n < @_rte.words.length
-      w = @getWord(n)
+      w = @getWord(n).trimRight()
       @deleteWords(n)
       @insert({startPos: {word: n, pos:0}}, w)
     else
@@ -302,7 +309,6 @@ class Rte
     if typeof content isnt "string"
       throw new Error "Expected a string as second argument"
 
-    #TODO: check boundaries
     n = sel.startPos.word
     pos = sel.startPos.pos
     word = @getWord(n)
@@ -364,13 +370,17 @@ class Rte
     position = 0
     for delta in deltas.ops
       if delta.retain?
-        selection = new Selection position (position+=delta.retain)
+        selection = new Selection position (position + delta.retain)
       else if delta.delete?
-        selection = new Selection position (position+=delta.retain)
+        selection = new Selection position (position + delta.retain)
         @delete(selection)
       else if delta.insert?
-        selection = new Selection position (position+=delta.insert.length)
+        end = position + delta.insert.length
+        selection = new Selection position, end, @
         @insert(selection, delta.insert)
+        position = end
+      else
+        throw new Error "Unknown operation"
 
       if delta.attributes?
         for attr in delta.attributes
@@ -379,6 +389,7 @@ class Rte
 if window?
   window.Rte = Rte
   window.Selection = Selection
+  window.buildWord = buildWord
 
 if module?
   module.exports = [Rte, Selection]
