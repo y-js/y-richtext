@@ -1,24 +1,7 @@
 _ = require 'underscore'
-
-splitWord = word ->
-  word.match(/(^ +|)\W+ +/g)
-
-
-buildWord = (word, prepend='', append='') ->
-  tmp = word.match /(^ +|)\W+ +/g
-  tmp2 = []
-
-  if tmp.length == 1
-    tmp2.push (new Word (prepend+tmp.pop()+append))
-  else
-    tmp2.push (new Word (prepend+tmp.pop(0)))
-    while tmp.length > 1
-      tmp2.push (new Word (tmp.pop(0) + ' '))
-
-    tmp2.push (new Word (tmp.pop() + append + ' '))
-
-  tmp2.reverse()
-
+# XRegExp = require('xregexp').XRegExp
+WordRegExp = /\S+\s*/g
+PreSpacesRegExp = /^\s+/
 # Simple class that contains a word and links to the selections pointing
 # to it
 class Word
@@ -276,11 +259,19 @@ class Rte
       throw new Error "Index out of bounds"
     @_rte.words[index].word = content
 
-  # Split the content around ' ' and append all the words created to the object
-  #
-  _push: (content) ->
-    for w in content.split(' ')
-      @_rte.words.push(w)
+  # Append new words at the end of the word list
+  # @param [String] content the string to append
+  push: (content) ->
+    console.log '"' + content + '"'
+    preSpaces = content.match PreSpacesRegExp
+    if preSpaces isnt null
+      @_rte.words.push(new Word (preSpaces[0]))
+    words = content.match WordRegExp
+    console.log '"' + preSpaces + '"'
+    console.log words
+    if _.isArray(words)
+      for w in words
+        @_rte.words.push (new Word w)
 
   # Insert words at position
   #
@@ -394,8 +385,8 @@ class Rte
     index = sel.startPos.word   #position to work from
     pos = sel.startPos.pos
 
-    wordsToInsert = content.match /\w+ +/g
-    preSpaces = content.search /^ +/
+    wordsToInsert = content.match WordRegExp
+    preSpaces = content.search PreSpacesRegExp
 
     currWord = @getWord index
 
@@ -423,12 +414,14 @@ class Rte
         if index == 0
           emptyWord = new Word content.substring(0, preSpaces)
           @insertWord 0, emptyWord
+          index = 1
         else
           # update previous word
           prevWord = @getWord (index-1)
           prevWord += content.substring(0, preSpaces)
           @setWord (index-1), prevWord
 
+    @insertWords index, wordsToInsert
 
   split: (n) ->
     word = @getWord n
