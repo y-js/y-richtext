@@ -1,5 +1,11 @@
+_ = require 'underscore'
+
+splitWord = word ->
+  word.match(/(^ +|)\W+ +/g)
+
+
 buildWord = (word, prepend='', append='') ->
-  tmp = word.split ' '
+  tmp = word.match /(^ +|)\W+ +/g
   tmp2 = []
 
   if tmp.length == 1
@@ -59,27 +65,27 @@ class Selection
   #   @option endPos [Integer] pos position in last word of selection
   #   @option options [Object] style the style of the selection
   constructor: (a, b, c, d, e)->
-    if a? and b? and c? and d?
-      if !( typeof a is "number" and
-            typeof b is "number" and
-            typeof c is "number" and
-            typeof d is "number")
+    if not _.isUndefined(a) and not _.isUndefined(b) and not _.isUndefined(c) and not _.isUndefined(d)
+      if !( _.isNumber(a) and
+            _.isNumber(b) and
+            _.isNumber(c) and
+            _.isNumber(d))
         throw new Error "Expecting numbers as arguments"
       @startPos = {word: a, pos: b}
       @endPos = {word: c, pos: d}
 
       style = e
 
-    else if a? and b? and c?
-      if !( typeof a is "number" and
-            typeof b is "number")
+    else if not _.isUndefined(a) and not _.isUndefined(b) and not _.isUndefined(c)
+      if !( _.isNumber(a) and
+            _.isNumber(b))
         throw new Error "Expecting numbers as arguments"
       c.constructor is "Rte"
 
       [@startPos, @endPos] = @_relativeFromAbsolute(a, b, c)
       attr = d
 
-    else if a? and b? and a.pos? and a.word? and b.pos? and b.word?
+    else if not _.isUndefined(a) and not _.isUndefined(b) and a.pos? and a.word? and b.pos? and b.word?
       @startPos = a
       @endPos = b
 
@@ -87,7 +93,7 @@ class Selection
 
     else throw new Error "Wrong set of parameters #{[a, b, c, d, e]}"
 
-    if style?
+    if not _.isUndefined(style)
       @style = style
 
     @startPos.lt = @endPos.lt = (s) ->
@@ -229,7 +235,7 @@ class Rte
   #   @param [String] content the initial content to set
   #
   val: (content)->
-    if content?
+    if not _.isUndefined(content)
       # reset styles when replacing content
       @_rte.words = []
       @_rte.style = []
@@ -251,7 +257,7 @@ class Rte
     @_rte.words[i].word
 
   getWords: (begin, end) ->
-    if not end?
+    if _.isUndefined(end)
       end = @_rte.words.length
     if not (0 <= begin <= end <= @_rte.words.length)
       throw new Error "Index out of bounds: #{[begin, end]}"
@@ -316,7 +322,7 @@ class Rte
   # @param [Integer] start position of first word to delete
   # @param [Integer] end position of last word to delete
   deleteWords: (start, end) ->
-    if not end?
+    if _.isUndefined(end)
       end = start+1
 
     if start <= end
@@ -378,15 +384,68 @@ class Rte
   # @param [String] content the content to insert
   #
   insert: (sel, content)->
-    if not sel.startPos?
+    if (_.isUndefined sel.startPos)
       throw new Error "Expected a location object as first argument"
-    if typeof content isnt "string"
+    if not (_.isString content)
       throw new Error "Expected a string as second argument"
 
-    n = sel.startPos.word
+    if content.length == 0
+      return
+    index = sel.startPos.word   #position to work from
     pos = sel.startPos.pos
-    word = @getWord(n)
-    @setWord(n, word.substring(0, pos) + content + word.substring(pos))
+
+    wordsToInsert = content.match /\w+ +/g
+    preSpaces = content.search /^ +/
+
+    currWord = @getWord index
+
+    # Get spaces of next input and append them to last word to insert
+    if index < @_rte.words.length - 1 and pos == (currWord.length - 1)
+      nextWord = @getWord (index+1)
+      preSpaces = nextWord.search /^ +/
+      if preSpaces > -1         # add them to current word
+        @setWord (index+1) nextWord.substring(preSpaces)
+        last = _.last(wordsToInsert) + nextWord.substring(0, preSpaces)
+        wordsToInsert[wordsToInsert.length-1] = last
+    else if pos < (currWord.length - 1)
+      nextWord = currWord.substring(pos)
+      preSpaces = nextWord.search /^ +/
+      if preSpaces > -1
+        if not preSpaces == (nextWord.length-1)
+          @insertWord (index+1) nextWord.substring(preSpaces)
+        last = _.last(wordsToInsert) + nextWord.substring(0, preSpaces)
+        wordsToInsert[wordsToInsert.length-1] = last
+
+    # Add the spaces at beginning of input string to previous word
+    # if any, or create an empty one
+    if preSpaces > -1
+      if pos == 0
+        if index == 0
+          emptyWord = new Word content.substring(0, preSpaces)
+          @insertWord 0, emptyWord
+        else
+          # update previous word
+          prevWord = @getWord (index-1)
+          prevWord += content.substring(0, preSpaces)
+          @setWord (index-1), prevWord
+
+
+  split: (n) ->
+    word = @getWord n
+    if _.isString(word) and -1 < (word.indexOf ' ') < word.length-1
+      @deleteWords n
+      wlist = (new Word w for w in word.split(' '))
+      while wlist[0] == ''
+        if n-1 >= 0
+          @setWord (n-1) ((@getWord (n-1))+' ')
+        wlist[0] = ' '+wlist[0]
+      while wlist[wlist.length-1] == ''
+        wlist[wlist.length-2] += ' '
+      @insertWords n, wlist
+    else
+      console.log word
+      console.log "Error here"
+
 
   # Relative jump from position
   #
