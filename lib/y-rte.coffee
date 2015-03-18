@@ -1,7 +1,9 @@
 _ = require 'underscore'
+
 # XRegExp = require('xregexp').XRegExp
 WordRegExp = /\S+\s*/g
 PreSpacesRegExp = /^\s+/
+PostSpacesRegExp = /\s+$/
 # Simple class that contains a word and links to the selections pointing
 # to it
 class Word
@@ -262,13 +264,10 @@ class Rte
   # Append new words at the end of the word list
   # @param [String] content the string to append
   push: (content) ->
-    console.log '"' + content + '"'
     preSpaces = content.match PreSpacesRegExp
     if preSpaces isnt null
       @_rte.words.push(new Word (preSpaces[0]))
     words = content.match WordRegExp
-    console.log '"' + preSpaces + '"'
-    console.log words
     if _.isArray(words)
       for w in words
         @_rte.words.push (new Word w)
@@ -280,20 +279,20 @@ class Rte
   #
   insertWords: (position, words)->
     # TODO: update selections
-    if typeof position isnt "number"
-      throw new Error 'Expected a number as first parameter'
-    if words.constructor isnt Array
-      throw new Error 'Expected a string array as second parameter'
+    if not _.isNumber position
+      throw new Error "Expected a number as first parameter, got #{position}"
+    if not _.isArray words
+      throw new Error "Expected a string array as second parameter, got #{words}"
     if 0 <= position <= @_rte.words.length
-      after = [new Word ' '].concat(@getWords(position))
-      before = @getWords(0, Math.max(position-1, 0)).append(new Word ' ')
-      if position == 0
-        before = []
-      else
-        before = @_rte.words[..position-1]
-      after = @_rte.words[position..]
-      @_rte.words = before.concat(words).concat(after)
-      # @updateInsertWords(position, words.length)
+      wordsObj = (new Word w for w in words)
+      console.log "splcing!", wordsObj
+
+      left = @_rte.words.slice(0, position)
+      right = @_rte.words.slice(position)
+      console.log left, right
+      @_rte.words = left.concat(wordsObj).concat(right)
+
+      console.log @_rte.words
     else
       throw new Error 'Index #{position} out of bound in word list'
 
@@ -308,22 +307,22 @@ class Rte
     # TODO
 
 
+  # @overload deleteWords (start, end)
   # Delete all the words between start and end
   #
   # @param [Integer] start position of first word to delete
   # @param [Integer] end position of last word to delete
+  #
+  # @overload deleteWords (position)
+  # Delete the word at position
+  #
+  # @param [Integer] position position the word to delete
   deleteWords: (start, end) ->
     if _.isUndefined(end)
       end = start+1
 
     if start <= end
-      if start - 1 < 0
-        before = []
-      else
-        before = @getWords(0, start-1)
-
-      @_rte.words = before.concat(@getWords(end))
-    @_rte.words
+      @_rte.words.splice(start, end-start)
 
   # Merge two words at position
   #
@@ -332,8 +331,8 @@ class Rte
   merge: (n) ->
     if 0 <= n < @_rte.words.length
       w = @getWord(n).trimRight()
-      @deleteWords(n)
-      @insert({startPos: {word: n, pos:0}}, w)
+      @deleteWords n
+      @insert {startPos: {word: n, pos:0}}, w
     else
       throw new Error "Impossible to merge"
 
@@ -385,43 +384,96 @@ class Rte
     index = sel.startPos.word   #position to work from
     pos = sel.startPos.pos
 
-    wordsToInsert = content.match WordRegExp
     preSpaces = content.search PreSpacesRegExp
 
     currWord = @getWord index
 
-    # Get spaces of next input and append them to last word to insert
-    if index < @_rte.words.length - 1 and pos == (currWord.length - 1)
-      nextWord = @getWord (index+1)
-      preSpaces = nextWord.search /^ +/
-      if preSpaces > -1         # add them to current word
-        @setWord (index+1) nextWord.substring(preSpaces)
-        last = _.last(wordsToInsert) + nextWord.substring(0, preSpaces)
-        wordsToInsert[wordsToInsert.length-1] = last
-    else if pos < (currWord.length - 1)
-      nextWord = currWord.substring(pos)
-      preSpaces = nextWord.search /^ +/
-      if preSpaces > -1
-        if not preSpaces == (nextWord.length-1)
-          @insertWord (index+1) nextWord.substring(preSpaces)
-        last = _.last(wordsToInsert) + nextWord.substring(0, preSpaces)
-        wordsToInsert[wordsToInsert.length-1] = last
-
-    # Add the spaces at beginning of input string to previous word
-    # if any, or create an empty one
+    # move the spaces to the previous word if a pos == 0
     if preSpaces > -1
       if pos == 0
-        if index == 0
-          emptyWord = new Word content.substring(0, preSpaces)
-          @insertWord 0, emptyWord
-          index = 1
-        else
-          # update previous word
-          prevWord = @getWord (index-1)
-          prevWord += content.substring(0, preSpaces)
-          @setWord (index-1), prevWord
+        if index = 0
+          index += 1
+          @insertWord 0, (new Word '')
+        prevWord = @getWord (index-1)
+        prevWord += content.substring(0, preSpaces)
+        content = content.substring(preSpaces)
 
-    @insertWords index, wordsToInsert
+    # insert the content at position
+    currWord = currWord.substring(0, pos) + content + currWord.substring(pos)
+
+    # cut the word
+    newWords = currWord.match WordRegExp
+    tmp = currWord.search PreSpacesRegExp
+    if (tmp) > - 1
+      newWords[0] = (currWord.substring 0, tmp) + newWords[0]
+    console.log newWords
+    @setWord index, newWords[0]
+    @insertWords index+1, newWords[1..]
+
+    # # Get spaces of next input and append them to last word to insert
+    # currWord = @getWord index
+    # if index < @_rte.words.length - 1 and pos == (currWord.length - 1)
+    #   console.log("e")
+    #   # last char of not last word
+    #   nextWord = @getWord (index+1)
+    #   preSpaces = nextWord.search /^ +/
+    #   if preSpaces > -1         # add them to current word
+    #     last = _.last(wordsToInsert) + nextWord.substring(0, preSpaces)
+    #     @setWord (index+1) nextWord.substring(preSpaces)
+    #     wordsToInsert[wordsToInsert.length-1] = last
+    # else if pos < (currWord.length - 1)
+    #   console.log("f")
+    #   endOfCurrWord = currWord.substring pos # can only be spaces or a word
+    #   lToInsert = _.last wordsToInsert
+    #   # if last word to insert ends with spaces and end of current word is a
+    #   # word, add end of current word to list of words to insert
+    #   if ((lToInsert.search PostSpacesRegExp) > -1) and
+    #      ((endOfCurrWord.search WordRegExp) > -1)
+    #     wordsToInsert.push endOfCurrWord
+    #   else
+    #     last = lToInsert + endOfCurrWord
+    #     wordsToInsert[wordsToInsert.length-1] = last
+
+    # # Add the spaces at beginning of input string to previous word
+    # if preSpaces > -1
+    #   if pos == 0
+    #     if index == 0
+    #       console.log("a")
+    #       # insert new word before
+    #       emptyWord = new Word content.substring(0, preSpaces)
+    #       @insertWord 0, emptyWord
+    #       index = 1
+    #     else
+    #       console.log("b")
+    #       # update previous word
+    #       prevWord = @getWord (index-1)
+    #       prevWord += content.substring(0, preSpaces)
+    #       @setWord (index-1), prevWord
+    #   else
+    #     console.log("c")
+    #     # update end of word at index
+    #     newWord = currWord.substring(0, pos) + content.substring(0, preSpaces)
+    #     @setWord index, newWord
+    #     index += 1
+    #     pos = 0
+    # else #
+    #   console.log("d")
+    #   prevWord = currWord.substring(pos)
+    #   # if prevWord has trailing spaces, index ++
+    #   postSpaces = prevWord.match PostSpacesRegExp
+    #   if postSpaces > -1
+    #     console.log(prevWord)
+    #     @setWord index, prevWord
+    #     index += 1
+    #     pos = 0
+    #   else # merge with first word to insert (and remove it from inserting queue)
+    #     console.log("d2")
+    #     first = wordsToInsert.pop(0)
+    #     newWord = currWord.substring(0, pos) + first
+    #     @setWord index, newWord
+    #     index += 1
+    #
+    # @insertWords index, wordsToInsert
 
   split: (n) ->
     word = @getWord n
@@ -436,8 +488,7 @@ class Rte
         wlist[wlist.length-2] += ' '
       @insertWords n, wlist
     else
-      console.log word
-      console.log "Error here"
+      ''
 
 
   # Relative jump from position
@@ -515,7 +566,7 @@ class Rte
       else if delta.insert?
         end = position + delta.insert.length
         selection = new Selection position, end, @
-        @insert(selection, delta.insert)
+        @insert selection, delta.insert
         position = end
       else
         throw new Error "Unknown operation"
