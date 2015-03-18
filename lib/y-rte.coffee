@@ -19,7 +19,7 @@ class Word
       if sel.equals(selToRemove)
         array.splice(index, 1)
 
-
+# A class describing a selection with a style (bold, italic, …)
 class Selection
   # Construct a new selection
   #
@@ -277,10 +277,8 @@ class Rte
 
       left = @_rte.words.slice(0, position)
       right = @_rte.words.slice(position)
-      console.log left, right
       @_rte.words = left.concat(wordsObj).concat(right)
 
-      console.log @_rte.words
     else
       throw new Error 'Index #{position} out of bound in word list'
 
@@ -377,7 +375,6 @@ class Rte
 
     # move the spaces to the previous word if a pos == 0
     if preSpaces isnt null
-      console.log "\'#{preSpaces[0]}\': pre-spaces"
       if pos == 0
         if index == 0
           index += 1
@@ -385,7 +382,6 @@ class Rte
         prevWord = @getWord (index-1)
         prevWord += preSpaces
         content = content.substring(preSpaces.length)
-        console.log "setting content of #{index-1} to '#{prevWord}'"
         @setWord (index-1), prevWord
 
     # insert the content at position
@@ -396,25 +392,8 @@ class Rte
     tmp = currWord.match PreSpacesRegExp
     if tmp isnt null
       newWords[0] = tmp + newWords[0]
-    console.log newWords
     @setWord index, newWords[0]
     @insertWords index+1, newWords[1..]
-
-  split: (n) ->
-    word = @getWord n
-    if _.isString(word) and -1 < (word.indexOf ' ') < word.length-1
-      @deleteWords n
-      wlist = (new Word w for w in word.split(' '))
-      while wlist[0] == ''
-        if n-1 >= 0
-          @setWord (n-1) ((@getWord (n-1))+' ')
-        wlist[0] = ' '+wlist[0]
-      while wlist[wlist.length-1] == ''
-        wlist[wlist.length-2] += ' '
-      @insertWords n, wlist
-    else
-      ''
-
 
   # Relative jump from position
   #
@@ -490,16 +469,13 @@ class Rte
 
       else if delta.delete?
         selection = new Selection position, (position + delta.delete), @
-        console.log position, selection
         @deleteSel selection
 
       else if delta.insert?
-        console.log "inserting", delta.insert, "at", position
         end = position + delta.insert.length
         selection = new Selection position, end, @
         @insert selection, delta.insert
         position += delta.insert.length
-        console.log "inserted", delta.insert, "between", selection
 
       else
         throw new Error "Unknown operation"
