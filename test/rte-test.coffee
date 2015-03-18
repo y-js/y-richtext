@@ -62,19 +62,19 @@ describe 'Rich Text type should', ->
 
   it 'not delete space after word when selection ends at last character', ->
     rte1 = new Rte "I am yjs here!"
-    sel = new Selection({word:2, pos:0}, {word:2, pos:3})
+    sel = new Selection(5, 8, rte1)
     rte1.deleteSel(sel)
     rte1.val().should.equal "I am  here!"
 
   it 'delete space and merge (if necessary)', ->
     rte1 = new Rte "y jjs is here!"
-    sel = new Selection({word:0, pos:1}, {word:1, pos:1})
+    sel = new Selection(1, 3, rte1)
     rte1.deleteSel(sel)
     rte1.val().should.equal "yjs is here!"
 
   it 'merge words when no space anymore', ->
     rte1 = new Rte "yjs is is here!"
-    sel = new Selection({word:1, pos:0}, {word:2, pos:0})
+    sel = new Selection(4, 7, rte1)
     rte1.deleteSel(sel)
     rte1.val().should.equal "yjs is here!"
 
@@ -109,16 +109,15 @@ describe 'Rich Text type should', ->
     rte1.delta delta
     rte1.val().should.equal "Gandalf Grey"
 
+  it 'should accept deltas (style)', ->
+    delta = {ops:[
+      { retain: 7, attributes: {bold: true } }]}
+    rte1 = new Rte "Gandalf the Grey"
+    rte1.delta delta
+    console.log rte1.getWord(0)
+
 describe 'Selection object should', ->
   sel = rte = null
-  it 'be initialized with two parameters', ->
-    [a, b, c, d] = [1, 2, 3, 4]
-    sel = new Selection({word: 1, pos: 2}, {word: 3, pos: 4})
-
-    sel.startPos.word.should.equal a
-    sel.startPos.pos.should.equal b
-    sel.endPos.word.should.equal c
-    sel.endPos.pos.should.equal d
 
   it 'be initialized with three parameters', ->
     rte = new Rte "Zero One two three four five"
@@ -131,14 +130,3 @@ describe 'Selection object should', ->
     sel.should.have.property('endPos')
     sel.should.have.deep.property('endPos.word', 1)
     sel.should.have.deep.property('endPos.pos', 2)
-
-  it 'be initialized with four parameters', ->
-    sel = new Selection 0, 1, 2, 3
-
-    sel.should.have.property('startPos')
-    sel.should.have.deep.property('startPos.word', 0)
-    sel.should.have.deep.property('startPos.pos', 1)
-
-    sel.should.have.property('endPos')
-    sel.should.have.deep.property('endPos.word', 2)
-    sel.should.have.deep.property('endPos.pos', 3)
