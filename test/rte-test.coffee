@@ -28,9 +28,9 @@ describe 'Rich Text type should', ->
 
   it 'insert words correctly', ->
     rte1 = new Rte "is"
-    rte1.insertWords(0, ["This"])
+    rte1.insertWords(0, ["This "])
     rte1.val().should.equal "This is"
-    rte1.insertWords(2, ["sparta", "!"])
+    rte1.insertWords(2, [" sparta ", "!"])
     rte1.val().should.equal "This is sparta !"
 
   it 'delete words correctly', ->
@@ -44,9 +44,9 @@ describe 'Rich Text type should', ->
 
     rte1 = new Rte "There is a mistake in this sentence! there"
     rte1.deleteWords(7, 8)
-    rte1.val().should.equal "There is a mistake in this sentence!"
+    rte1.val().should.equal "There is a mistake in this sentence! "
 
-  it 'insert characters correctly at relative position', ->
+  it 'insert characters correctly at relative positions', ->
     rte1 = new Rte "I lot the gam"
     rte1.insert({startPos: {word:1, pos:2}}, 's')
     rte1.val().should.equal "I lost the gam"
@@ -88,6 +88,27 @@ describe 'Rich Text type should', ->
   #   sel = new Selection({word:1, pos:0}, {word:0, pos:0})
   #   expect(rte1.deleteSel(sel)).to.throw Error("Invalid selection")
 
+  it 'should accept deltas (insert)', ->
+    delta = { ops:[
+      { insert: 'Gandalf', attributes: { bold: true } },
+      { insert: ' the ' },
+      { insert: 'Grey', attributes: { color: '#ccc' } }
+      ] }
+    rte1 = new Rte ""
+    rte1.delta delta
+    rte1.val().should.equal "Gandalf the Grey"
+    rte1._rte.words.length.should.equal 3
+    rte1._rte.words[0].word.should.equal "Gandalf "
+
+  it 'should accept deltas (retain & delete)', ->
+    delta = { ops:[
+      { retain: 7, attributes: { bold: true } },
+      { delete: 4},
+      ] }
+    rte1 = new Rte "Gandalf the Grey"
+    rte1.delta delta
+    rte1.val().should.equal "Gandalf Grey"
+
 describe 'Selection object should', ->
   sel = rte = null
   it 'be initialized with two parameters', ->
@@ -101,15 +122,15 @@ describe 'Selection object should', ->
 
   it 'be initialized with three parameters', ->
     rte = new Rte "Zero One two three four five"
-    sel = new Selection 0, 1, rte
+    sel = new Selection 1, 7, rte
 
     sel.should.have.property('startPos')
     sel.should.have.deep.property('startPos.word', 0)
-    sel.should.have.deep.property('startPos.pos', 0)
+    sel.should.have.deep.property('startPos.pos', 1)
 
     sel.should.have.property('endPos')
-    sel.should.have.deep.property('endPos.word', 0)
-    sel.should.have.deep.property('endPos.pos', 1)
+    sel.should.have.deep.property('endPos.word', 1)
+    sel.should.have.deep.property('endPos.pos', 2)
 
   it 'be initialized with four parameters', ->
     sel = new Selection 0, 1, 2, 3
