@@ -67,10 +67,13 @@ class Selection
         throw new Error "Expecting numbers as arguments"
       c.constructor is "Rte"
 
-      [@startPos, @endPos] = @_relativeFromAbsolute(a, b, c)
-      attr = d
+      @startPos = @_relativeFromAbsolute a, c
+      @endPos = @_relativeFromAbsolute b, c
+      style = d
 
-    else if not _.isUndefined(a) and not _.isUndefined(b) and a.pos? and a.word? and b.pos? and b.word?
+    else if not _.isUndefined(a) and not _.isUndefined(b) and
+      a.pos? and a.word? and
+       b.pos? and b.word?
       @startPos = a
       @endPos = b
 
@@ -90,34 +93,20 @@ class Selection
   # Convert indexes from beginning of text to coordinates expressed in word and
   # position within word
   #
-  # @param [Integer] untilStart index from first character
-  # @param [Integer] untilEnd index from first character
+  # @param [Integer] position index of position to find
   # @param [Rte] rte a rich text editor instance
-  _relativeFromAbsolute: (untilStart, untilEnd, rte)->
-    # Convert absolute coordinates to relatives
-    spw = spp = epw = epp = 0
+  _relativeFromAbsolute: (position, rte)->
+    index = 0
 
-    words = rte._rte.words
-    for i in [0..words.length-1]
-      l = rte.getWord(i).length
-      if l >= untilStart
-        spp = untilStart
-        untilStart = 0
+    while position > 0
+      if index >= rte._rte.words.length
+        return {word: index, pos: 0}
+      if rte._rte.words[index].word.length > position
+        return {word: index, pos: position}
       else
-        spw += 1
-        untilStart -= l
-
-      if l >= untilEnd
-        # throw new Error(untilEnd)
-        epp = untilEnd
-        untilEnd = 0
-      else
-        epw += 1
-        untilEnd -= l
-      if untilStart == untilEnd == 0
-        break
-
-    [{word: spw, pos: spp}, {word: epw, pos: epp}]
+        position -= rte._rte.words[index].word.length
+        index += 1
+    return {word: index, pos: position}
 
   # Compares the bounds of two selections
   #
@@ -285,7 +274,6 @@ class Rte
       throw new Error "Expected a string array as second parameter, got #{words}"
     if 0 <= position <= @_rte.words.length
       wordsObj = (new Word w for w in words)
-      console.log "splcing!", wordsObj
 
       left = @_rte.words.slice(0, position)
       right = @_rte.words.slice(position)
@@ -384,96 +372,33 @@ class Rte
     index = sel.startPos.word   #position to work from
     pos = sel.startPos.pos
 
-    preSpaces = content.search PreSpacesRegExp
-
+    preSpaces = content.match PreSpacesRegExp
     currWord = @getWord index
 
     # move the spaces to the previous word if a pos == 0
-    if preSpaces > -1
+    if preSpaces isnt null
+      console.log "\'#{preSpaces[0]}\': pre-spaces"
       if pos == 0
-        if index = 0
+        if index == 0
           index += 1
           @insertWord 0, (new Word '')
         prevWord = @getWord (index-1)
-        prevWord += content.substring(0, preSpaces)
-        content = content.substring(preSpaces)
+        prevWord += preSpaces
+        content = content.substring(preSpaces.length)
+        console.log "setting content of #{index-1} to '#{prevWord}'"
+        @setWord (index-1), prevWord
 
     # insert the content at position
     currWord = currWord.substring(0, pos) + content + currWord.substring(pos)
 
     # cut the word
     newWords = currWord.match WordRegExp
-    tmp = currWord.search PreSpacesRegExp
-    if (tmp) > - 1
-      newWords[0] = (currWord.substring 0, tmp) + newWords[0]
+    tmp = currWord.match PreSpacesRegExp
+    if tmp isnt null
+      newWords[0] = tmp + newWords[0]
     console.log newWords
     @setWord index, newWords[0]
     @insertWords index+1, newWords[1..]
-
-    # # Get spaces of next input and append them to last word to insert
-    # currWord = @getWord index
-    # if index < @_rte.words.length - 1 and pos == (currWord.length - 1)
-    #   console.log("e")
-    #   # last char of not last word
-    #   nextWord = @getWord (index+1)
-    #   preSpaces = nextWord.search /^ +/
-    #   if preSpaces > -1         # add them to current word
-    #     last = _.last(wordsToInsert) + nextWord.substring(0, preSpaces)
-    #     @setWord (index+1) nextWord.substring(preSpaces)
-    #     wordsToInsert[wordsToInsert.length-1] = last
-    # else if pos < (currWord.length - 1)
-    #   console.log("f")
-    #   endOfCurrWord = currWord.substring pos # can only be spaces or a word
-    #   lToInsert = _.last wordsToInsert
-    #   # if last word to insert ends with spaces and end of current word is a
-    #   # word, add end of current word to list of words to insert
-    #   if ((lToInsert.search PostSpacesRegExp) > -1) and
-    #      ((endOfCurrWord.search WordRegExp) > -1)
-    #     wordsToInsert.push endOfCurrWord
-    #   else
-    #     last = lToInsert + endOfCurrWord
-    #     wordsToInsert[wordsToInsert.length-1] = last
-
-    # # Add the spaces at beginning of input string to previous word
-    # if preSpaces > -1
-    #   if pos == 0
-    #     if index == 0
-    #       console.log("a")
-    #       # insert new word before
-    #       emptyWord = new Word content.substring(0, preSpaces)
-    #       @insertWord 0, emptyWord
-    #       index = 1
-    #     else
-    #       console.log("b")
-    #       # update previous word
-    #       prevWord = @getWord (index-1)
-    #       prevWord += content.substring(0, preSpaces)
-    #       @setWord (index-1), prevWord
-    #   else
-    #     console.log("c")
-    #     # update end of word at index
-    #     newWord = currWord.substring(0, pos) + content.substring(0, preSpaces)
-    #     @setWord index, newWord
-    #     index += 1
-    #     pos = 0
-    # else #
-    #   console.log("d")
-    #   prevWord = currWord.substring(pos)
-    #   # if prevWord has trailing spaces, index ++
-    #   postSpaces = prevWord.match PostSpacesRegExp
-    #   if postSpaces > -1
-    #     console.log(prevWord)
-    #     @setWord index, prevWord
-    #     index += 1
-    #     pos = 0
-    #   else # merge with first word to insert (and remove it from inserting queue)
-    #     console.log("d2")
-    #     first = wordsToInsert.pop(0)
-    #     newWord = currWord.substring(0, pos) + first
-    #     @setWord index, newWord
-    #     index += 1
-    #
-    # @insertWords index, wordsToInsert
 
   split: (n) ->
     word = @getWord n
@@ -559,15 +484,23 @@ class Rte
     position = 0
     for delta in deltas.ops
       if delta.retain?
-        selection = new Selection position (position + delta.retain)
+        if delta.attributes?
+          selection = new Selection position, (position + delta.retain), @
+        position += delta.retain
+
       else if delta.delete?
-        selection = new Selection position (position + delta.retain)
-        @delete(selection)
+        selection = new Selection position, (position + delta.delete), @
+        console.log position, selection
+        @deleteSel selection
+
       else if delta.insert?
+        console.log "inserting", delta.insert, "at", position
         end = position + delta.insert.length
         selection = new Selection position, end, @
         @insert selection, delta.insert
-        position = end
+        position += delta.insert.length
+        console.log "inserted", delta.insert, "between", selection
+
       else
         throw new Error "Unknown operation"
 
