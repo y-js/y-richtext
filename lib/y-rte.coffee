@@ -136,7 +136,7 @@ class Selection
     # Check if they're contiguous
     if selection.endPos.word == @startPos.word or
        (selection.endPos.word == @startPos.word -1 and
-        selection.endPos.loc == rte.getWord(selection.endPos.word).length() and
+        selection.endPos.loc == rte.getWord(selection.endPos.word).word.length() and
         @startPos.loc == 0)
       # boundaries of new selection
       start = selection.startPos
@@ -146,17 +146,17 @@ class Selection
       rte.getWord(@startPos.word).removeSel(@)
     else if @endPos.word == selection.startPos.word or
        (@endPos.word == selection.startPos.word -1 and
-        @endPos.loc == rte.getWord(@endPos.word).length() and
+        @endPos.loc == rte.getWord(@endPos.word).word.length() and
         selection.startPos.loc == 0)
       start = @startPos
       end = selection.endPos
-      rte.getWord(@endPos.word).removeSel(@)
-      rte.getWord(selection.endPos.word).removeSel(selection)
+      rte.getWord(@endPos.word).word.removeSel(@)
+      rte.getWord(selection.endPos.word).word.removeSel(selection)
     else
       return
 
     nSelec = new Selection start, end, selection.style
-    rte.getWord()
+    rte.getWord().word
 
 
 # Class describing the Rich Text Editor type
@@ -185,7 +185,7 @@ class Rte
   # unobserve:
 
   # @overload val()
-  #   Return the value of the Rte instance as a string
+  #   Return the value of the Rte instance as a non formatted string
   #
   # @overload val(content)
   #   Set the content of the Rte instance
@@ -200,15 +200,15 @@ class Rte
       # TODO: support breaks (br, new paragraph, …)
       (e.word for e in @_rte.words).join('')
 
-  # Returns the **string representation** of a word.
+  # Returns the word object of a word.
   # @param index [Integer] the index of the word to return
   getWord: (index) ->
     if @_rte.words.length == 0 or index == @_rte.words.length
-      return ""
+      return new Word ""
 
     if not (0 <= index < @_rte.words.length)
       throw new Error "Index out of bounds #{index}"
-    @_rte.words[index].word
+    @_rte.words[index]
 
   # Returns the *word objects* within boundaries
   # @param begin [Integer] the first word the return
@@ -292,29 +292,29 @@ class Rte
   #
   merge: (index) ->
     if 0 <= index < @_rte.words.length
-      word = @getWord(index).trimRight()
+      word = @getWord(index).word.trimRight()
       @deleteWords index
       @insert {startPos: {word: index, pos:0}}, word
     else
       throw new Error "Impossible to merge"
 
-  # Delete a selection
+  # Delete text undor selection
   #
   # @param [Selection] sel the selection to delete
   #
   deleteSel: (selection) ->
     if not selection.isValid()
       throw new Error "Invalid selection"
-    if not 0 <= selection.startPos.loc <= @getWord(selection.startPos.word).length
+    if not 0 <= selection.startPos.loc <= @getWord(selection.startPos.word).word.length
       throw new Error "Invalid selection"
-    if not 0 <= selection.endPos.loc <= @getWord(selection.endPos.word).length
+    if not 0 <= selection.endPos.loc <= @getWord(selection.endPos.word).word.length
       throw new Error "Invalid selection"
 
     start = selection.startPos.word
     end = selection.endPos.word
 
-    newLeft = @getWord(start).substring(0, selection.startPos.pos)
-    newRight = @getWord(end).substring(selection.endPos.pos)
+    newLeft = @getWord(start).word.substring(0, selection.startPos.pos)
+    newRight = @getWord(end).word.substring(selection.endPos.pos)
 
     if start == end
       @setWord(start, newLeft + newRight)
@@ -332,7 +332,7 @@ class Rte
 
   # Insert text at position
   #
-  # @param [Option] position The position where to insert text
+  # @param [Selection] position The position where to insert text
   # @param [String] content the content to insert
   #
   insert: (selection, content)->
@@ -347,7 +347,7 @@ class Rte
     pos = selection.startPos.pos
 
     preSpaces = content.match PreSpacesRegExp
-    currWord = @getWord index
+    currWord = @getWord(index).word
 
     # move the spaces to the previous word if a pos == 0
     if preSpaces isnt null
@@ -355,7 +355,7 @@ class Rte
         if index == 0
           index += 1
           @insertWord 0, (new Word '')
-        prevWord = @getWord (index-1)
+        prevWord = @getWord(index-1).word
         prevWord += preSpaces
         content = content.substring(preSpaces.length)
         @setWord (index-1), prevWord
@@ -363,7 +363,7 @@ class Rte
     # insert the content at position
     currWord = currWord.substring(0, pos) + content + currWord.substring(pos)
 
-    # cut the word
+    # cut the wordcon
     newWords = currWord.match WordRegExp
     tmp = currWord.match PreSpacesRegExp
     if tmp isnt null
@@ -383,7 +383,7 @@ class Rte
         if pos < jump
           word -= 1
           jump -= pos
-          pos = @getWord(word).length - 1
+          pos = @getWord(word).word.length - 1
 
           if word < 0
             return null
@@ -412,6 +412,15 @@ class Rte
   setStyle: (selection, style)->
     if not selection.isValid()
       throw new Error "Invalid selection"
+
+    # In case the selection already has a style (which is different)
+    if selection.style != style
+      selection = new Selection(selection.start, selection.end, style)
+
+    if _.isUndefined selection.style
+      selection.style = style
+
+    @getWord(selection.startPos.word).word
 
     # Try to merge with previous / next contiguous selection
     {prevWord, position} = @_jump(selection.startPos, -1)
