@@ -7,6 +7,7 @@ PostSpacesRegExp = /\s+$/
 # Simple class that contains a word and links to the selections pointing
 # to it
 class Word
+  # Attribute containing the string
   @word = ''
   # Selections that have this word as left bound
   @left = []
@@ -17,6 +18,9 @@ class Word
   # @param [String] word The initial string value
   # @return [Word] a word instance
   constructor: (@word) ->
+
+  # Remove the selection from the selections bound to the word
+  # @param [Selection] selToRemove the selection to remove from selections list
   removeSel: (selToRemove) ->
     @selections.forEach sel, index, array ->
       if sel.equals(selToRemove)
@@ -53,11 +57,11 @@ class Selection
     if not _.isUndefined(style)
       @style = style
 
-    @startPos.lt = @endPos.lt = (s) ->
-      @word < s.word or (@word == s.word and @pos <= s.pos)
+    @startPos.lt = @endPos.lt = (selection) ->
+      @word < selection.word or (@word == selection.word and @pos <= selection.pos)
 
-    @startPos.gt = @endPos.gt = (s) ->
-      @word > s.word or (@word == s.word and @pos >= s.pos)
+    @startPos.gt = @endPos.gt = (selection) ->
+      @word > selection.word or (@word == selection.word and @pos >= selection.pos)
 
   # Convert indexes from beginning of text to coordinates expressed in word and
   # position within word
@@ -77,7 +81,7 @@ class Selection
         index += 1
     return {word: index, pos: position}
 
-  # Compares the bounds of two selections
+  # Compares *the bounds* of two selections
   #
   # @param [Selection] s the selection to compare to this
   #
@@ -86,6 +90,13 @@ class Selection
     @startPos.pos == selection.startPos.pos and
     @endPos.word == selection.endPos.word and
     @endPos.pos == selection.endPos.pos
+
+  # Compares *the bounds* of two selections
+  #
+  # @param [Selection] s the selection to compare to this
+  #
+  notEquals: (s) ->
+    not equals(s)
 
   # Returns true if the given selection is in the current selection
   #
@@ -109,12 +120,44 @@ class Selection
     @startPos.lt(selection.endPos) or @endPos.gt(selection.startPos)
 
   #TODO
-  setAttr: (@attr) ->
+  setStyle: (@style) ->
 
   # Validate a selection if the start is before the end of the selection
   #
   isValid: ->
     @startPos.lt(@endPos)
+
+
+  # Try to merge this selection with the one given in argument
+  #
+  # @param s [Selection] The selection to merge with
+  # @param rte [Rte] The RTE instance
+  merge: (selection, rte) ->
+    # Check if they're contiguous
+    if selection.endPos.word == @startPos.word or
+       (selection.endPos.word == @startPos.word -1 and
+        selection.endPos.loc == rte.getWord(selection.endPos.word).length() and
+        @startPos.loc == 0)
+      # boundaries of new selection
+      start = selection.startPos
+      end = @endPos
+      # remove link of middle words to selection
+      rte.getWord(selection.endPos.word).removeSel(selection)
+      rte.getWord(@startPos.word).removeSel(@)
+    else if @endPos.word == selection.startPos.word or
+       (@endPos.word == selection.startPos.word -1 and
+        @endPos.loc == rte.getWord(@endPos.word).length() and
+        selection.startPos.loc == 0)
+      start = @startPos
+      end = selection.endPos
+      rte.getWord(@endPos.word).removeSel(@)
+      rte.getWord(selection.endPos.word).removeSel(selection)
+    else
+      return
+
+    nSelec = new Selection start, end, selection.style
+    rte.getWord()
+
 
 # Class describing the Rich Text Editor type
 #
@@ -142,18 +185,17 @@ class Rte
   # unobserve:
 
   # @overload val()
-  #   Return a string representation of the object
+  #   Return the value of the Rte instance as a string
   #
   # @overload val(content)
-  #   Set the value of the object to content
-  #   @param [String] content the initial content to set
-  #
+  #   Set the content of the Rte instance
+  #   @param content [String] Set the strings of the Rte to this content
   val: (content)->
     if not _.isUndefined(content)
       # reset styles when replacing content
       @_rte.words = []
       @_rte.style = []
-      @_push(content)
+      @push(content)
     else
       # TODO: support breaks (br, new paragraph, …)
       (e.word for e in @_rte.words).join('')
@@ -161,6 +203,9 @@ class Rte
   # Returns the **string representation** of a word.
   # @param index [Integer] the index of the word to return
   getWord: (index) ->
+    if @_rte.words.length == 0 or index == @_rte.words.length
+      return ""
+
     if not (0 <= index < @_rte.words.length)
       throw new Error "Index out of bounds #{index}"
     @_rte.words[index].word
@@ -172,10 +217,10 @@ class Rte
     if _.isUndefined(end)
       end = @_rte.words.length
     if not (0 <= begin <= end <= @_rte.words.length)
-      throw new Error "Index out of bounds: #{[begin, end]}"
+      return []
 
     ret = @_rte.words[begin..end]
-    if ret?
+    if ret
       ret
     else
       []
@@ -184,8 +229,11 @@ class Rte
   # @param index [Integer] the index of the word to modify
   # @param content [String] the content to set the word to
   setWord: (index, content) ->
+    if index == @_rte.words.length
+      @_rte.words.push(new Word content)
     if not (0 <= index < @_rte.words.length)
       throw new Error "Index out of bounds"
+
     @_rte.words[index].word = content
 
   # Append new words at the end of the word list
@@ -220,16 +268,6 @@ class Rte
     else
       throw new Error 'Index #{position} out of bound in word list'
 
-  # insert l words at pos wNum
-  #
-  updateInsertWords: (wNum, n)->
-    # TODO
-
-  # insert n caracters in word wNum at position pos
-  #
-  updateInsert: (wNum, pos, n)->
-    # TODO
-
 
   # @overload deleteWords (start, end)
   # Delete all the words between start and end
@@ -250,14 +288,13 @@ class Rte
 
   # Merge two words at position
   #
-  # @param [Integer] n position of word where to perform merge. The merge will
-  #  be done with the word at right (if any)
+  # @param [Integer] n position of word where to perform merge. The merge will be done with the word at right (if any)
   #
   merge: (index) ->
     if 0 <= index < @_rte.words.length
-      w = @getWord(index).trimRight()
+      word = @getWord(index).trimRight()
       @deleteWords index
-      @insert {startPos: {word: index, pos:0}}, w
+      @insert {startPos: {word: index, pos:0}}, word
     else
       throw new Error "Impossible to merge"
 
@@ -369,36 +406,25 @@ class Rte
       pos = pos
     {word: word, pos: pos}
 
-  # get all selections with right (or left end) at location
-  _getSel: (location, rightOrLeft) ->
-    ret = []
-    if rightOrLeft == 'right'
-      selList = @_rte.words[location.word].refRight
-      for sel in selList
-        if sel.endPos.pos == location.pos
-          ret.push(sel)
-
-    else if rightOrLeft == 'left'
-      selList = @_rte.words[location.word].refLeft
-      for sel in selList
-        if sel.startPos.pos == location.pos
-          ret.push(sel)
-
-    else
-      throw new Error "Error in second argument of _getSel"
-
-    ret
-
-  # Set the attribute to the selection and try to extend as much
+  # Set the style of the selection and try to extend as much
   # as possible existing ones
   #
-  setAttr: (selection)->
-    if not selectin.isValid()
+  setStyle: (selection, style)->
+    if not selection.isValid()
       throw new Error "Invalid selection"
+
+    # Try to merge with previous / next contiguous selection
+    {prevWord, position} = @_jump(selection.startPos, -1)
+    {nextWord, position} = @_jump(selection.endPos,   +1)
+    for s in prevWord.selections when selection.style == s.style
+      s.merge selection, @
+    for s in nextWord.selections when selection.style == s.style
+      s.merge selection, @
 
   # Apply a delta to the object
   # @see http://quilljs.com/docs/deltas/
   #
+  delta: (deltas) ->
     position = 0
     for delta in deltas.ops
       if delta.retain?
