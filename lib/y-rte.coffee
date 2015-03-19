@@ -8,7 +8,10 @@ PostSpacesRegExp = /\s+$/
 # to it
 class Word
   @word = ''
-  @selections = []
+  # Selections that have this word as left bound
+  @left = []
+  # Selections that have this word as right bound
+  @right = []
 
   # Construct a new list of words
   # @param [String] word The initial string value
@@ -21,65 +24,31 @@ class Word
 
 # A class describing a selection with a style (bold, italic, …)
 class Selection
-  # Construct a new selection
-  #
-  # @overload constructor(startAtN, startAtPosition, endAtN, endAtPosition, [style])
-  #   Construct a new selection using the position in a word for start and end
-  #   positions
-  #   @param [Integer] startAtN position of the first word of selection
-  #   @param [Integer] startAtPosition position in this first word
-  #   @param [Integer] endAtN position of the last word of selection
-  #   @param [Integer] endAtPosition position in this last word
-  #   @option options [Object] style the style of the selection
-  #
-  # @overload constructor(start, end, rte, [style])
+  # Word that is the left bound
+  @left = null
+  # Word that is the right bound
+  @right = null
   #   Construct a new selection using the index of the first and last character.
   #   Retrieves the position in (word, position) using an instance of rte
   #   @param [Integer] start index of the first character
   #   @param [Integer] end index of the last character
   #   @param [Rte] rte a rich-text editor (Rte) instance
   #   @option options [Object] style the style of the selection
-  #
-  # @overload constructor(startPos, endPos, [style])
-  #   Construct a new selection using two position objects
-  #   @param [Object] startPos the position of the start
-  #   @option startPos [Integer] word first word of selection
-  #   @option startPos [Integer] pos position in first word of selection
-  #   @param [Object] endPos the position of the end
-  #   @option endPos [Integer] word last word of selection
-  #   @option endPos [Integer] pos position in last word of selection
-  #   @option options [Object] style the style of the selection
-  constructor: (a, b, c, d, e)->
-    if not _.isUndefined(a) and not _.isUndefined(b) and not _.isUndefined(c) and not _.isUndefined(d)
-      if !( _.isNumber(a) and
-            _.isNumber(b) and
-            _.isNumber(c) and
-            _.isNumber(d))
+  constructor: (start, end, rte, style)->
+    if not _.isUndefined(start) and not _.isUndefined(end) and not _.isUndefined(rte)
+      if !( _.isNumber(start) and
+            _.isNumber(end))
         throw new Error "Expecting numbers as arguments"
-      @startPos = {word: a, pos: b}
-      @endPos = {word: c, pos: d}
+      if !(rte.constructor isnt "Rte")
+        throw new Error "Expecting an rte as third argument"
+      @startPos = @_relativeFromAbsolute start, rte
+      @endPos = @_relativeFromAbsolute end, rte
+      @style = style
 
-      style = e
+      @left = rte.getWord @startPos.word
+      @right = rte.getWord @endPos.word
 
-    else if not _.isUndefined(a) and not _.isUndefined(b) and not _.isUndefined(c)
-      if !( _.isNumber(a) and
-            _.isNumber(b))
-        throw new Error "Expecting numbers as arguments"
-      c.constructor is "Rte"
-
-      @startPos = @_relativeFromAbsolute a, c
-      @endPos = @_relativeFromAbsolute b, c
-      style = d
-
-    else if not _.isUndefined(a) and not _.isUndefined(b) and
-      a.pos? and a.word? and
-       b.pos? and b.word?
-      @startPos = a
-      @endPos = b
-
-      style = c
-
-    else throw new Error "Wrong set of parameters #{[a, b, c, d, e]}"
+    else throw new Error "Wrong set of parameters #{[start, end, rte, style]}"
 
     if not _.isUndefined(style)
       @style = style
@@ -141,11 +110,6 @@ class Selection
 
   #TODO
   setAttr: (@attr) ->
-
-  # Create a copy of the selection
-  #
-  clone: ->
-    new Selection(@startPos, @endPos, @style)
 
   # Validate a selection if the start is before the end of the selection
   #
@@ -218,18 +182,21 @@ class Rte
       # TODO: support breaks (br, new paragraph, …)
       (e.word for e in @_rte.words).join('')
 
-  # Returns the string representation of a word.
+  # Returns the **string representation** of a word.
   # @param index [Integer] the index of the word to return
   getWord: (index) ->
     if not (0 <= index < @_rte.words.length)
-      throw new Error "Index out of bounds"
-    i = j = 0                   # i : index in array, j : index of word
-    while j < index
-      if (@_rte.words[i].word isnt '' and @_rte.words[i] isnt ' ')
-        j += 1
-      i += 1
-    @_rte.words[i].word
+      throw new Error "Index out of bounds #{index}"
+    # i = j = 0                   # i : index in array, j : index of word
+    # while j < index
+    #   if (@_rte.words[i].word isnt '' and @_rte.words[i] isnt ' ')
+    #     j += 1
+    #   i += 1
+    @_rte.words[index].word
 
+  # Returns the *word objects* within boundaries
+  # @param begin [Integer] the first word the return
+  # @param end [Integer] the first word /not/ to return
   getWords: (begin, end) ->
     if _.isUndefined(end)
       end = @_rte.words.length

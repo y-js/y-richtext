@@ -56,7 +56,7 @@ describe 'Rich Text type should', ->
 
   it 'delete relative selection correctly', ->
     rte1 = new Rte "yjs is really nyice"
-    sel = new Selection({word:3, pos:1}, {word:3, pos:2})
+    sel = new Selection(15, 16, rte1)
     rte1.deleteSel(sel)
     rte1.val().should.equal "yjs is really nice"
 
