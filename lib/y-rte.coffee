@@ -81,32 +81,32 @@ class Selection
   #
   # @param [Selection] s the selection to compare to this
   #
-  equals: (s)->
-    @startPos.word == s.startPos.word and
-    @startPos.pos == s.startPos.pos and
-    @endPos.word == s.endPos.word and
-    @endPos.pos == s.endPos.pos
+  equals: (selection)->
+    @startPos.word == selection.startPos.word and
+    @startPos.pos == selection.startPos.pos and
+    @endPos.word == selection.endPos.word and
+    @endPos.pos == selection.endPos.pos
 
   # Returns true if the given selection is in the current selection
   #
   # @param [Selection] s the selection to compare to this
   #
-  in: (s) ->
-    @startPos.lt(s) and @endPos.gt(s)
+  in: (selection) ->
+    @startPos.lt(selection) and @endPos.gt(selection)
 
   # Returns true if the current selection is in the given selection
   #
   # @param [Selection] s the selection to compare to this
   #
-  contains: (s) ->
-    s.in(@)
+  contains: (selection) ->
+    selection.in(@)
 
   # Returns true if the given selection overlaps the current selection
   #
   # @param [Selection] s the selection to compare to this
   #
-  overlaps: (s) ->
-    @startPos.lt(s.endPos) or @endPos.gt(s.startPos)
+  overlaps: (selection) ->
+    @startPos.lt(selection.endPos) or @endPos.gt(selection.startPos)
 
   #TODO
   setAttr: (@attr) ->
@@ -115,30 +115,6 @@ class Selection
   #
   isValid: ->
     @startPos.lt(@endPos)
-
-
-# Class describing the Rich Text Editor type
-#
-class Rte
-  # @property [Options] _rte the RTE object
-  # @param [String] content the initial content to set
-  # @option _rte [Array<Selection>] selections array containing all the current selections
-  # @option _rte [Array<String>] words array containing all the words of the text
-  #
-  constructor: (content = '')->
-    if content.constructor is String
-      @_rte = {}
-      @_rte.styles = []
-      @_rte.selections = []
-      @_rte.cursorInformation = {}
-      @_rte.words = []
-      @push(content)
-    else
-      return
-
-    nSelec = new Selection start, end, s.style
-    rte.getWord()
-
 
 # Class describing the Rich Text Editor type
 #
@@ -187,11 +163,6 @@ class Rte
   getWord: (index) ->
     if not (0 <= index < @_rte.words.length)
       throw new Error "Index out of bounds #{index}"
-    # i = j = 0                   # i : index in array, j : index of word
-    # while j < index
-    #   if (@_rte.words[i].word isnt '' and @_rte.words[i] isnt ' ')
-    #     j += 1
-    #   i += 1
     @_rte.words[index].word
 
   # Returns the *word objects* within boundaries
@@ -279,13 +250,14 @@ class Rte
 
   # Merge two words at position
   #
-  # @param [Integer] n position of word where to perform merge. The merge will be done with the word at right (if any)
+  # @param [Integer] n position of word where to perform merge. The merge will
+  #  be done with the word at right (if any)
   #
-  merge: (n) ->
-    if 0 <= n < @_rte.words.length
-      w = @getWord(n).trimRight()
-      @deleteWords n
-      @insert {startPos: {word: n, pos:0}}, w
+  merge: (index) ->
+    if 0 <= index < @_rte.words.length
+      w = @getWord(index).trimRight()
+      @deleteWords index
+      @insert {startPos: {word: index, pos:0}}, w
     else
       throw new Error "Impossible to merge"
 
@@ -293,49 +265,49 @@ class Rte
   #
   # @param [Selection] sel the selection to delete
   #
-  deleteSel: (sel) ->
-    if not sel.isValid()
+  deleteSel: (selection) ->
+    if not selection.isValid()
       throw new Error "Invalid selection"
-    if not 0 <= sel.startPos.loc <= @getWord(sel.startPos.word).length
+    if not 0 <= selection.startPos.loc <= @getWord(selection.startPos.word).length
       throw new Error "Invalid selection"
-    if not 0 <= sel.endPos.loc <= @getWord(sel.endPos.word).length
+    if not 0 <= selection.endPos.loc <= @getWord(selection.endPos.word).length
       throw new Error "Invalid selection"
 
-    s = sel.startPos.word
-    e = sel.endPos.word
+    start = selection.startPos.word
+    end = selection.endPos.word
 
-    newLeft = @getWord(s).substring(0, sel.startPos.pos)
-    newRight = @getWord(e).substring(sel.endPos.pos)
+    newLeft = @getWord(s).substring(0, selection.startPos.pos)
+    newRight = @getWord(e).substring(selection.endPos.pos)
 
-    if s == e
-      @setWord(s, newLeft + newRight)
+    if start == end
+      @setWord(start, newLeft + newRight)
 
       # delete the words in between
-      @deleteWords(s+1, e)
+      @deleteWords(start+1, end)
     else
-      @setWord(s, newLeft)
-      @setWord(e, newRight)
+      @setWord(start, newLeft)
+      @setWord(end, newRight)
 
       # delete the words in between
-      @deleteWords(s+1, e)
+      @deleteWords(start+1, end)
       # merge
-      @merge(s)
+      @merge(start)
 
   # Insert text at position
   #
   # @param [Option] position The position where to insert text
   # @param [String] content the content to insert
   #
-  insert: (sel, content)->
-    if (_.isUndefined sel.startPos)
+  insert: (selection, content)->
+    if (_.isUndefined selection.startPos)
       throw new Error "Expected a location object as first argument"
     if not (_.isString content)
       throw new Error "Expected a string as second argument"
 
     if content.length == 0
       return
-    index = sel.startPos.word   #position to work from
-    pos = sel.startPos.pos
+    index = selection.startPos.word   #position to work from
+    pos = selection.startPos.pos
 
     preSpaces = content.match PreSpacesRegExp
     currWord = @getWord index
@@ -420,8 +392,8 @@ class Rte
   # Set the attribute to the selection and try to extend as much
   # as possible existing ones
   #
-  setAttr: (thisSel)->
-    if not thisSel.isValid()
+  setAttr: (selection)->
+    if not selectin.isValid()
       throw new Error "Invalid selection"
 
   # Apply a delta to the object
