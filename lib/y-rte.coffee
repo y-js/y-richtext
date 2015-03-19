@@ -313,8 +313,8 @@ class Rte
     start = selection.startPos.word
     end = selection.endPos.word
 
-    newLeft = @getWord(s).substring(0, selection.startPos.pos)
-    newRight = @getWord(e).substring(selection.endPos.pos)
+    newLeft = @getWord(start).substring(0, selection.startPos.pos)
+    newRight = @getWord(end).substring(selection.endPos.pos)
 
     if start == end
       @setWord(start, newLeft + newRight)
