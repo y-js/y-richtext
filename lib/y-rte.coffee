@@ -18,13 +18,30 @@ class Word
   # @param [String] word The initial string value
   # @return [Word] a word instance
   constructor: (@word) ->
+    # Selections that have this word as left bound
+    @left = []
+    # Selections that have this word as right bound
+    @right = []
 
-  # Remove the selection from the selections bound to the word
-  # @param [Selection] selToRemove the selection to remove from selections list
-  removeSel: (selToRemove) ->
-    @selections.forEach sel, index, array ->
-      if sel.equals(selToRemove)
-        array.splice(index, 1)
+  # Remove a selection from left or right array
+  #
+  # @param [Selection] selection the selection to remove
+  # @param [Option] side the side where to remove the selection
+  # @option side [String] left left side
+  # @option side [String] right right side
+  removeSel: (selection, side)->
+    if side == "left"
+      array = @left
+    else if side == "right"
+      array = @right
+    else
+      throw new Error "Invalid argument #{side}, expected 'left' or 'right'"
+    index = 0
+    for element in array
+      if element.equals selection
+        array.pop(index)
+        break
+      index += 1
 
 # A class describing a selection with a style (bold, italic, …)
 class Selection
@@ -39,6 +56,7 @@ class Selection
   #   @param [Rte] rte a rich-text editor (Rte) instance
   #   @option options [Object] style the style of the selection
   constructor: (start, end, rte, style)->
+
     if not _.isUndefined(start) and not _.isUndefined(end) and not _.isUndefined(rte)
       if !( _.isNumber(start) and
             _.isNumber(end))
@@ -51,6 +69,8 @@ class Selection
 
       @left = rte.getWord @startPos.word
       @right = rte.getWord @endPos.word
+
+      rte._rte.selections.push @
 
     else throw new Error "Wrong set of parameters #{[start, end, rte, style]}"
 
@@ -107,17 +127,27 @@ class Selection
 
   # Returns true if the current selection is in the given selection
   #
-  # @param [Selection] s the selection to compare to this
+  # @param [Selection] selection the selection to compare to this
   #
   contains: (selection) ->
     selection.in(@)
 
   # Returns true if the given selection overlaps the current selection
   #
-  # @param [Selection] s the selection to compare to this
+  # @param [Selection] selection the selection to compare to this
   #
   overlaps: (selection) ->
     @startPos.lt(selection.endPos) or @endPos.gt(selection.startPos)
+
+  # Returns true if the given selection and this selection are contiguous
+  # and this selection is at left of the given one
+  #
+  # @param [Selection] selection the selection to compare to this
+  atLeftOf: (selection) ->
+    (@endPos.word == selection.startPos.word and
+     @endPos.pos == selection.startPos.pos)
+
+  # Merge the given selection with this selection if they are contiguous
 
   #TODO
   setStyle: (@style) ->
@@ -128,36 +158,39 @@ class Selection
     @startPos.lt(@endPos)
 
 
-  # Try to merge this selection with the one given in argument
+  # Try to merge the given selection with this selection
   #
-  # @param s [Selection] The selection to merge with
-  # @param rte [Rte] The RTE instance
+  # @param [Selection] selection the selection to merge to
+  # @param [Rte] rte a Rich text editor instance
+  #
+  # @example
+  #   1                 2                   3
+  #   [  left selection ][  right selection ]
+  #    becomes
+  #   [           right selection           ]
   merge: (selection, rte) ->
-    # Check if they're contiguous
-    if selection.endPos.word == @startPos.word or
-       (selection.endPos.word == @startPos.word -1 and
-        selection.endPos.loc == rte.getWord(selection.endPos.word).word.length() and
-        @startPos.loc == 0)
-      # boundaries of new selection
-      start = selection.startPos
-      end = @endPos
-      # remove link of middle words to selection
-      rte.getWord(selection.endPos.word).removeSel(selection)
-      rte.getWord(@startPos.word).removeSel(@)
-    else if @endPos.word == selection.startPos.word or
-       (@endPos.word == selection.startPos.word -1 and
-        @endPos.loc == rte.getWord(@endPos.word).word.length() and
-        selection.startPos.loc == 0)
-      start = @startPos
-      end = selection.endPos
-      rte.getWord(@endPos.word).word.removeSel(@)
-      rte.getWord(selection.endPos.word).word.removeSel(selection)
+    if @.style != selection.style
+      return false
+    if @atLeftOf selection
+      leftSel = @
+      rightSel = selection
     else
-      return
+      leftSel = selection
+      rightSel = @
 
-    nSelec = new Selection start, end, selection.style
-    rte.getWord().word
+    # unbind words from left selection, remove it from selection list
+    # expand the selection at right to the left end of previous left selection
+    leftSel.unbind()
+    rightSel.left.removeSel rightSel, "left"
+    rightSel.left = leftSel.left
 
+    rightSel.startPos = leftSel.startPos
+
+    rte.removeSel leftSel
+
+  unbind: ->
+    @left.removeSel(@, "left")
+    @right.removeSel(@, "right")
 
 # Class describing the Rich Text Editor type
 #
@@ -413,14 +446,31 @@ class Rte
     if not selection.isValid()
       throw new Error "Invalid selection"
 
-    # In case the selection already has a style (which is different)
+    # In case the selection already has a style which is different
     if selection.style != style
       selection = new Selection(selection.start, selection.end, style)
 
+    # If no style add it
     if _.isUndefined selection.style
       selection.style = style
 
-    @getWord(selection.startPos.word).word
+    # Link the boundary words to selection
+    leftWord = @getWord selection.startPos.word
+    rightWord = @getWord selection.endPos.word
+
+    selection.left = leftWord
+    selection.right = rightWord
+
+    leftWord.left.push(selection)
+    rightWord.right.push(selection)
+
+    # Merge left…
+    for tmpSelection in leftWord.right
+      tmpSelection.merge(selection, @)
+    # …and right (only happens when selections are contiguous or overlapping
+    # and have same style)
+    for tmpSelection in rightWord.left
+      tmpSelection.merge(selection, @)
 
     # Try to merge with previous / next contiguous selection
     {prevWord, position} = @_jump(selection.startPos, -1)
@@ -457,6 +507,18 @@ class Rte
       if delta.attributes?
         for attr in delta.attributes
           @setAttr(selection.clone().style = attr)
+
+  # Remove a selection from selection list
+  #
+  # @param [Selection] selection the selection to remove
+  removeSel: (selection) ->
+    index = 0
+    array = @_rte.selections
+    for element in array
+      if (element.equals(selection) and (element.style == selection.style))
+        array.splice index, 1
+        break
+      index += 1
 
 if window?
   window.Rte = Rte

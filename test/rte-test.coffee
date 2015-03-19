@@ -28,9 +28,9 @@ describe 'Rich Text type should', ->
 
   it 'insert words correctly', ->
     rte1 = new Rte "is"
-    rte1.insertWords(0, ["This"])
+    rte1.insertWords(0, ["This "])
     rte1.val().should.equal "This is"
-    rte1.insertWords(2, ["sparta", "!"])
+    rte1.insertWords(2, [" sparta ", "!"])
     rte1.val().should.equal "This is sparta !"
 
   it 'delete words correctly', ->
@@ -44,9 +44,9 @@ describe 'Rich Text type should', ->
 
     rte1 = new Rte "There is a mistake in this sentence! there"
     rte1.deleteWords(7, 8)
-    rte1.val().should.equal "There is a mistake in this sentence!"
+    rte1.val().should.equal "There is a mistake in this sentence! "
 
-  it 'insert characters correctly at relative position', ->
+  it 'insert characters correctly at relative positions', ->
     rte1 = new Rte "I lot the gam"
     rte1.insert({startPos: {word:1, pos:2}}, 's')
     rte1.val().should.equal "I lost the gam"
@@ -117,16 +117,30 @@ describe 'Rich Text type should', ->
     console.log rte1.getWord(0)
 
 describe 'Selection object should', ->
-  sel = rte = null
+  sel = sel2 = rte = null
 
   it 'be initialized with three parameters', ->
     rte = new Rte "Zero One two three four five"
-    sel = new Selection 0, 1, rte
+    sel = new Selection 1, 7, rte
 
     sel.should.have.property('startPos')
     sel.should.have.deep.property('startPos.word', 0)
-    sel.should.have.deep.property('startPos.pos', 0)
+    sel.should.have.deep.property('startPos.pos', 1)
 
     sel.should.have.property('endPos')
     sel.should.have.deep.property('endPos.word', 1)
     sel.should.have.deep.property('endPos.pos', 2)
+
+  it 'merge correctly the selections', ->
+    rte = new Rte "Zero One two three four five"
+    sel = new Selection 0, 1, rte
+    sel2 = new Selection 1, 10, rte
+
+    sel.merge sel2, rte
+    rte._rte.selections.length.should.equal 1
+    rte._rte.selections[0].equals(sel2).should.be.true
+
+    sel2.should.have.deep.property 'startPos.word', 0
+    sel2.should.have.deep.property 'startPos.pos', 0
+    sel2.should.have.deep.property 'endPos.word', 2
+    sel2.should.have.deep.property 'endPos.pos', 1
