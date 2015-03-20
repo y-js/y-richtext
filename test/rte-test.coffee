@@ -114,7 +114,6 @@ describe 'Rich Text type should', ->
       { retain: 7, attributes: {bold: true } }]}
     rte1 = new Rte "Gandalf the Grey"
     rte1.delta delta
-    console.log rte1.getWord(0)
 
 describe 'Selection object should', ->
   sel = sel2 = rte = null
