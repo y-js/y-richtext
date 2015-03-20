@@ -104,10 +104,13 @@ describe 'Rich Text type should', ->
 describe 'Selection object should', ->
   sel = sel2 = rte = word = null
 
-  it 'be initialized with three parameters', ->
+  it 'initialized with three parameters [constructor]', ->
     rte = new Rte "Zero One two three four five"
     sel = new Selection 1, 7, rte
 
+  it 'should convert positions correctly [_relativeFromAbsolute]', ->
+    rte = new Rte "Zero One two three four five"
+    sel = new Selection 1, 7, rte
     sel.should.have.property('startPos')
     sel.should.have.deep.property('startPos.word', 0)
     sel.should.have.deep.property('startPos.pos', 1)
@@ -116,7 +119,21 @@ describe 'Selection object should', ->
     sel.should.have.deep.property('endPos.word', 1)
     sel.should.have.deep.property('endPos.pos', 2)
 
-  it 'merge correctly the selections', ->
+  it 'should have working functions [equals,notEquals,in,contains,overlaps,atLeftOf]', ->
+    sel0 = new Selection 0, 1, rte
+    sel1 = new Selection 1, 2, rte
+    sel2 = new Selection 0, 2, rte
+    sel3 = new Selection 0, 3, rte
+    sel0.equals(sel0).should.be.true
+    sel0.equals(sel1).should.be.false
+    sel0.notEquals(sel0).should.be.false
+    sel0.notEquals(sel1).should.be.true
+    sel0.atLeftOf(sel1).should.be.true
+    sel0.atLeftOf(sel2).should.be.false
+    sel1.contains(sel0).should.be.false
+    sel2.contains(sel0).should.be.false
+
+  it 'merge correctly the selections [merge]', ->
     rte = new Rte "Zero One two three four five"
     sel = new Selection 0, 1, rte
     sel2 = new Selection 1, 10, rte
@@ -130,9 +147,20 @@ describe 'Selection object should', ->
     sel2.should.have.deep.property 'endPos.word', 2
     sel2.should.have.deep.property 'endPos.pos', 1
 
+  it 'unbind correctly', ->
+    rte = new Rte "Zero One two three four five"
+    sel = new Selection 0, 1, rte
+    sel2 = new Selection 0, 5, rte
+    sel.unbind()
+    (sel.left == null).should.be.true
+    (sel.right == null).should.be.true
+    rte.getWord(0).left.length.should.equal 1
+    rte.getWord(0).right.length.should.equal 0
+
+
 describe 'Word objects should', ->
   sel = sel2 = rte = word = null
-  it 'be linked correctly to selections', ->
+  it 'be linked correctly to selections [constructor]', ->
     rte = new Rte "This is a test"
     sel = new Selection 0, 6, rte
     word = rte.getWord(0)
@@ -142,3 +170,13 @@ describe 'Word objects should', ->
     word = rte.getWord(1)
     word.left.length.should.equals 0
     word.right[0].equals(sel).should.be.true
+
+  it 'should remove selection correctly [removeSel]', ->
+    rte = new Rte "This is a test"
+    sel = new Selection 0, 6, rte
+    word = rte.getWord(0)
+    word.removeSel sel, "left"
+    word.left.length.should.equals 0
+
+    word = rte.getWord(1)
+    word.right.length.should.equals 1
