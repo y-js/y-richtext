@@ -1,7 +1,9 @@
 _ = require 'underscore'
+
 # XRegExp = require('xregexp').XRegExp
 WordRegExp = /\S+\s*/g
 PreSpacesRegExp = /^\s+/
+PostSpacesRegExp = /\s+$/
 # Simple class that contains a word and links to the selections pointing
 # to it
 class Word
@@ -17,7 +19,7 @@ class Word
       if sel.equals(selToRemove)
         array.splice(index, 1)
 
-
+# A class describing a selection with a style (bold, italic, …)
 class Selection
   # Construct a new selection
   #
@@ -65,10 +67,13 @@ class Selection
         throw new Error "Expecting numbers as arguments"
       c.constructor is "Rte"
 
-      [@startPos, @endPos] = @_relativeFromAbsolute(a, b, c)
-      attr = d
+      @startPos = @_relativeFromAbsolute a, c
+      @endPos = @_relativeFromAbsolute b, c
+      style = d
 
-    else if not _.isUndefined(a) and not _.isUndefined(b) and a.pos? and a.word? and b.pos? and b.word?
+    else if not _.isUndefined(a) and not _.isUndefined(b) and
+      a.pos? and a.word? and
+       b.pos? and b.word?
       @startPos = a
       @endPos = b
 
@@ -88,34 +93,20 @@ class Selection
   # Convert indexes from beginning of text to coordinates expressed in word and
   # position within word
   #
-  # @param [Integer] untilStart index from first character
-  # @param [Integer] untilEnd index from first character
+  # @param [Integer] position index of position to find
   # @param [Rte] rte a rich text editor instance
-  _relativeFromAbsolute: (untilStart, untilEnd, rte)->
-    # Convert absolute coordinates to relatives
-    spw = spp = epw = epp = 0
+  _relativeFromAbsolute: (position, rte)->
+    index = 0
 
-    words = rte._rte.words
-    for i in [0..words.length-1]
-      l = rte.getWord(i).length
-      if l >= untilStart
-        spp = untilStart
-        untilStart = 0
+    while position > 0
+      if index >= rte._rte.words.length
+        return {word: index, pos: 0}
+      if rte._rte.words[index].word.length > position
+        return {word: index, pos: position}
       else
-        spw += 1
-        untilStart -= l
-
-      if l >= untilEnd
-        # throw new Error(untilEnd)
-        epp = untilEnd
-        untilEnd = 0
-      else
-        epw += 1
-        untilEnd -= l
-      if untilStart == untilEnd == 0
-        break
-
-    [{word: spw, pos: spp}, {word: epw, pos: epp}]
+        position -= rte._rte.words[index].word.length
+        index += 1
+    return {word: index, pos: position}
 
   # Compares the bounds of two selections
   #
@@ -262,13 +253,10 @@ class Rte
   # Append new words at the end of the word list
   # @param [String] content the string to append
   push: (content) ->
-    console.log '"' + content + '"'
     preSpaces = content.match PreSpacesRegExp
     if preSpaces isnt null
       @_rte.words.push(new Word (preSpaces[0]))
     words = content.match WordRegExp
-    console.log '"' + preSpaces + '"'
-    console.log words
     if _.isArray(words)
       for w in words
         @_rte.words.push (new Word w)
@@ -280,20 +268,17 @@ class Rte
   #
   insertWords: (position, words)->
     # TODO: update selections
-    if typeof position isnt "number"
-      throw new Error 'Expected a number as first parameter'
-    if words.constructor isnt Array
-      throw new Error 'Expected a string array as second parameter'
+    if not _.isNumber position
+      throw new Error "Expected a number as first parameter, got #{position}"
+    if not _.isArray words
+      throw new Error "Expected a string array as second parameter, got #{words}"
     if 0 <= position <= @_rte.words.length
-      after = [new Word ' '].concat(@getWords(position))
-      before = @getWords(0, Math.max(position-1, 0)).append(new Word ' ')
-      if position == 0
-        before = []
-      else
-        before = @_rte.words[..position-1]
-      after = @_rte.words[position..]
-      @_rte.words = before.concat(words).concat(after)
-      # @updateInsertWords(position, words.length)
+      wordsObj = (new Word w for w in words)
+
+      left = @_rte.words.slice(0, position)
+      right = @_rte.words.slice(position)
+      @_rte.words = left.concat(wordsObj).concat(right)
+
     else
       throw new Error 'Index #{position} out of bound in word list'
 
@@ -308,22 +293,22 @@ class Rte
     # TODO
 
 
+  # @overload deleteWords (start, end)
   # Delete all the words between start and end
   #
   # @param [Integer] start position of first word to delete
   # @param [Integer] end position of last word to delete
+  #
+  # @overload deleteWords (position)
+  # Delete the word at position
+  #
+  # @param [Integer] position position the word to delete
   deleteWords: (start, end) ->
     if _.isUndefined(end)
       end = start+1
 
     if start <= end
-      if start - 1 < 0
-        before = []
-      else
-        before = @getWords(0, start-1)
-
-      @_rte.words = before.concat(@getWords(end))
-    @_rte.words
+      @_rte.words.splice(start, end-start)
 
   # Merge two words at position
   #
@@ -332,8 +317,8 @@ class Rte
   merge: (n) ->
     if 0 <= n < @_rte.words.length
       w = @getWord(n).trimRight()
-      @deleteWords(n)
-      @insert({startPos: {word: n, pos:0}}, w)
+      @deleteWords n
+      @insert {startPos: {word: n, pos:0}}, w
     else
       throw new Error "Impossible to merge"
 
@@ -385,59 +370,30 @@ class Rte
     index = sel.startPos.word   #position to work from
     pos = sel.startPos.pos
 
-    wordsToInsert = content.match WordRegExp
-    preSpaces = content.search PreSpacesRegExp
-
+    preSpaces = content.match PreSpacesRegExp
     currWord = @getWord index
 
-    # Get spaces of next input and append them to last word to insert
-    if index < @_rte.words.length - 1 and pos == (currWord.length - 1)
-      nextWord = @getWord (index+1)
-      preSpaces = nextWord.search /^ +/
-      if preSpaces > -1         # add them to current word
-        @setWord (index+1) nextWord.substring(preSpaces)
-        last = _.last(wordsToInsert) + nextWord.substring(0, preSpaces)
-        wordsToInsert[wordsToInsert.length-1] = last
-    else if pos < (currWord.length - 1)
-      nextWord = currWord.substring(pos)
-      preSpaces = nextWord.search /^ +/
-      if preSpaces > -1
-        if not preSpaces == (nextWord.length-1)
-          @insertWord (index+1) nextWord.substring(preSpaces)
-        last = _.last(wordsToInsert) + nextWord.substring(0, preSpaces)
-        wordsToInsert[wordsToInsert.length-1] = last
-
-    # Add the spaces at beginning of input string to previous word
-    # if any, or create an empty one
-    if preSpaces > -1
+    # move the spaces to the previous word if a pos == 0
+    if preSpaces isnt null
       if pos == 0
         if index == 0
-          emptyWord = new Word content.substring(0, preSpaces)
-          @insertWord 0, emptyWord
-          index = 1
-        else
-          # update previous word
-          prevWord = @getWord (index-1)
-          prevWord += content.substring(0, preSpaces)
-          @setWord (index-1), prevWord
+          index += 1
+          @insertWord 0, (new Word '')
+        prevWord = @getWord (index-1)
+        prevWord += preSpaces
+        content = content.substring(preSpaces.length)
+        @setWord (index-1), prevWord
 
-    @insertWords index, wordsToInsert
+    # insert the content at position
+    currWord = currWord.substring(0, pos) + content + currWord.substring(pos)
 
-  split: (n) ->
-    word = @getWord n
-    if _.isString(word) and -1 < (word.indexOf ' ') < word.length-1
-      @deleteWords n
-      wlist = (new Word w for w in word.split(' '))
-      while wlist[0] == ''
-        if n-1 >= 0
-          @setWord (n-1) ((@getWord (n-1))+' ')
-        wlist[0] = ' '+wlist[0]
-      while wlist[wlist.length-1] == ''
-        wlist[wlist.length-2] += ' '
-      @insertWords n, wlist
-    else
-      ''
-
+    # cut the word
+    newWords = currWord.match WordRegExp
+    tmp = currWord.match PreSpacesRegExp
+    if tmp isnt null
+      newWords[0] = tmp + newWords[0]
+    @setWord index, newWords[0]
+    @insertWords index+1, newWords[1..]
 
   # Relative jump from position
   #
@@ -507,15 +463,20 @@ class Rte
     position = 0
     for delta in deltas.ops
       if delta.retain?
-        selection = new Selection position (position + delta.retain)
+        if delta.attributes?
+          selection = new Selection position, (position + delta.retain), @
+        position += delta.retain
+
       else if delta.delete?
-        selection = new Selection position (position + delta.retain)
-        @delete(selection)
+        selection = new Selection position, (position + delta.delete), @
+        @deleteSel selection
+
       else if delta.insert?
         end = position + delta.insert.length
         selection = new Selection position, end, @
         @insert selection, delta.insert
-        position = end
+        position += delta.insert.length
+
       else
         throw new Error "Unknown operation"
 
