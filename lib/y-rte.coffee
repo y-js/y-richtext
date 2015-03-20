@@ -70,6 +70,9 @@ class Selection
       @left = rte.getWord @startPos.word
       @right = rte.getWord @endPos.word
 
+      @left.left.push @
+      @right.right.push @
+
       rte._rte.selections.push @
 
     else throw new Error "Wrong set of parameters #{[start, end, rte, style]}"
@@ -523,7 +526,7 @@ class Rte
 if window?
   window.Rte = Rte
   window.Selection = Selection
-  window.buildWord = buildWord
+  window.Word = Word
 
 if module?
-  module.exports = [Rte, Selection]
+  module.exports = [Rte, Selection, Word]
