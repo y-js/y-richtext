@@ -43,8 +43,8 @@ class Selection
       if !( _.isNumber(start) and
             _.isNumber(end))
         throw new Error "Expecting numbers as arguments"
-      if !(rte.constructor isnt "Rte")
-        throw new Error "Expecting an rte as third argument"
+      if not (rte instanceof Rte)
+        throw new Error "Expecting an rte instance as third argument, got #{rte}"
       @startPos = @_relativeFromAbsolute start, rte
       @endPos = @_relativeFromAbsolute end, rte
       @style = style
