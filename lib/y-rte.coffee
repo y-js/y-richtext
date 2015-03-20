@@ -143,8 +143,6 @@ class Selection
     (@endPos.word == selection.startPos.word and
      @endPos.pos == selection.startPos.pos)
 
-  # Merge the given selection with this selection if they are contiguous
-
   #TODO
   setStyle: (@style) ->
 
