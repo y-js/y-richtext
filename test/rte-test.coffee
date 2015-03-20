@@ -95,7 +95,15 @@ describe 'Rich Text type should', ->
   it 'support styles [setStyle]', ->
     rte1 =  new Rte "I am testing styles"
     sel0 = new Selection 0, 3, rte1
-    rte1.setStyle sel0, "bold"
+    sel1 = new Selection 3, 4, rte1, 'some random style'
+
+    rte1.setStyle sel0, "bold" # should leave sel0
+    rte1._rte.selections.length.should.equal 2
+
+    rte1.setStyle sel1, "italic" # should create a clone of sel0 with style italic
+    rte1._rte.selections.length.should.equal 2
+    rte1.setStyle sel1, "bold" # should merge
+    rte1._rte.selections.length.should.equal 1
 
   it 'accept deltas (insert) [delta]', ->
     delta = { ops:[
