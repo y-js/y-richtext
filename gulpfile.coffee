@@ -1,5 +1,6 @@
 gulp = require('gulp')
 coffee = require('gulp-coffee')
+gutil = require('gulp-util')
 concat = require('gulp-concat')
 uglify = require 'gulp-uglify'
 sourcemaps = require('gulp-sourcemaps')
@@ -79,10 +80,18 @@ gulp.task 'build', ['build_node', 'build_browser'], ->
 gulp.task 'watch', ['build'], ->
   gulp.watch files.all, ['build']
 
-gulp.task 'mocha', ->
-  gulp.src files.test, { read: false }
+gulp.task 'coffee',->
+  gulp.src files.lib
+    .pipe coffee({bare: true}).on('error', gutil.log)
+    .pipe gulp.dest('./lib/')
+
+gulp.task 'mocha', ['coffee'], ->
+  gulp.src files.test, ['coffee'], { read: true }
     .pipe mocha {reporter : 'list'}
-    .pipe exit()
+    # .pipe exit()
+
+gulp.task 'test', ['mocha'], ->
+  gulp.watch files.all, ['mocha']
 
 gulp.task 'lint', ->
   gulp.src files.all
@@ -105,9 +114,8 @@ gulp.task 'literate', ->
     .pipe gulp.dest 'examples/'
     .pipe gulpif '!**/', git.add({args : "-A"})
 
-# CODO : COffee DOc
 gulp.task 'codo', [], ()->
-  command = './node_modules/codo/bin/codo -o "./doc" --name "yjs" --readme "README.md" --undocumented false --private true --title "yjs rte type API" ./lib - LICENSE.txt '
+  command = 'codo -o "./doc" --name "yjs" --private true --title "yjs rte type API" ./lib'
   run(command).exec()
 
 gulp.task 'phantom_test', ['build_browser'], ()->
