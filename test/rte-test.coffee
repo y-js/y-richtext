@@ -9,7 +9,7 @@ $         = require('jquery')
 chai.use(sinonChai)
 chai.config.includeStack = true
 
-[Rte, Selection] = require '../lib/y-rte'
+[Rte, Selection, Word] = require '../lib/y-rte'
 
 
 describe 'Rich Text type should', ->
@@ -117,7 +117,7 @@ describe 'Rich Text type should', ->
     console.log rte1.getWord(0)
 
 describe 'Selection object should', ->
-  sel = rte = null
+  sel = sel2 = rte = word = null
 
   it 'be initialized with three parameters', ->
     rte = new Rte "Zero One two three four five"
@@ -130,3 +130,30 @@ describe 'Selection object should', ->
     sel.should.have.property('endPos')
     sel.should.have.deep.property('endPos.word', 1)
     sel.should.have.deep.property('endPos.pos', 2)
+
+  it 'merge correctly the selections', ->
+    rte = new Rte "Zero One two three four five"
+    sel = new Selection 0, 1, rte
+    sel2 = new Selection 1, 10, rte
+
+    sel.merge sel2, rte
+    rte._rte.selections.length.should.equal 1
+    rte._rte.selections[0].equals(sel2).should.be.true
+
+    sel2.should.have.deep.property 'startPos.word', 0
+    sel2.should.have.deep.property 'startPos.pos', 0
+    sel2.should.have.deep.property 'endPos.word', 2
+    sel2.should.have.deep.property 'endPos.pos', 1
+
+describe 'Word objects should', ->
+  sel = sel2 = rte = word = null
+  it 'be linked correctly to selections', ->
+    rte = new Rte "This is a test"
+    sel = new Selection 0, 6, rte
+    word = rte.getWord(0)
+    word.left[0].equals(sel).should.be.true
+    word.right.length.should.equals 0
+
+    word = rte.getWord(1)
+    word.left.length.should.equals 0
+    word.right[0].equals(sel).should.be.true
