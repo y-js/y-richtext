@@ -9,7 +9,7 @@ $         = require('jquery')
 chai.use(sinonChai)
 chai.config.includeStack = true
 
-[Rte, Selection] = require '../lib/y-rte'
+[Rte, Selection, Word] = require '../lib/y-rte'
 
 
 describe 'Rich Text type should', ->
@@ -116,7 +116,7 @@ describe 'Rich Text type should', ->
     rte1.delta delta
 
 describe 'Selection object should', ->
-  sel = sel2 = rte = null
+  sel = sel2 = rte = word = null
 
   it 'be initialized with three parameters', ->
     rte = new Rte "Zero One two three four five"
@@ -143,3 +143,16 @@ describe 'Selection object should', ->
     sel2.should.have.deep.property 'startPos.pos', 0
     sel2.should.have.deep.property 'endPos.word', 2
     sel2.should.have.deep.property 'endPos.pos', 1
+
+describe 'Word objects should', ->
+  sel = sel2 = rte = word = null
+  it 'be linked correctly to selections', ->
+    rte = new Rte "This is a test"
+    sel = new Selection 0, 6, rte
+    word = rte.getWord(0)
+    word.left[0].equals(sel).should.be.true
+    word.right.length.should.equals 0
+
+    word = rte.getWord(1)
+    word.left.length.should.equals 0
+    word.right[0].equals(sel).should.be.true
