@@ -75,7 +75,7 @@ class Selection
 
       rte._rte.selections.push @
 
-    else throw new Error "Wrong set of parameters #{[start, end, rte, style]}"
+    else throw new Error "Wrong set of parameters #{start}, #{end}, #{rte}, #{style}"
 
     if not _.isUndefined(style)
       @style = style

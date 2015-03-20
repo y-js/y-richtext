@@ -46,20 +46,6 @@ describe 'Rich Text type should', ->
     rte1.deleteWords(7, 8)
     rte1.val().should.equal "There is a mistake in this sentence! "
 
-  it 'insert characters correctly at relative positions', ->
-    rte1 = new Rte "I lot the gam"
-    rte1.insert({startPos: {word:1, pos:2}}, 's')
-    rte1.val().should.equal "I lost the gam"
-
-    rte1.insert({startPos: {word:3, pos:3}}, 'e')
-    rte1.val().should.equal "I lost the game"
-
-  it 'delete relative selection correctly', ->
-    rte1 = new Rte "yjs is really nyice"
-    sel = new Selection({word:3, pos:1}, {word:3, pos:2})
-    rte1.deleteSel(sel)
-    rte1.val().should.equal "yjs is really nice"
-
   it 'not delete space after word when selection ends at last character', ->
     rte1 = new Rte "I am yjs here!"
     sel = new Selection(5, 8, rte1)
@@ -114,7 +100,6 @@ describe 'Rich Text type should', ->
       { retain: 7, attributes: {bold: true } }]}
     rte1 = new Rte "Gandalf the Grey"
     rte1.delta delta
-    console.log rte1.getWord(0)
 
 describe 'Selection object should', ->
   sel = sel2 = rte = word = null
