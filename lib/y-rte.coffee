@@ -122,24 +122,18 @@ class Selection
 
   # Returns true if the given selection is in the current selection
   #
-  # @param [Selection] s the selection to compare to this
+  # @param [Selection] selection the selection to compare to this
   #
   in: (selection) ->
-    @startPos.lt(selection) and @endPos.gt(selection)
+    @startPos.gt(selection.startPos) and @endPos.lt(selection.endPos)
 
   # Returns true if the current selection is in the given selection
   #
-  # @param [Selection] s the selection to compare to this
+  # @param [Selection] selection the selection to compare to this
   #
   contains: (selection) ->
     selection.in(@)
 
-  # Returns true if the given selection overlaps the current selection
-  #
-  # @param [Selection] s the selection to compare to this
-  #
-  overlaps: (selection) ->
-    @startPos.lt(selection.endPos) or @endPos.gt(selection.startPos)
 
   # Returns true if the given selection and this selection are contiguous
   # and this selection is at left of the given one
