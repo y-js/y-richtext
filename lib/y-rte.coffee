@@ -56,7 +56,6 @@ class Selection
   #   @param [Rte] rte a rich-text editor (Rte) instance
   #   @option options [Object] style the style of the selection
   constructor: (start, end, rte, style)->
-
     if not _.isUndefined(start) and not _.isUndefined(end) and not _.isUndefined(rte)
       if !( _.isNumber(start) and
             _.isNumber(end))
@@ -118,8 +117,8 @@ class Selection
   #
   # @param [Selection] s the selection to compare to this
   #
-  notEquals: (s) ->
-    not equals(s)
+  notEquals: (selection) ->
+    not @equals(selection)
 
   # Returns true if the given selection is in the current selection
   #
@@ -191,9 +190,13 @@ class Selection
 
     rte.removeSel leftSel
 
+  # Unbind selection from word
   unbind: ->
     @left.removeSel(@, "left")
     @right.removeSel(@, "right")
+
+    @left = null
+    @right = null
 
 # Class describing the Rich Text Editor type
 #
@@ -522,6 +525,9 @@ class Rte
         array.splice index, 1
         break
       index += 1
+
+    # unbind selection
+    selection.unbind
 
 if window?
   window.Rte = Rte
