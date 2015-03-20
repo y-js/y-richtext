@@ -62,22 +62,23 @@ class Selection
         throw new Error "Expecting numbers as arguments"
       if not (rte instanceof Rte)
         throw new Error "Expecting an rte instance as third argument, got #{rte}"
-      @startPos = @_relativeFromAbsolute start, rte
-      @endPos = @_relativeFromAbsolute end, rte
-      @style = style
 
-      @left = rte.getWord @startPos.word
-      @right = rte.getWord @endPos.word
+      @rte = rte
+
+      @startPos = @_relativeFromAbsolute start
+      @endPos = @_relativeFromAbsolute end
+      @setStyle style
+
+      @left = @rte.getWord @startPos.word
+      @right = @rte.getWord @endPos.word
 
       @left.left.push @
       @right.right.push @
 
-      rte._rte.selections.push @
+      @rte._rte.selections.push @
+
 
     else throw new Error "Wrong set of parameters #{start}, #{end}, #{rte}, #{style}"
-
-    if not _.isUndefined(style)
-      @style = style
 
     @startPos.lt = @endPos.lt = (selection) ->
       @word < selection.word or (@word == selection.word and @pos <= selection.pos)
@@ -89,17 +90,16 @@ class Selection
   # position within word
   #
   # @param [Integer] position index of position to find
-  # @param [Rte] rte a rich text editor instance
-  _relativeFromAbsolute: (position, rte)->
+  _relativeFromAbsolute: (position)->
     index = 0
 
     while position > 0
-      if index >= rte._rte.words.length
+      if index >= @rte._rte.words.length
         return {word: index, pos: 0}
-      if rte._rte.words[index].word.length > position
+      if @rte._rte.words[index].word.length > position
         return {word: index, pos: position}
       else
-        position -= rte._rte.words[index].word.length
+        position -= @rte._rte.words[index].word.length
         index += 1
     return {word: index, pos: position}
 
@@ -155,22 +155,25 @@ class Selection
   # Try to merge the given selection with this selection
   #
   # @param [Selection] selection the selection to merge to
-  # @param [Rte] rte a Rich text editor instance
   #
   # @example
   #   1                 2                   3
   #   [  left selection ][  right selection ]
   #    becomes
   #   [           right selection           ]
-  merge: (selection, rte) ->
-    if @.style != selection.style
+  merge: (selection) ->
+    if @ == selection
+      return
+    if @style != selection.style
       return false
     if @atLeftOf selection
       leftSel = @
       rightSel = selection
-    else
+    else if selection.atLeftOf @
       leftSel = selection
       rightSel = @
+    else
+      return
 
     # unbind words from left selection, remove it from selection list
     # expand the selection at right to the left end of previous left selection
@@ -179,8 +182,7 @@ class Selection
     rightSel.left = leftSel.left
 
     rightSel.startPos = leftSel.startPos
-
-    rte.removeSel leftSel
+    @rte.removeSel leftSel
 
   # Unbind selection from word
   unbind: ->
@@ -189,6 +191,24 @@ class Selection
 
     @left = null
     @right = null
+
+  # Unbind selection from word
+  bind: ->
+    @left.left.push(@)
+    @right.right.push(@)
+
+  # Clone the current selection and apply style
+  # @parameter [String] style the new style
+  clone: (style) ->
+    newSel = new Selection 0, 0, @rte, style
+    newSel.unbind()
+    newSel.startPos = @startPos
+    newSel.endPos = @endPos
+    newSel.left = @left
+    newSel.right = @right
+    newSel.bind()
+
+    newSel
 
 # Class describing the Rich Text Editor type
 #
@@ -444,39 +464,18 @@ class Rte
     if not selection.isValid()
       throw new Error "Invalid selection"
 
-    # In case the selection already has a style which is different
-    if selection.style != style
-      selection = new Selection(selection.start, selection.end, style)
-
-    # If no style add it
-    if _.isUndefined selection.style
-      selection.style = style
+    selection.style = style or ""
 
     # Link the boundary words to selection
-    leftWord = @getWord selection.startPos.word
-    rightWord = @getWord selection.endPos.word
-
-    selection.left = leftWord
-    selection.right = rightWord
-
-    leftWord.left.push(selection)
-    rightWord.right.push(selection)
-
+    leftWord = selection.left
+    rightWord = selection.right
     # Merge left…
-    for tmpSelection in leftWord.right
-      tmpSelection.merge(selection, @)
+    for tmpSelection in leftWord.right when tmpSelection
+      tmpSelection.merge selection
     # …and right (only happens when selections are contiguous or overlapping
     # and have same style)
-    for tmpSelection in rightWord.left
-      tmpSelection.merge(selection, @)
-
-    # Try to merge with previous / next contiguous selection
-    {prevWord, position} = @_jump(selection.startPos, -1)
-    {nextWord, position} = @_jump(selection.endPos,   +1)
-    for s in prevWord.selections when selection.style == s.style
-      s.merge selection, @
-    for s in nextWord.selections when selection.style == s.style
-      s.merge selection, @
+    for tmpSelection in rightWord.left when tmpSelection
+      tmpSelection.merge selection
 
   # Apply a delta to the object
   # @see http://quilljs.com/docs/deltas/
