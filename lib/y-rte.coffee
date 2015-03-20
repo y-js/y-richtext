@@ -331,7 +331,7 @@ class Rte
     else
       throw new Error "Impossible to merge"
 
-  # Delete text undor selection
+  # Delete text under selection
   #
   # @param [Selection] sel the selection to delete
   #
@@ -396,7 +396,7 @@ class Rte
     # insert the content at position
     currWord = currWord.substring(0, pos) + content + currWord.substring(pos)
 
-    # cut the wordcon
+    # cut the word
     newWords = currWord.match WordRegExp
     tmp = currWord.match PreSpacesRegExp
     if tmp isnt null
