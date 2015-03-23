@@ -7,15 +7,16 @@ _ = require 'underscore'
 # @param [Rte] rte an rte instance
 relativeFromAbsolute = (position, rte)->
     index = 0
-
     while position > 0
       if index >= rte._rte.words.length
-        return {word: index, pos: 0}
+        position = 0
+        break
       if rte._rte.words[index].word.length > position
-        return {word: index, pos: position}
+        break
       else
         position -= rte._rte.words[index].word.length
         index += 1
+
     return {word: index, pos: position}
 
 # Function that translates an index from start (absolute position) into a
@@ -105,7 +106,7 @@ class Selection
       retStart = @_relativeFromAbsolute start
       retEnd = @_relativeFromAbsolute end
 
-      @setStyle style
+      @setStyle (style or {})
 
       @left = @rte.getWord retStart.word
       @leftPos = retStart.pos
@@ -190,19 +191,20 @@ class Selection
     selection.in(@)
 
 
-  # Returns true if the given selection and this selection are contiguous
+  # Returns true if the given selection and this selection overlap
   # and this selection is at left of the given one
   #
   # @param [Selection] selection the selection to compare to this
   atLeftOf: (selection) ->
-    (@right == selection.left and
-     @rightPos == selection.leftPos)
+     @gt(selection.left, selection.leftPos, "right") and
+     @lt(selection.right, selection.rightPos, "left")
 
-  #TODO
+  # Set the style to style
+  #
+  # @param [Object] style A style represented as an object
   setStyle: (@style) ->
 
   # Validate a selection if the start is before the end of the selection
-  #
   isValid: ->
     @lt(@right, @rightPos, "left")
 
@@ -218,38 +220,70 @@ class Selection
   #   [           right selection           ]
   merge: (selection) ->
     if @ == selection
-      return
-    if @style != selection.style
-      return
-    if @atLeftOf selection
-      leftSel = @
-      rightSel = selection
-    else if selection.atLeftOf @
-      leftSel = selection
-      rightSel = @
+      return                    # nothing to do
+
+    # if they have two styles that differ
+    for key, val of @style
+      if selection.style[key] != val
+        return
+    for key, val of selection.style
+      if val != @style[key]
+        return
+
+    if @atLeftOf selection # remove @
+      selToRemove = @
+      selToKeep = selection
+      left = @left
+      leftPos = @leftPos
+      right = selection.right
+      rightPos = selection.rightPos
+    else if selection.atLeftOf @ # remove selection
+      selToRemove = selection
+      selToKeep = @
+      left = selection.left
+      leftPos = selection.leftPos
+      right = @right
+      rightPos = selection.rightPos
+    else if @.in selection # remove @
+      selToRemove = @
+      selToKeep = selection
+      left = selection.left
+      leftPos = selection.leftPos
+      right = selection.right
+      rightPos = selection.rightPos
+    else if selection.in @ # remove selection
+      selToRemove = selection
+      selToKeep = @
+      left = @left
+      leftPos = @leftPos
+      right = @right
+      rightPos = @rightPos
     else
       return
 
-    # unbind words from left selection, remove it from selection list
-    # expand the selection at right to the left end of previous left selection
-    rightSel.left.removeSel rightSel, "left"
+    selToRemove.unbind()
+    selToKeep.unbind()
 
-    rightSel.left = leftSel.left
-    rightSel.leftPos = leftSel.leftPos
+    selToKeep.left = left
+    selToKeep.leftPos = leftPos
+    selToKeep.right = right
+    selToKeep.rightPos = rightPos
 
-    leftSel.unbind()
-    @rte.removeSel leftSel
+    selToKeep.bind left, right
+
+    @rte.removeSel selToRemove
 
   # Unbind selection from word
   unbind: ->
-    @left.removeSel @, "left"
-    @right.removeSel @, "right"
+    if @left and @right
+      @left.removeSel @, "left"
+      @right.removeSel @, "right"
 
     @left = null
     @right = null
 
   # Bind selection to word
-  bind: ->
+  bind: (@left, @right) ->
     @left.left.push @
     @right.right.push @
 
@@ -266,7 +300,7 @@ class Selection
     newSel.right = @right
     newSel.rightPos = @rightPos
 
-    newSel.bind()
+    newSel.bind @left, @right
 
     newSel
 
@@ -381,15 +415,15 @@ class Rte
 
 
   # @overload deleteWords (start, end)
-  # Delete all the words between start and end
+  #   Delete all the words between start and end
   #
-  # @param [Integer] start position of first word to delete
-  # @param [Integer] end position of last word to delete
+  #   @param [Integer] start position of first word to delete
+  #   @param [Integer] end position of last word to delete
   #
   # @overload deleteWords (position)
-  # Delete the word at position
+  #   Delete the word at position
   #
-  # @param [Integer] position position the word to delete
+  #   @param [Integer] position position the word to delete
   deleteWords: (start, end) ->
     if _.isUndefined(end)
       end = start+1
@@ -399,7 +433,8 @@ class Rte
 
   # Merge two words at position
   #
-  # @param [Integer] n position of word where to perform merge. The merge will be done with the word at right (if any)
+  # @param [Integer] n position of word where to perform merge. The merge will
+  # be done with the word at right (if any)
   #
   merge: (index) ->
     if 0 <= index < @_rte.words.length
@@ -416,7 +451,8 @@ class Rte
   #
   deleteSel: (selection) ->
     if not selection.isValid()
-      throw new Error "Invalid selection"
+      console.log selection
+      throw new Error "Invalid selection, got", selection
 
     left = selection.left
     right = selection.right
@@ -521,17 +557,17 @@ class Rte
     {word: word, pos: pos}
 
   # Set the style of the selection and try to extend as much
-  # as possible existing ones
-  #
+  # as possible existing ones.
   setStyle: (selection, style)->
     if not selection.isValid()
-      throw new Error "Invalid selection"
+      console.log selection
+      throw new Error "Invalid selection, got", selection
 
-    selection.style = style or ""
+    selection.style = style or {}
 
     # Link the boundary words to selection
-    leftWord = selection.left
-    rightWord = selection.right
+    leftWord = selection.left or {right: []}
+    rightWord = selection.right or {left: []}
 
     # Merge left…
     for tmpSelection in leftWord.right when tmpSelection
@@ -557,15 +593,40 @@ class Rte
         @deleteSel selection
 
       else if delta.insert?
+        console.log position, (position+delta.insert.length)
         @insert position, delta.insert
+        if delta.attributes?
+          selection = new Selection position, (position + delta.insert.length-1), @
         position += delta.insert.length
 
       else
         throw new Error "Unknown operation"
 
       if delta.attributes?
-        for attr in delta.attributes
-          @setAttr(selection.clone().style = attr)
+        @setStyle selection, delta.attributes
+
+      selectionList = @getSelections()
+      console.log selectionList
+      for sel in selectionList
+        sel.merge selection
+
+  # Return all the selections bound to left and right, except self
+  # @return [Array<Selection>] an array of selection
+  getSelections: ->
+    uniq = (value, index, self) ->
+      self.indexOf(value) == index and value != @
+
+    ret = []
+    if @left and @left.left
+      ret.append(@left.left)
+    if @left and @left.right
+      ret.append(@left.left)
+    if @right and @right.right
+      ret.append(@right.right)
+    if @right and @right.left
+      ret.append(@right.left)
+
+    ret.filter uniq # return a value with unique elements
 
   # Remove a selection from selection list
   #
@@ -579,7 +640,7 @@ class Rte
         break
 
     # unbind selection
-    selection.unbind
+    selection.unbind()
 
 if window?
   window.Rte = Rte
