@@ -18,13 +18,29 @@ class Word
   # @param [String] word The initial string value
   # @return [Word] a word instance
   constructor: (@word) ->
+    # Selections that have this word as left bound
+    @left = []
+    # Selections that have this word as right bound
+    @right = []
 
-  # Remove the selection from the selections bound to the word
-  # @param [Selection] selToRemove the selection to remove from selections list
-  removeSel: (selToRemove) ->
-    @selections.forEach sel, index, array ->
-      if sel.equals(selToRemove)
-        array.splice(index, 1)
+  # Remove a selection from left or right array
+  #
+  # @param [Selection] selection the selection to remove
+  # @param [Option] side the side where to remove the selection
+  # @option side [String] left left side
+  # @option side [String] right right side
+  removeSel: (selection, side)->
+    if side == "left"
+      array = @left
+    else if side == "right"
+      array = @right
+    else
+      throw new Error "Invalid argument #{side}, expected 'left' or 'right'"
+    index = 0
+    for index in [0..array.length-1]
+      if array[index].equals selection
+        array.pop(index)
+        break
 
 # A class describing a selection with a style (bold, italic, …)
 class Selection
@@ -45,17 +61,23 @@ class Selection
         throw new Error "Expecting numbers as arguments"
       if not (rte instanceof Rte)
         throw new Error "Expecting an rte instance as third argument, got #{rte}"
-      @startPos = @_relativeFromAbsolute start, rte
-      @endPos = @_relativeFromAbsolute end, rte
-      @style = style
 
-      @left = rte.getWord @startPos.word
-      @right = rte.getWord @endPos.word
+      @rte = rte
 
-    else throw new Error "Wrong set of parameters #{[start, end, rte, style]}"
+      @startPos = @_relativeFromAbsolute start
+      @endPos = @_relativeFromAbsolute end
+      @setStyle style
 
-    if not _.isUndefined(style)
-      @style = style
+      @left = @rte.getWord @startPos.word
+      @right = @rte.getWord @endPos.word
+
+      @left.left.push @
+      @right.right.push @
+
+      @rte._rte.selections.push @
+
+
+    else throw new Error "Wrong set of parameters #{start}, #{end}, #{rte}, #{style}"
 
     @startPos.lt = @endPos.lt = (selection) ->
       @word < selection.word or (@word == selection.word and @pos <= selection.pos)
@@ -67,17 +89,16 @@ class Selection
   # position within word
   #
   # @param [Integer] position index of position to find
-  # @param [Rte] rte a rich text editor instance
-  _relativeFromAbsolute: (position, rte)->
+  _relativeFromAbsolute: (position)->
     index = 0
 
     while position > 0
-      if index >= rte._rte.words.length
+      if index >= @rte._rte.words.length
         return {word: index, pos: 0}
-      if rte._rte.words[index].word.length > position
+      if @rte._rte.words[index].word.length > position
         return {word: index, pos: position}
       else
-        position -= rte._rte.words[index].word.length
+        position -= @rte._rte.words[index].word.length
         index += 1
     return {word: index, pos: position}
 
@@ -95,29 +116,31 @@ class Selection
   #
   # @param [Selection] s the selection to compare to this
   #
-  notEquals: (s) ->
-    not equals(s)
+  notEquals: (selection) ->
+    not @equals(selection)
 
   # Returns true if the given selection is in the current selection
   #
-  # @param [Selection] s the selection to compare to this
+  # @param [Selection] selection the selection to compare to this
   #
   in: (selection) ->
-    @startPos.lt(selection) and @endPos.gt(selection)
+    @startPos.gt(selection.startPos) and @endPos.lt(selection.endPos)
 
   # Returns true if the current selection is in the given selection
   #
-  # @param [Selection] s the selection to compare to this
+  # @param [Selection] selection the selection to compare to this
   #
   contains: (selection) ->
     selection.in(@)
 
-  # Returns true if the given selection overlaps the current selection
+
+  # Returns true if the given selection and this selection are contiguous
+  # and this selection is at left of the given one
   #
-  # @param [Selection] s the selection to compare to this
-  #
-  overlaps: (selection) ->
-    @startPos.lt(selection.endPos) or @endPos.gt(selection.startPos)
+  # @param [Selection] selection the selection to compare to this
+  atLeftOf: (selection) ->
+    (@endPos.word == selection.startPos.word and
+     @endPos.pos == selection.startPos.pos)
 
   #TODO
   setStyle: (@style) ->
@@ -128,36 +151,63 @@ class Selection
     @startPos.lt(@endPos)
 
 
-  # Try to merge this selection with the one given in argument
+  # Try to merge the given selection with this selection
   #
-  # @param s [Selection] The selection to merge with
-  # @param rte [Rte] The RTE instance
-  merge: (selection, rte) ->
-    # Check if they're contiguous
-    if selection.endPos.word == @startPos.word or
-       (selection.endPos.word == @startPos.word -1 and
-        selection.endPos.loc == rte.getWord(selection.endPos.word).length() and
-        @startPos.loc == 0)
-      # boundaries of new selection
-      start = selection.startPos
-      end = @endPos
-      # remove link of middle words to selection
-      rte.getWord(selection.endPos.word).removeSel(selection)
-      rte.getWord(@startPos.word).removeSel(@)
-    else if @endPos.word == selection.startPos.word or
-       (@endPos.word == selection.startPos.word -1 and
-        @endPos.loc == rte.getWord(@endPos.word).length() and
-        selection.startPos.loc == 0)
-      start = @startPos
-      end = selection.endPos
-      rte.getWord(@endPos.word).removeSel(@)
-      rte.getWord(selection.endPos.word).removeSel(selection)
+  # @param [Selection] selection the selection to merge to
+  #
+  # @example
+  #   1                 2                   3
+  #   [  left selection ][  right selection ]
+  #    becomes
+  #   [           right selection           ]
+  merge: (selection) ->
+    if @ == selection
+      return
+    if @style != selection.style
+      return false
+    if @atLeftOf selection
+      leftSel = @
+      rightSel = selection
+    else if selection.atLeftOf @
+      leftSel = selection
+      rightSel = @
     else
       return
 
-    nSelec = new Selection start, end, selection.style
-    rte.getWord()
+    # unbind words from left selection, remove it from selection list
+    # expand the selection at right to the left end of previous left selection
+    leftSel.unbind()
+    rightSel.left.removeSel rightSel, "left"
+    rightSel.left = leftSel.left
 
+    rightSel.startPos = leftSel.startPos
+    @rte.removeSel leftSel
+
+  # Unbind selection from word
+  unbind: ->
+    @left.removeSel(@, "left")
+    @right.removeSel(@, "right")
+
+    @left = null
+    @right = null
+
+  # Unbind selection from word
+  bind: ->
+    @left.left.push(@)
+    @right.right.push(@)
+
+  # Clone the current selection and apply style
+  # @parameter [String] style the new style
+  clone: (style) ->
+    newSel = new Selection 0, 0, @rte, style
+    newSel.unbind()
+    newSel.startPos = @startPos
+    newSel.endPos = @endPos
+    newSel.left = @left
+    newSel.right = @right
+    newSel.bind()
+
+    newSel
 
 # Class describing the Rich Text Editor type
 #
@@ -185,7 +235,7 @@ class Rte
   # unobserve:
 
   # @overload val()
-  #   Return the value of the Rte instance as a string
+  #   Return the value of the Rte instance as a non formatted string
   #
   # @overload val(content)
   #   Set the content of the Rte instance
@@ -200,15 +250,15 @@ class Rte
       # TODO: support breaks (br, new paragraph, …)
       (e.word for e in @_rte.words).join('')
 
-  # Returns the **string representation** of a word.
+  # Returns the word object of a word.
   # @param index [Integer] the index of the word to return
   getWord: (index) ->
     if @_rte.words.length == 0 or index == @_rte.words.length
-      return ""
+      return new Word ""
 
     if not (0 <= index < @_rte.words.length)
       throw new Error "Index out of bounds #{index}"
-    @_rte.words[index].word
+    @_rte.words[index]
 
   # Returns the *word objects* within boundaries
   # @param begin [Integer] the first word the return
@@ -288,34 +338,33 @@ class Rte
 
   # Merge two words at position
   #
-  # @param [Integer] n position of word where to perform merge. The merge will
-  #  be done with the word at right (if any)
+  # @param [Integer] n position of word where to perform merge. The merge will be done with the word at right (if any)
   #
   merge: (index) ->
     if 0 <= index < @_rte.words.length
-      word = @getWord(index).trimRight()
+      word = @getWord(index).word.trimRight()
       @deleteWords index
       @insert {startPos: {word: index, pos:0}}, word
     else
       throw new Error "Impossible to merge"
 
-  # Delete a selection
+  # Delete text under selection
   #
   # @param [Selection] sel the selection to delete
   #
   deleteSel: (selection) ->
     if not selection.isValid()
       throw new Error "Invalid selection"
-    if not 0 <= selection.startPos.loc <= @getWord(selection.startPos.word).length
+    if not 0 <= selection.startPos.loc <= @getWord(selection.startPos.word).word.length
       throw new Error "Invalid selection"
-    if not 0 <= selection.endPos.loc <= @getWord(selection.endPos.word).length
+    if not 0 <= selection.endPos.loc <= @getWord(selection.endPos.word).word.length
       throw new Error "Invalid selection"
 
     start = selection.startPos.word
     end = selection.endPos.word
 
-    newLeft = @getWord(start).substring(0, selection.startPos.pos)
-    newRight = @getWord(end).substring(selection.endPos.pos)
+    newLeft = @getWord(start).word.substring(0, selection.startPos.pos)
+    newRight = @getWord(end).word.substring(selection.endPos.pos)
 
     if start == end
       @setWord(start, newLeft + newRight)
@@ -333,7 +382,7 @@ class Rte
 
   # Insert text at position
   #
-  # @param [Option] position The position where to insert text
+  # @param [Selection] position The position where to insert text
   # @param [String] content the content to insert
   #
   insert: (selection, content)->
@@ -348,7 +397,7 @@ class Rte
     pos = selection.startPos.pos
 
     preSpaces = content.match PreSpacesRegExp
-    currWord = @getWord index
+    currWord = @getWord(index).word
 
     # move the spaces to the previous word if a pos == 0
     if preSpaces isnt null
@@ -356,7 +405,7 @@ class Rte
         if index == 0
           index += 1
           @insertWord 0, (new Word '')
-        prevWord = @getWord (index-1)
+        prevWord = @getWord(index-1).word
         prevWord += preSpaces
         content = content.substring(preSpaces.length)
         @setWord (index-1), prevWord
@@ -384,7 +433,7 @@ class Rte
         if pos < jump
           word -= 1
           jump -= pos
-          pos = @getWord(word).length - 1
+          pos = @getWord(word).word.length - 1
 
           if word < 0
             return null
@@ -414,13 +463,18 @@ class Rte
     if not selection.isValid()
       throw new Error "Invalid selection"
 
-    # Try to merge with previous / next contiguous selection
-    {prevWord, position} = @_jump(selection.startPos, -1)
-    {nextWord, position} = @_jump(selection.endPos,   +1)
-    for s in prevWord.selections when selection.style == s.style
-      s.merge selection, @
-    for s in nextWord.selections when selection.style == s.style
-      s.merge selection, @
+    selection.style = style or ""
+
+    # Link the boundary words to selection
+    leftWord = selection.left
+    rightWord = selection.right
+    # Merge left…
+    for tmpSelection in leftWord.right when tmpSelection
+      tmpSelection.merge selection
+    # …and right (only happens when selections are contiguous or overlapping
+    # and have same style)
+    for tmpSelection in rightWord.left when tmpSelection
+      tmpSelection.merge selection
 
   # Apply a delta to the object
   # @see http://quilljs.com/docs/deltas/
@@ -450,10 +504,25 @@ class Rte
         for attr in delta.attributes
           @setAttr(selection.clone().style = attr)
 
+  # Remove a selection from selection list
+  #
+  # @param [Selection] selection the selection to remove
+  removeSel: (selection) ->
+    index = 0
+    array = @_rte.selections
+    for element in array
+      if (element.equals(selection) and (element.style == selection.style))
+        array.splice index, 1
+        break
+      index += 1
+
+    # unbind selection
+    selection.unbind
+
 if window?
   window.Rte = Rte
   window.Selection = Selection
-  window.buildWord = buildWord
+  window.Word = Word
 
 if module?
-  module.exports = [Rte, Selection]
+  module.exports = [Rte, Selection, Word]
