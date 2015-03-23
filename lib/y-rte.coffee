@@ -42,6 +42,11 @@ class Word
         array.pop(index)
         break
 
+  # Get index of word in rte list
+  index: (rte) ->
+    return rte._rte.words.indexOf(@)
+
+
 # A class describing a selection with a style (bold, italic, …)
 class Selection
   # Word that is the left bound
@@ -64,12 +69,17 @@ class Selection
 
       @rte = rte
 
-      @startPos = @_relativeFromAbsolute start
-      @endPos = @_relativeFromAbsolute end
+      retStart = @_relativeFromAbsolute start
+      retEnd = @_relativeFromAbsolute end
+
+      @startPos = retStart
+      @endPos = retEnd
       @setStyle style
 
-      @left = @rte.getWord @startPos.word
-      @right = @rte.getWord @endPos.word
+      @left = @rte.getWord retStart.word
+      @leftPos = retStart.pos
+      @right = @rte.getWord retEnd.word
+      @rightPos = retEnd.pos
 
       @left.left.push @
       @right.right.push @
@@ -107,10 +117,10 @@ class Selection
   # @param [Selection] s the selection to compare to this
   #
   equals: (selection)->
-    @startPos.word == selection.startPos.word and
-    @startPos.pos == selection.startPos.pos and
-    @endPos.word == selection.endPos.word and
-    @endPos.pos == selection.endPos.pos
+    @left == selection.left and
+    @leftPos == selection.leftPos and
+    @right == selection.right and
+    @rightPos == selection.rightPos
 
   # Compares *the bounds* of two selections
   #
@@ -139,8 +149,8 @@ class Selection
   #
   # @param [Selection] selection the selection to compare to this
   atLeftOf: (selection) ->
-    (@endPos.word == selection.startPos.word and
-     @endPos.pos == selection.startPos.pos)
+    (@right == selection.left and
+     @rightPos == selection.leftPos)
 
   #TODO
   setStyle: (@style) ->
@@ -203,8 +213,11 @@ class Selection
     newSel.unbind()
     newSel.startPos = @startPos
     newSel.endPos = @endPos
+
     newSel.left = @left
+    newSel.leftPos = @leftPos
     newSel.right = @right
+    newSel.rightPos = @rightPos
     newSel.bind()
 
     newSel
@@ -355,30 +368,29 @@ class Rte
   deleteSel: (selection) ->
     if not selection.isValid()
       throw new Error "Invalid selection"
-    if not 0 <= selection.startPos.loc <= @getWord(selection.startPos.word).word.length
-      throw new Error "Invalid selection"
-    if not 0 <= selection.endPos.loc <= @getWord(selection.endPos.word).word.length
-      throw new Error "Invalid selection"
 
-    start = selection.startPos.word
-    end = selection.endPos.word
+    left = selection.left
+    right = selection.right
 
-    newLeft = @getWord(start).word.substring(0, selection.startPos.pos)
-    newRight = @getWord(end).word.substring(selection.endPos.pos)
+    leftIndex = left.index @
+    rightIndex = right.index @
 
-    if start == end
-      @setWord(start, newLeft + newRight)
+    newLeft = left.word.substring(0, selection.leftPos)
+    newRight = right.word.substring(selection.rightPos)
+
+    if left == right
+      @setWord(leftIndex, newLeft + newRight)
 
       # delete the words in between
-      @deleteWords(start+1, end)
+      @deleteWords(leftIndex+1, rightIndex)
     else
-      @setWord(start, newLeft)
-      @setWord(end, newRight)
+      @setWord(leftIndex, newLeft)
+      @setWord(rightIndex, newRight)
 
       # delete the words in between
-      @deleteWords(start+1, end)
+      @deleteWords(leftIndex+1, rightIndex)
       # merge
-      @merge(start)
+      @merge(leftIndex)
 
   # Insert text at position
   #
@@ -468,6 +480,7 @@ class Rte
     # Link the boundary words to selection
     leftWord = selection.left
     rightWord = selection.right
+
     # Merge left…
     for tmpSelection in leftWord.right when tmpSelection
       tmpSelection.merge selection
@@ -510,11 +523,10 @@ class Rte
   removeSel: (selection) ->
     index = 0
     array = @_rte.selections
-    for element in array
-      if (element.equals(selection) and (element.style == selection.style))
+    for index in [0..array.length-1]
+      if (array[index].equals(selection) and (array[index].style == selection.style))
         array.splice index, 1
         break
-      index += 1
 
     # unbind selection
     selection.unbind
