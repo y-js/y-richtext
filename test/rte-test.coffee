@@ -229,7 +229,7 @@ describe 'Word objects should', ->
     word.left.length.should.equals 0
     word.right[0].equals(sel).should.be.true
 
-  it 'should remove selection correctly [removeSel]', ->
+  it 'remove selection correctly [removeSel]', ->
     rte = new Rte "This is a test"
     sel = new Selection 0, 6, rte
     word = rte.getWord(0)
@@ -238,3 +238,9 @@ describe 'Word objects should', ->
 
     word = rte.getWord(1)
     word.right.length.should.equals 1
+
+  it 'be able to get its index in RTE instance [index]', ->
+    rte = new Rte "This is a test"
+    rte.val()
+    word = rte.getWord( 3)
+    word.index(rte).should.equal 3
