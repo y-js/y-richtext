@@ -37,11 +37,10 @@ class Word
     else
       throw new Error "Invalid argument #{side}, expected 'left' or 'right'"
     index = 0
-    for element in array
-      if element.equals selection
+    for index in [0..array.length-1]
+      if array[index].equals selection
         array.pop(index)
         break
-      index += 1
 
 # A class describing a selection with a style (bold, italic, …)
 class Selection
