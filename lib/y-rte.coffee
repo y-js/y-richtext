@@ -1,5 +1,36 @@
 _ = require 'underscore'
 
+# Function that translates an index from start (absolute position) into a
+# relative position in word index and offset
+#
+# @param [Integer] position the position
+# @param [Rte] rte an rte instance
+relativeFromAbsolute = (position, rte)->
+    index = 0
+
+    while position > 0
+      if index >= rte._rte.words.length
+        return {word: index, pos: 0}
+      if rte._rte.words[index].word.length > position
+        return {word: index, pos: position}
+      else
+        position -= rte._rte.words[index].word.length
+        index += 1
+    return {word: index, pos: position}
+
+# Function that translates an index from start (absolute position) into a
+# relative position in word index and offset
+#
+# @param [Option] relative the position
+# @param [Rte] rte an rte instance
+absoluteFromRelative = (index, offset, rte) ->
+  absolute = offset
+  if index > 0
+    for i in [0..(index-1)]
+      absolute += rte.getWord(i).word.length
+
+  absolute
+
 # XRegExp = require('xregexp').XRegExp
 WordRegExp = /\S+\s*/g
 PreSpacesRegExp = /^\s+/
@@ -74,8 +105,6 @@ class Selection
       retStart = @_relativeFromAbsolute start
       retEnd = @_relativeFromAbsolute end
 
-      @startPos = retStart
-      @endPos = retEnd
       @setStyle style
 
       @left = @rte.getWord retStart.word
@@ -89,30 +118,44 @@ class Selection
       @rte._rte.selections.push @
 
 
-    else throw new Error "Wrong set of parameters #{start}, #{end}, #{rte}, #{style}"
+    else throw new Error "Wrong set of parameters
+      #{start}, #{end}, #{rte}, #{style}"
 
-    @startPos.lt = @endPos.lt = (selection) ->
-      @word < selection.word or (@word == selection.word and @pos <= selection.pos)
+  lt: (word2, pos2, side)->
+    if not (_.isString side)
+      throw new Error "Expected a string as first argument, got #{side}"
 
-    @startPos.gt = @endPos.gt = (selection) ->
-      @word > selection.word or (@word == selection.word and @pos >= selection.pos)
+    if side == "left"
+      word1 = @left
+      pos1 = @leftPos
+    else if side == "right"
+      word1 = @right
+      pos1 = @rightPos
+
+    (word1 == word2 and pos1 <= pos2) or
+     ((word1.index @rte) < (word2.index @rte))
+
+  gt: (word2, pos2, side)->
+    if not (_.isString side)
+      throw new Error "Expected a string as first argument, got #{side}"
+
+    if side == "left"
+      word1 = @left
+      pos1 = @leftPos
+    else if side == "right"
+      word1 = @right
+      pos1 = @rightPos
+
+    (word1 == word2 and pos1 >= pos2) or
+    ((word1.index @rte) > (word2.index @rte))
+
 
   # Convert indexes from beginning of text to coordinates expressed in word and
   # position within word
   #
   # @param [Integer] position index of position to find
   _relativeFromAbsolute: (position)->
-    index = 0
-
-    while position > 0
-      if index >= @rte._rte.words.length
-        return {word: index, pos: 0}
-      if @rte._rte.words[index].word.length > position
-        return {word: index, pos: position}
-      else
-        position -= @rte._rte.words[index].word.length
-        index += 1
-    return {word: index, pos: position}
+    relativeFromAbsolute position, @rte
 
   # Compares *the bounds* of two selections
   #
@@ -136,7 +179,8 @@ class Selection
   # @param [Selection] selection the selection to compare to this
   #
   in: (selection) ->
-    @startPos.gt(selection.startPos) and @endPos.lt(selection.endPos)
+    @gt(selection.left, selection.leftPos, "left") and
+    @lt(selection.right, selection.rightPos, "right")
 
   # Returns true if the current selection is in the given selection
   #
@@ -160,7 +204,7 @@ class Selection
   # Validate a selection if the start is before the end of the selection
   #
   isValid: ->
-    @startPos.lt(@endPos)
+    @lt(@right, @rightPos, "left")
 
 
   # Try to merge the given selection with this selection
@@ -176,7 +220,7 @@ class Selection
     if @ == selection
       return
     if @style != selection.style
-      return false
+      return
     if @atLeftOf selection
       leftSel = @
       rightSel = selection
@@ -188,38 +232,40 @@ class Selection
 
     # unbind words from left selection, remove it from selection list
     # expand the selection at right to the left end of previous left selection
-    leftSel.unbind()
     rightSel.left.removeSel rightSel, "left"
-    rightSel.left = leftSel.left
 
-    rightSel.startPos = leftSel.startPos
+    rightSel.left = leftSel.left
+    rightSel.leftPos = leftSel.leftPos
+
+    leftSel.unbind()
     @rte.removeSel leftSel
 
   # Unbind selection from word
   unbind: ->
-    @left.removeSel(@, "left")
-    @right.removeSel(@, "right")
+    @left.removeSel @, "left"
+    @right.removeSel @, "right"
 
     @left = null
     @right = null
 
-  # Unbind selection from word
+  # Bind selection to word
   bind: ->
-    @left.left.push(@)
-    @right.right.push(@)
+    @left.left.push @
+    @right.right.push @
 
   # Clone the current selection and apply style
   # @parameter [String] style the new style
   clone: (style) ->
     newSel = new Selection 0, 0, @rte, style
+
     newSel.unbind()
-    newSel.startPos = @startPos
-    newSel.endPos = @endPos
 
     newSel.left = @left
     newSel.leftPos = @leftPos
+
     newSel.right = @right
     newSel.rightPos = @rightPos
+
     newSel.bind()
 
     newSel
@@ -359,7 +405,8 @@ class Rte
     if 0 <= index < @_rte.words.length
       word = @getWord(index).word.trimRight()
       @deleteWords index
-      @insert {startPos: {word: index, pos:0}}, word
+      pos = absoluteFromRelative index, 0, @
+      @insert pos, word
     else
       throw new Error "Impossible to merge"
 
@@ -377,38 +424,41 @@ class Rte
     leftIndex = left.index @
     rightIndex = right.index @
 
-    newLeft = left.word.substring(0, selection.leftPos)
-    newRight = right.word.substring(selection.rightPos)
+    newLeft = left.word.substring 0, selection.leftPos
+    newRight = right.word.substring selection.rightPos
 
     if left == right
-      @setWord(leftIndex, newLeft + newRight)
+      @setWord leftIndex, (newLeft + newRight)
 
       # delete the words in between
-      @deleteWords(leftIndex+1, rightIndex)
+      @deleteWords leftIndex+1, rightIndex
     else
-      @setWord(leftIndex, newLeft)
-      @setWord(rightIndex, newRight)
+      @setWord leftIndex, newLeft
+      @setWord rightIndex, newRight
 
       # delete the words in between
-      @deleteWords(leftIndex+1, rightIndex)
+      @deleteWords leftIndex+1, rightIndex
       # merge
-      @merge(leftIndex)
+      @merge leftIndex
 
   # Insert text at position
   #
-  # @param [Selection] position The position where to insert text
+  # @param [Integer] position The position where to insert text
   # @param [String] content the content to insert
   #
-  insert: (selection, content)->
-    if (_.isUndefined selection.startPos)
-      throw new Error "Expected a location object as first argument"
+  insert: (position, content)->
+    if not (_.isNumber position)
+      throw new Error "Expected an integer as first argument"
     if not (_.isString content)
       throw new Error "Expected a string as second argument"
 
     if content.length == 0
       return
-    index = selection.startPos.word   #position to work from
-    pos = selection.startPos.pos
+
+    ret = relativeFromAbsolute position, @
+
+    index = ret.word   #position to work from
+    pos = ret.pos
 
     preSpaces = content.match PreSpacesRegExp
     currWord = @getWord(index).word
@@ -507,9 +557,7 @@ class Rte
         @deleteSel selection
 
       else if delta.insert?
-        end = position + delta.insert.length
-        selection = new Selection position, end, @
-        @insert selection, delta.insert
+        @insert position, delta.insert
         position += delta.insert.length
 
       else
@@ -539,4 +587,5 @@ if window?
   window.Word = Word
 
 if module?
-  module.exports = [Rte, Selection, Word]
+  module.exports = [Rte, Selection, Word,
+    relativeFromAbsolute, absoluteFromRelative]
