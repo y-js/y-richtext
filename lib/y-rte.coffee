@@ -44,7 +44,9 @@ class Word
 
   # Get index of word in rte list
   index: (rte) ->
-    return rte._rte.words.indexOf(@)
+    if not (rte instanceof Rte)
+      throw new Error "Expected an RTE instance as first argument, got #{rte}"
+    return rte._rte.words.indexOf @
 
 
 # A class describing a selection with a style (bold, italic, …)
