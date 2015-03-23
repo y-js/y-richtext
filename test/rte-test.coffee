@@ -96,27 +96,33 @@ describe 'Rich Text type should', ->
   it 'support styles [setStyle]', ->
     rte1 =  new Rte "I am testing styles"
     sel0 = new Selection 0, 3, rte1
-    sel1 = new Selection 3, 4, rte1, 'some random style'
+    sel1 = new Selection 3, 4, rte1
 
-    rte1.setStyle sel0, "bold" # should leave sel0
     rte1._rte.selections.length.should.equal 2
 
-    rte1.setStyle sel1, "italic" # should create a clone of sel0 with style italic
+    rte1.setStyle sel0, {bold: true} # should leave sel0
     rte1._rte.selections.length.should.equal 2
-    rte1.setStyle sel1, "bold" # should merge
+
+    rte1.setStyle sel1, {italic: true} # should create a clone of sel0 with style italic
+    rte1._rte.selections.length.should.equal 2
+    rte1.setStyle sel1, {bold: true} # should merge
     rte1._rte.selections.length.should.equal 1
 
-  it 'accept deltas (insert) [delta]', ->
+   it 'accept deltas (insert) [delta]', ->
     delta = { ops:[
       { insert: 'Gandalf', attributes: { bold: true } },
       { insert: ' the ' },
       { insert: 'Grey', attributes: { color: '#ccc' } }
       ] }
-    rte1 = new Rte ""
+    rte1 = new Rte()
+
     rte1.delta delta
+
     rte1.val().should.equal "Gandalf the Grey"
     rte1._rte.words.length.should.equal 3
     rte1._rte.words[0].word.should.equal "Gandalf "
+    rte1._rte.selections[0].should.have.property 'left', rte1.getWord(0)
+    rte1._rte.selections.length.should.equal 2
 
   it 'should accept deltas (retain & delete) [delta]', ->
     delta = { ops:[
@@ -214,7 +220,8 @@ describe 'Selection object should', ->
     sel2.contains(sel0).should.be.true
 
     sel0.atLeftOf(sel1).should.be.true
-    sel0.atLeftOf(sel2).should.be.false
+    sel0.atLeftOf(sel2).should.be.true
+    sel0.atLeftOf(sel3).should.be.false
 
   it 'return good values for [isValid]', ->
     sel0 = new Selection 1, 0, rte
