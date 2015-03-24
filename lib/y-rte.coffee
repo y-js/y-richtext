@@ -230,7 +230,8 @@ class Selection
   #
   # @param [Selection] selection the selection to compare to this
   atLeftOf: (selection) ->
-     @gt(selection.left, selection.leftPos, "right")
+     @gt(selection.left, selection.leftPos, "right") and
+     @lt(selection.right, selection.rightPos, "right")
 
   # Set the style to style
   #
@@ -281,7 +282,6 @@ class Selection
           @rte.removeSel sel
           )
     else
-      console.log "Impossible to split, #{@} is not in #{selection}"
 
 
   # Try to merge the given selection with this selection, keeping this selection
@@ -303,15 +303,15 @@ class Selection
     if not (_.isEqual(@style, selection.style))
       return
 
-    selToRemove = @
-    selToKeep = selection
+    selToRemove = selection
+    selToKeep = @
 
-    if @atLeftOf selection # remove @
+    if @atLeftOf selection
       left = @left
       leftPos = @leftPos
       right = selection.right
       rightPos = selection.rightPos
-    else if selection.atLeftOf @ # remove selection
+    else if selection.atLeftOf @
       left = selection.left
       leftPos = selection.leftPos
       right = @right
@@ -337,9 +337,7 @@ class Selection
     selToRemove.unbind()
     selToKeep.unbind()
 
-    selToKeep.left = left
     selToKeep.leftPos = leftPos
-    selToKeep.right = right
     selToKeep.rightPos = rightPos
 
     selToKeep.bind left, right
@@ -517,11 +515,24 @@ class Rte
     if start <= end
       @_rte.words.splice(start, end-start)
 
+      # delete all the selections within
+      indexStart = absoluteFromRelative start, 0, @
+      length = (@getWords 0).length
+      while end >= length
+        end -= 1
+      endPos = (@getWord end).word.length-1
+      indexEnd = absoluteFromRelative end, endPos, @
+      opts = {bind: false}
+      selection = new Selection indexStart, indexEnd, @, opts
+
+      for sel in @getSelections((s) -> s.in(selection))
+        sel.unbind()
+        @removeSel sel
+
   # Merge two words at position
   #
   # @param [Integer] n position of word where to perform merge. The merge will
   # be done with the word at right (if any)
-  #
   merge: (index) ->
     if 0 <= index < @getWords(0).length
       word = @getWord(index).word.trimRight()
@@ -641,28 +652,6 @@ class Rte
       pos = pos
     {word: word, pos: pos}
 
-  # Set the style of the selection and try to extend as much
-  # as possible existing ones.
-  setStyle: (selection, style)->
-    if not selection.isValid()
-      throw new Error "Invalid selection, got", selection
-
-    selection.setStyle (style or {})
-
-    # Link the boundary words to selection
-    leftWord = selection.left or {right: []}
-    rightWord = selection.right or {left: []}
-
-    # Merge left…
-    for tmpSelection in @getSelections()
-      selection.merge tmpSelection
-      selection.split tmpSelection
-    # # …and right (only happens when selections are contiguous or overlapping
-    # # and have same style)
-    # for tmpSelection in rightWord.left when tmpSelection and tmpSelection != selection
-    #   selection.merge tmpSelection
-    #   selection.split tmpSelection
-
   # Apply a delta to the object
   # @see http://quilljs.com/docs/deltas/
   #
@@ -670,40 +659,53 @@ class Rte
     position = 0
     for delta in deltas.ops
       if delta.retain?
+        opts = {bind: false}
         if delta.attributes?
-          selection = new Selection position, (position + delta.retain), @
+          opts.bind = true
+          opts.style = delta.attributes
+        selection = new Selection position, (position + delta.retain), @, opts
         position += delta.retain
 
       else if delta.delete?
-        selection = new Selection position, (position + delta.delete), @
+        opts = {bind: false}
+        selection = new Selection position, (position + delta.delete), @, opts
         @deleteSel selection
-        selection.unbind()
-        @removeSel selection
 
       else if delta.insert?
+        opts = {bind: false}
         @insert position, delta.insert
         if delta.attributes?
-          selection = new Selection position, (position + delta.insert.length-1), @
+          opts = {style: delta.attributes, bind: true}
+          end = position+delta.insert.length-1
+          selection = new Selection position, end, @, opts
         position += delta.insert.length
 
       else
         throw new Error "Unknown operation"
 
       if delta.attributes?
-        @setStyle selection, delta.attributes
-
-        selectionList = @getSelections()
-        for sel in selectionList when sel != selection and sel
-          sel.merge selection
+        selectionList = @getSelections((s) -> s!=selection and s)
+        for sel in selectionList
+          selection.merge sel
+          selection.split sel
 
   # Add a  selection to the selection list
   pushSel: (selection)->
     @_rte.selections.push selection
 
-  # Return all the selections bound to left and right, except self
-  # @return [Array<Selection>] an array of selection
-  getSelections: ->
-    @_rte.selections or []
+  # @overload getSelections()
+  #   Return all the selections
+  #   @return [Array<Selection>] an array of selection
+  #
+  # @overload getSelections(fun)
+  #   Return all the selections and filter using fun
+  #   @param [Function] fun the function to use for filtering
+  #   @return [Array<Selection>] an array of selection
+  getSelections: (fun = null)->
+    if _.isFunction(fun)
+      @_rte.selections.filter(fun) or []
+    else
+      @_rte.selections or []
 
   # Remove a selection from selection list
   #
