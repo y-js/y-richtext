@@ -1,5 +1,5 @@
 _ = require 'underscore'
-
+debug = true
 # Function that translates an index from start (absolute position) into a
 # relative position in word index and offset
 #
@@ -240,16 +240,15 @@ class Selection
 
       # joke here, because Insel means island in German
       inSel = @
-      outSelLeft.leftPos = selection.leftPos
-      outSelLeft.rightPos = inSel.leftPos
-      outSelLeft.bind selection.left, inSel.left
-
-      outSelRight.leftPos = inSel.rightPos
-      outSelRight.rightPos = inSel.rightPos
-      outSelRight.bind inSel.right, selection.right
 
       # order is important because outSelLeft == selection
+      # outSelRight has to be updated first
+      outSelRight.leftPos = inSel.rightPos
+      outSelRight.rightPos = selection.rightPos
       outSelRight.bind inSel.right, selection.right
+
+      outSelLeft.leftPos = selection.leftPos
+      outSelLeft.rightPos = inSel.leftPos
       outSelLeft.bind selection.left, inSel.left
     else
       console.log "Impossible to split, #{@} is not in #{selection}"
@@ -332,6 +331,9 @@ class Selection
       throw new Error "Missing argument left"
     if !right
       throw new Error "Missing argument right"
+
+    @left = left
+    @right = right
     if !(@ in @left.left)
       @left.left.push @
     if !(@ in @right.right)
