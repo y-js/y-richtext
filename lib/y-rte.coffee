@@ -106,8 +106,10 @@ class Selection
   #   @param [Integer] start index of the first character
   #   @param [Integer] end index of the last character
   #   @param [Rte] rte a rich-text editor (Rte) instance
-  #   @option options [Object] style the style of the selection
-  constructor: (start, end, rte, style)->
+  #   @param [Option] option options to pass to the constructor
+  #   @option option [Object] style the style of the selection
+  #   @option option [Bool] bind whether or not to bind the selection
+  constructor: (start, end, rte, options={})->
     if not _.isUndefined(start) and not _.isUndefined(end) and not _.isUndefined(rte)
       if !( _.isNumber(start) and
             _.isNumber(end))
@@ -115,21 +117,24 @@ class Selection
       if not (rte instanceof Rte)
         throw new Error "Expecting an rte instance as third argument, got #{rte}"
 
+      if _.isUndefined(options.bind)
+        options.bind = true
+
       @rte = rte
 
       retStart = @_relativeFromAbsolute start
       retEnd = @_relativeFromAbsolute end
 
-      @setStyle (style or {})
+      @setStyle (options.style or {})
 
       @left = @rte.getWord retStart.word
       @leftPos = retStart.pos
       @right = @rte.getWord retEnd.word
       @rightPos = retEnd.pos
 
-      @bind @left, @right
-
-      @rte.pushSel @
+      if options.bind
+        @bind @left, @right
+        @rte.pushSel @
 
 
     else throw new Error "Wrong set of parameters
@@ -369,7 +374,7 @@ class Selection
   # Clone the current selection and apply style
   # @parameter [String] style the new style
   clone: (style) ->
-    newSel = new Selection 0, 0, @rte, style
+    newSel = new Selection 0, 0, @rte, {style: style}
 
     newSel.unbind()
 
