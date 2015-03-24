@@ -1,5 +1,4 @@
 _ = require 'underscore'
-debug = true
 # Function that translates an index from start (absolute position) into a
 # relative position in word index and offset
 #
