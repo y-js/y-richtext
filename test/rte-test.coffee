@@ -253,6 +253,15 @@ describe 'Selection object should', ->
     sel2.should.have.deep.property 'right', rightWord
     sel2.should.have.deep.property 'rightPos', 1
 
+  it 'split correcly two selections [split]', ->
+    rte = new Rte "Zero one two three"
+    sel0 = new Selection 0, 10, rte, {foo: "bar"}
+    sel1 = new Selection 2, 8, rte, {foo: "ping pong is awesome"}
+    sel1.split sel0 # nothing happens
+    rte.getSelections().length.should.equal 3
+    rte.getSelections()[0].should.equal sel0
+    rte.getSelections()[1].should.equal sel1
+
   it 'unbind correctly [unbind]', ->
     rte = new Rte "Zero One two three four five"
     sel = new Selection 0, 1, rte
