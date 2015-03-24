@@ -225,12 +225,18 @@ describe 'Selection object should', ->
 
   it 'merge correctly the selections [merge]', ->
     rte = new Rte "Zero One two three four five"
-    sel = new Selection 0, 1, rte
-    sel2 = new Selection 1, 10, rte
+    sel0 = new Selection 0, 1, rte, {foo: "bar"}
+    sel1 = new Selection 0, 1, rte, {mergeMe: "I'm famous"}
+    sel2 = new Selection 1, 10, rte, {foo: "bar"}
 
-    sel.merge sel2, rte
-    rte._rte.selections.length.should.equal 1
-    rte._rte.selections[0].equals(sel2).should.be.true
+
+    sel0.merge sel0, sel1 # sel and sel1 not merging!
+    rte._rte.selections.length.should.equal 3
+
+    sel0.merge sel2, rte
+    rte._rte.selections.length.should.equal 2
+    rte._rte.selections.indexOf(sel).should.equal -1
+
 
     leftWord = rte.getWord 0
     rightWord = rte.getWord 2
