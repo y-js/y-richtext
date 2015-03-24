@@ -223,6 +223,37 @@ class Selection
   isValid: ->
     @lt(@right, @rightPos, "left")
 
+  # Split the outer selection into a left part and a right part and
+  # insert selection within
+  #
+  # @param [Selection] selection the selection to split
+  split: (selection) ->
+    # Check that they have all keys in common (but not necessarily same value!)
+    keys = _.keys(@style)
+    for key in keys
+      if not(_.has(selection.style, key))
+        return
+
+    if @in(selection)
+      outSelLeft = selection
+      outSelRight = selection.clone()
+
+      # joke here, because Insel means island in German
+      inSel = @
+      outSelLeft.leftPos = selection.leftPos
+      outSelLeft.rightPos = inSel.leftPos
+      outSelLeft.bind selection.left, inSel.left
+
+      outSelRight.leftPos = inSel.rightPos
+      outSelRight.rightPos = inSel.rightPos
+      outSelRight.bind inSel.right, selection.right
+
+      # order is important because outSelLeft == selection
+      outSelRight.bind inSel.right, selection.right
+      outSelLeft.bind selection.left, inSel.left
+    else
+      console.log "Impossible to split, #{@} is not in #{selection}"
+
 
   # Try to merge the given selection with this selection, keeping this selection
   #
@@ -238,11 +269,8 @@ class Selection
       return                    # nothing to do
 
     # if they have two styles that differ
-    keys = _.keys(@style)
-    for key in keys
-      if not(_.has(selection.style, key))
-        return
-    selection.setStyle @style
+    if not (_.isEqual(@style, selection.style))
+      return
 
     selToRemove = @
     selToKeep = selection
@@ -296,9 +324,18 @@ class Selection
     @right = null
 
   # Bind selection to word
-  bind: (@left, @right) ->
-    @left.left.push @
-    @right.right.push @
+  # @param [Word] left a word instance to bind at left
+  # @param [Word] right a word instance to bind at right
+  # @note could be optimized
+  bind: (left, right) ->
+    if !left
+      throw new Error "Missing argument left"
+    if !right
+      throw new Error "Missing argument right"
+    if !(@ in @left.left)
+      @left.left.push @
+    if !(@ in @right.right)
+      @right.right.push @
 
   # Clone the current selection and apply style
   # @parameter [String] style the new style
