@@ -147,6 +147,8 @@ class Selection
       word1 = @right
       pos1 = @rightPos
 
+    if not (word1 and word2)
+      return
     (word1 == word2 and pos1 >= pos2) or
     ((word1.index @rte) > (word2.index @rte))
 
@@ -224,10 +226,10 @@ class Selection
 
     # if they have two styles that differ
     for key, val of @style
-      if selection.style[key] != val
+      if not selection.style.hasOwnProperty(key)
         return
     for key, val of selection.style
-      if val != @style[key]
+      if not @style.hasOwnProperty(key)
         return
 
     if @atLeftOf selection # remove @
@@ -245,6 +247,13 @@ class Selection
       right = @right
       rightPos = selection.rightPos
     else if @.in selection # remove @
+      selToRemove = @
+      selToKeep = selection
+      left = selection.left
+      leftPos = selection.leftPos
+      right = selection.right
+      rightPos = selection.rightPos
+    else if @equals selection # remove @
       selToRemove = @
       selToKeep = selection
       left = selection.left
@@ -451,7 +460,6 @@ class Rte
   #
   deleteSel: (selection) ->
     if not selection.isValid()
-      console.log selection
       throw new Error "Invalid selection, got", selection
 
     left = selection.left
@@ -560,7 +568,6 @@ class Rte
   # as possible existing ones.
   setStyle: (selection, style)->
     if not selection.isValid()
-      console.log selection
       throw new Error "Invalid selection, got", selection
 
     selection.style = style or {}
@@ -593,7 +600,6 @@ class Rte
         @deleteSel selection
 
       else if delta.insert?
-        console.log position, (position+delta.insert.length)
         @insert position, delta.insert
         if delta.attributes?
           selection = new Selection position, (position + delta.insert.length-1), @
@@ -606,7 +612,6 @@ class Rte
         @setStyle selection, delta.attributes
 
       selectionList = @getSelections()
-      console.log selectionList
       for sel in selectionList
         sel.merge selection
 
@@ -635,7 +640,7 @@ class Rte
     index = 0
     array = @_rte.selections
     for index in [0..array.length-1]
-      if (array[index].equals(selection) and (array[index].style == selection.style))
+      if (array[index] == selection)
         array.splice index, 1
         break
 
