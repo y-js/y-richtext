@@ -136,6 +136,15 @@ class Selection
     else throw new Error "Wrong set of parameters
       #{start}, #{end}, #{rte}, #{style}"
 
+  # Returns true if the selection is empty (it has no length)
+  isEmpty: () ->
+    (@left == @right and @leftPos == @rightPos)
+
+  # Returns true when the "side" side of the selection is less than the
+  # position given as parameters.
+  # @param word2 [Word] a word instance
+  # @param pos2 [Integer] the offset in this word
+  # @param side [String] either "left" or "right"
   lt: (word2, pos2, side)->
     if not (_.isString side)
       throw new Error "Expected a string as first argument, got #{side}"
@@ -150,6 +159,11 @@ class Selection
     (word1 == word2 and pos1 <= pos2) or
      ((word1.index @rte) < (word2.index @rte))
 
+  # Returns true when the "side" side of the selection is greater than the
+  # position given as parameters.
+  # @param word2 [Word] a word instance
+  # @param pos2 [Integer] the offset in this word
+  # @param side [String] either "left" or "right"
   gt: (word2, pos2, side)->
     if not (_.isString side)
       throw new Error "Expected a string as first argument, got #{side}"
@@ -255,6 +269,13 @@ class Selection
       outSelLeft.leftPos = selection.leftPos
       outSelLeft.rightPos = inSel.leftPos
       outSelLeft.bind selection.left, inSel.left
+
+      # Remove empty selections
+      [outSelRight, inSel, outSelLeft].forEach( (sel) ->
+        if sel.isEmpty()
+          sel.unbind()
+          @rte.removeSel sel
+          )
     else
       console.log "Impossible to split, #{@} is not in #{selection}"
 
@@ -358,6 +379,8 @@ class Selection
 
     newSel.right = @right
     newSel.rightPos = @rightPos
+
+    newSel.setStyle _.clone(@style)
 
     newSel.bind @left, @right
 
