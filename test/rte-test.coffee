@@ -93,21 +93,6 @@ describe 'Rich Text type should', ->
     rte1.val().should.equal "Two inserted words"
     rte1._rte.words.length.should.equal 3
 
-  it 'support styles [setStyle]', ->
-    rte1 =  new Rte "I am testing styles"
-    sel0 = new Selection 0, 3, rte1
-    sel1 = new Selection 3, 4, rte1
-
-    rte1._rte.selections.length.should.equal 2
-
-    rte1.setStyle sel0, {bold: true} # should leave sel0
-    rte1._rte.selections.length.should.equal 2
-
-    rte1.setStyle sel1, {italic: true} # should create a clone of sel0 with style italic
-    rte1._rte.selections.length.should.equal 2
-    rte1.setStyle sel1, {bold: true} # should merge
-    rte1._rte.selections.length.should.equal 1
-
    it 'accept deltas (insert) [delta]', ->
     delta = { ops:[
       { insert: 'Gandalf', attributes: { bold: true } },
@@ -123,6 +108,20 @@ describe 'Rich Text type should', ->
     rte1._rte.words[0].word.should.equal "Gandalf "
     rte1._rte.selections[0].should.have.property 'left', rte1.getWord(0)
     rte1._rte.selections.length.should.equal 2
+  it 'accept styles [delta]', ->
+    delta = { ops:[
+      { insert: 'Gandalf', attributes: { bold: true } },
+      { insert: ' the ' },
+      { insert: 'Grey', attributes: { bold: true } }
+      ] }
+    rte1 = new Rte()
+    rte1.delta delta
+    delta1 = {ops: [
+      {retain: 7},
+      {retain: 5, attributes: {bold: true}}
+      ]}
+    rte1.delta delta1
+    console.log rte1._rte.selections
 
   it 'should accept deltas (retain & delete) [delta]', ->
     delta = { ops:[
@@ -230,12 +229,11 @@ describe 'Selection object should', ->
     sel0.isValid().should.be.false
     sel1.isValid().should.be.true
 
-  it 'merge correctly the selections [merge]', ->
+  it 'merge correctly the selections [merge] 1/2', ->
     rte = new Rte "Zero One two three four five"
     sel0 = new Selection 0, 1, rte, {foo: "bar"}
     sel1 = new Selection 0, 1, rte, {mergeMe: "I'm famous"}
     sel2 = new Selection 1, 10, rte, {foo: "bar"}
-
 
     sel0.merge sel0, sel1 # sel and sel1 not merging!
     rte._rte.selections.length.should.equal 3
@@ -248,10 +246,22 @@ describe 'Selection object should', ->
     leftWord = rte.getWord 0
     rightWord = rte.getWord 2
 
-    sel2.should.have.deep.property 'left', leftWord
-    sel2.should.have.deep.property 'leftPos', 0
-    sel2.should.have.deep.property 'right', rightWord
-    sel2.should.have.deep.property 'rightPos', 1
+    sel0.should.have.deep.property 'left', leftWord
+    sel0.should.have.deep.property 'leftPos', 0
+    sel0.should.have.deep.property 'right', rightWord
+    sel0.should.have.deep.property 'rightPos', 1
+
+  it 'merge correctly the selections [merge] 2/2', ->
+    rte = new Rte "Zero One two three four five"
+    sel0 = new Selection 0, 1, rte, {foo: "bar"}
+    sel2 = new Selection 1, 10, rte, {foo: "bar"}
+
+    sel2.merge sel0, rte
+    rte._rte.selections.length.should.equal 1
+    rte._rte.selections.indexOf(sel0).should.equal -1
+
+    leftWord = rte.getWord 0
+    rightWord = rte.getWord 2
 
   it 'split correcly two selections [split]', ->
     rte = new Rte "Zero one two three"
