@@ -78,6 +78,23 @@ class Word
   index: ->
     return @rte._rte.words.indexOf @
 
+  getSelections: ->
+    uniq = (value, index, self) ->
+      self.indexOf(value) == index and value != @
+
+    ret = []
+    if @left and @left.left
+      ret.append(@left.left)
+    if @left and @left.right
+      ret.append(@left.left)
+    if @right and @right.right
+      ret.append(@right.right)
+    if @right and @right.left
+      ret.append(@right.left)
+
+    ret.filter uniq # return a value with unique elements
+
+
 
 # A class describing a selection with a style (bold, italic, …)
 class Selection
@@ -111,10 +128,9 @@ class Selection
       @right = @rte.getWord retEnd.word
       @rightPos = retEnd.pos
 
-      @left.left.push @
-      @right.right.push @
+      @bind @left, @right
 
-      @rte._rte.selections.push @
+      @rte.pushSel @
 
 
     else throw new Error "Wrong set of parameters
@@ -196,8 +212,7 @@ class Selection
   #
   # @param [Selection] selection the selection to compare to this
   atLeftOf: (selection) ->
-     @gt(selection.left, selection.leftPos, "right") and
-     @lt(selection.right, selection.rightPos, "left")
+     @gt(selection.left, selection.leftPos, "right")
 
   # Set the style to style
   #
@@ -209,7 +224,7 @@ class Selection
     @lt(@right, @rightPos, "left")
 
 
-  # Try to merge the given selection with this selection
+  # Try to merge the given selection with this selection, keeping this selection
   #
   # @param [Selection] selection the selection to merge to
   #
@@ -223,44 +238,36 @@ class Selection
       return                    # nothing to do
 
     # if they have two styles that differ
-    for key, val of @style
-      if not selection.style.hasOwnProperty(key)
+    keys = _.keys(@style)
+    for key in keys
+      if not(_.has(selection.style, key))
         return
-    for key, val of selection.style
-      if not @style.hasOwnProperty(key)
-        return
+    selection.setStyle @style
+
+    selToRemove = @
+    selToKeep = selection
 
     if @atLeftOf selection # remove @
-      selToRemove = @
-      selToKeep = selection
       left = @left
       leftPos = @leftPos
       right = selection.right
       rightPos = selection.rightPos
     else if selection.atLeftOf @ # remove selection
-      selToRemove = selection
-      selToKeep = @
       left = selection.left
       leftPos = selection.leftPos
       right = @right
       rightPos = selection.rightPos
     else if @.in selection # remove @
-      selToRemove = @
-      selToKeep = selection
       left = selection.left
       leftPos = selection.leftPos
       right = selection.right
       rightPos = selection.rightPos
     else if @equals selection # remove @
-      selToRemove = @
-      selToKeep = selection
       left = selection.left
       leftPos = selection.leftPos
       right = selection.right
       rightPos = selection.rightPos
     else if selection.in @ # remove selection
-      selToRemove = selection
-      selToKeep = @
       left = @left
       leftPos = @leftPos
       right = @right
@@ -282,9 +289,8 @@ class Selection
 
   # Unbind selection from word
   unbind: ->
-    if @left and @right
-      @left.removeSel @, "left"
-      @right.removeSel @, "right"
+    @left.removeSel @, "left"
+    @right.removeSel @, "right"
 
     @left = null
     @right = null
@@ -347,7 +353,7 @@ class Rte
       # reset styles when replacing content
       @_rte.words = []
       @_rte.style = []
-      @push(content)
+      @push content
     else
       # TODO: support breaks (br, new paragraph, …)
       (e.word for e in @_rte.words).join('')
@@ -444,7 +450,7 @@ class Rte
   # be done with the word at right (if any)
   #
   merge: (index) ->
-    if 0 <= index < @_rte.words.length
+    if 0 <= index < @getWords(0).length
       word = @getWord(index).word.trimRight()
       @deleteWords index
       pos = absoluteFromRelative index, 0, @
@@ -547,13 +553,13 @@ class Rte
           pos -= jump
     else if jump > 0
       while jump > 0
-        delta = pos + jump - @_rte.word[word].length + 1
+        delta = pos + jump - @getWord(word).word.length + 1
         if delta > 0
           word += 1
           jump -= delta
           pos = 0
 
-          if word >= @_rte.words.length
+          if word >= @getWords(0).length
             return null
         else
           pos += jump
@@ -568,19 +574,19 @@ class Rte
     if not selection.isValid()
       throw new Error "Invalid selection, got", selection
 
-    selection.style = style or {}
+    selection.setStyle (style or {})
 
     # Link the boundary words to selection
     leftWord = selection.left or {right: []}
     rightWord = selection.right or {left: []}
 
     # Merge left…
-    for tmpSelection in leftWord.right when tmpSelection
-      tmpSelection.merge selection
+    for tmpSelection in leftWord.right when tmpSelection and tmpSelection != selection
+      selection.merge tmpSelection
     # …and right (only happens when selections are contiguous or overlapping
     # and have same style)
-    for tmpSelection in rightWord.left when tmpSelection
-      tmpSelection.merge selection
+    for tmpSelection in rightWord.left when tmpSelection and tmpSelection != selection
+      selection.merge tmpSelection
 
   # Apply a delta to the object
   # @see http://quilljs.com/docs/deltas/
@@ -596,6 +602,8 @@ class Rte
       else if delta.delete?
         selection = new Selection position, (position + delta.delete), @
         @deleteSel selection
+        selection.unbind()
+        @removeSel selection
 
       else if delta.insert?
         @insert position, delta.insert
@@ -609,27 +617,18 @@ class Rte
       if delta.attributes?
         @setStyle selection, delta.attributes
 
-      selectionList = @getSelections()
-      for sel in selectionList
-        sel.merge selection
+        selectionList = @getSelections()
+        for sel in selectionList when sel != selection and sel
+          sel.merge selection
+
+  # Add a  selection to the selection list
+  pushSel: (selection)->
+    @_rte.selections.push selection
 
   # Return all the selections bound to left and right, except self
   # @return [Array<Selection>] an array of selection
   getSelections: ->
-    uniq = (value, index, self) ->
-      self.indexOf(value) == index and value != @
-
-    ret = []
-    if @left and @left.left
-      ret.append(@left.left)
-    if @left and @left.right
-      ret.append(@left.left)
-    if @right and @right.right
-      ret.append(@right.right)
-    if @right and @right.left
-      ret.append(@right.left)
-
-    ret.filter uniq # return a value with unique elements
+    @_rte.selections or []
 
   # Remove a selection from selection list
   #
@@ -642,14 +641,10 @@ class Rte
         array.splice index, 1
         break
 
-    # unbind selection
-    selection.unbind()
-
   garbageCollect: ->
     sels = @_rte.selections
     for index in [0..sels.length-1]
       for key, value of sels[index]
-        console.log sels[index], "has", key, value, "deleting!"
         if value == null or value == ""
           sels[index].unbind()
           @removeSel sels[index]
