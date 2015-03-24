@@ -49,7 +49,7 @@ class Word
   # Construct a new list of words
   # @param [String] word The initial string value
   # @return [Word] a word instance
-  constructor: (@word) ->
+  constructor: (@word, @rte) ->
     # Selections that have this word as left bound
     @left = []
     # Selections that have this word as right bound
@@ -75,10 +75,8 @@ class Word
         break
 
   # Get index of word in rte list
-  index: (rte) ->
-    if not (rte instanceof Rte)
-      throw new Error "Expected an RTE instance as first argument, got #{rte}"
-    return rte._rte.words.indexOf @
+  index: ->
+    return @rte._rte.words.indexOf @
 
 
 # A class describing a selection with a style (bold, italic, …)
@@ -358,7 +356,7 @@ class Rte
   # @param index [Integer] the index of the word to return
   getWord: (index) ->
     if @_rte.words.length == 0 or index == @_rte.words.length
-      return new Word ""
+      return new Word "", @
 
     if not (0 <= index < @_rte.words.length)
       throw new Error "Index out of bounds #{index}"
@@ -384,7 +382,7 @@ class Rte
   # @param content [String] the content to set the word to
   setWord: (index, content) ->
     if index == @_rte.words.length
-      @_rte.words.push(new Word content)
+      @_rte.words.push(new Word content, @)
     if not (0 <= index < @_rte.words.length)
       throw new Error "Index out of bounds"
 
@@ -395,11 +393,11 @@ class Rte
   push: (content) ->
     preSpaces = content.match PreSpacesRegExp
     if preSpaces isnt null
-      @_rte.words.push(new Word (preSpaces[0]))
+      @_rte.words.push(new Word (preSpaces[0]), @)
     words = content.match WordRegExp
     if _.isArray(words)
       for w in words
-        @_rte.words.push (new Word w)
+        @_rte.words.push (new Word w, @)
 
   # Insert words at position
   #
@@ -413,7 +411,7 @@ class Rte
     if not _.isArray words
       throw new Error "Expected a string array as second parameter, got #{words}"
     if 0 <= position <= @_rte.words.length
-      wordsObj = (new Word w for w in words)
+      wordsObj = ((new Word w, @) for w in words)
 
       left = @_rte.words.slice(0, position)
       right = @_rte.words.slice(position)
@@ -512,7 +510,7 @@ class Rte
       if pos == 0
         if index == 0
           index += 1
-          @insertWord 0, (new Word '')
+          @insertWord 0, (new Word '', @)
         prevWord = @getWord(index-1).word
         prevWord += preSpaces
         content = content.substring(preSpaces.length)
@@ -646,6 +644,16 @@ class Rte
 
     # unbind selection
     selection.unbind()
+
+  garbageCollect: ->
+    sels = @_rte.selections
+    for index in [0..sels.length-1]
+      for key, value of sels[index]
+        console.log sels[index], "has", key, value, "deleting!"
+        if value == null or value == ""
+          sels[index].unbind()
+          @removeSel sels[index]
+
 
 if window?
   window.Rte = Rte
