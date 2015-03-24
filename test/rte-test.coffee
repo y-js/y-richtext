@@ -9,7 +9,7 @@ $         = require('jquery')
 chai.use(sinonChai)
 chai.config.includeStack = true
 
-[Rte, Selection, Word] = require '../lib/y-rte'
+[Rte, Selection, Word, relativeFromAbsolute, absoluteFromRelative] = require '../lib/y-rte'
 
 
 describe 'Rich Text type should', ->
@@ -58,7 +58,8 @@ describe 'Rich Text type should', ->
     rte1.deleteWords(7, 8)
     rte1.val().should.equal "There is a mistake in this sentence! "
 
-  it 'not delete space after word when selection ends at last character [deleteSel]', ->
+  it 'not delete space after word when selection ends at last character
+   [deleteSel]', ->
     rte1 = new Rte "I am yjs here!"
     sel = new Selection(5, 8, rte1)
     rte1.deleteSel(sel)
@@ -83,12 +84,12 @@ describe 'Rich Text type should', ->
 
   it 'insert correctly [insert]', ->
     rte1 =  new Rte ""
-    sel = new Selection(0, 0, rte1)
-    rte1.insert(sel, "Two words")
+
+    rte1.insert(0, "Two words")
     rte1.val().should.equal "Two words"
     rte1._rte.words.length.should.equal 2
-    sel = new Selection(4, 0, rte1)
-    rte1.insert(sel, "inserted ")
+
+    rte1.insert(4, "inserted ")
     rte1.val().should.equal "Two inserted words"
     rte1._rte.words.length.should.equal 3
 
@@ -132,6 +133,25 @@ describe 'Rich Text type should', ->
     rte1 = new Rte "Gandalf the Grey"
     rte1.delta delta
 
+describe 'Utilities', ->
+  it 'should convert correctly [relativeFromAbsolute]', ->
+    rte = new Rte "Zero One two three four five"
+    pos = relativeFromAbsolute 0, rte
+    pos.should.have.property 'word', 0
+    pos.should.have.property 'pos', 0
+
+    pos = relativeFromAbsolute 7, rte
+    pos.should.have.property 'word', 1
+    pos.should.have.property 'pos', 2
+
+  it 'should convert correctly [absoluteFromRelative]', ->
+    rte = new Rte "Zero One two three four five"
+    pos = absoluteFromRelative 0, 2, rte
+    pos.should.equal 2
+
+    pos = absoluteFromRelative 1, 2, rte
+    pos.should.equal 7
+
 describe 'Selection object should', ->
   sel = sel2 = word = null
   rte = new Rte "Zero One two three four five"
@@ -141,27 +161,39 @@ describe 'Selection object should', ->
 
   it 'convert positions correctly [_relativeFromAbsolute]', ->
     sel = new Selection 1, 7, rte
-    sel.should.have.property('startPos')
-    sel.should.have.deep.property('startPos.word', 0)
-    sel.should.have.deep.property('startPos.pos', 1)
+    sel.should.have.property 'left', (rte.getWord 0)
+    sel.should.have.property 'leftPos', 1
 
-    sel.should.have.property('endPos')
-    sel.should.have.deep.property('endPos.word', 1)
-    sel.should.have.deep.property('endPos.pos', 2)
+    sel.should.have.property 'right', (rte.getWord 1)
+    sel.should.have.property 'rightPos', 2
 
-  it 'have an order relation [startPos.gt,…]', ->
-    sel0 = new Selection 1, 5, rte
-    (sel0.startPos.gt {word: 0, pos: 0}).should.be.true
-    (sel0.startPos.gt {word: 1, pos: 0}).should.be.false
-    (sel0.startPos.gt {word: 0, pos: 1}).should.be.true
-    (sel0.startPos.gt {word: 0, pos: 2}).should.be.false
+  it 'have an order relation [gt]', ->
+    sel0 = new Selection 1, 7, rte
+    (sel0.gt((rte.getWord 0), 0, "left")).should.be.true
+    (sel0.gt((rte.getWord 0), 0, "right")).should.be.true
 
-  it 'have an order relation [startPos.lt, …]', ->
-    sel0 = new Selection 1, 5, rte
-    (sel0.startPos.lt {word: 0, pos: 0}).should.be.false
-    (sel0.startPos.lt {word: 1, pos: 0}).should.be.true
-    (sel0.startPos.lt {word: 0, pos: 1}).should.be.true
-    (sel0.startPos.lt {word: 0, pos: 2}).should.be.true
+    (sel0.gt((rte.getWord 1), 0, "left")).should.be.false
+    (sel0.gt((rte.getWord 1), 0, "right")).should.be.true
+
+    (sel0.gt((rte.getWord 1), 2, "left")).should.be.false
+    (sel0.gt((rte.getWord 1), 2, "right")).should.be.true
+
+    (sel0.gt((rte.getWord 1), 3, "left")).should.be.false
+    (sel0.gt((rte.getWord 1), 3, "right")).should.be.false
+
+  it 'have an order relation [lt]', ->
+    sel0 = new Selection 1, 7, rte
+    (sel0.lt((rte.getWord 0), 0, "left")).should.be.false
+    (sel0.lt((rte.getWord 0), 0, "right")).should.be.false
+
+    (sel0.lt((rte.getWord 1), 0, "left")).should.be.true
+    (sel0.lt((rte.getWord 1), 0, "right")).should.be.false
+
+    (sel0.lt((rte.getWord 1), 2, "left")).should.be.true
+    (sel0.lt((rte.getWord 1), 2, "right")).should.be.true
+
+    (sel0.lt((rte.getWord 1), 3, "left")).should.be.true
+    (sel0.lt((rte.getWord 1), 3, "right")).should.be.true
 
   it 'have working functions [equals,notEquals,in,contains,overlaps,atLeftOf]', ->
     sel0 = new Selection 0, 1, rte
@@ -200,10 +232,13 @@ describe 'Selection object should', ->
     rte._rte.selections.length.should.equal 1
     rte._rte.selections[0].equals(sel2).should.be.true
 
-    sel2.should.have.deep.property 'startPos.word', 0
-    sel2.should.have.deep.property 'startPos.pos', 0
-    sel2.should.have.deep.property 'endPos.word', 2
-    sel2.should.have.deep.property 'endPos.pos', 1
+    leftWord = rte.getWord 0
+    rightWord = rte.getWord 2
+
+    sel2.should.have.deep.property 'left', leftWord
+    sel2.should.have.deep.property 'leftPos', 0
+    sel2.should.have.deep.property 'right', rightWord
+    sel2.should.have.deep.property 'rightPos', 1
 
   it 'unbind correctly [unbind]', ->
     rte = new Rte "Zero One two three four five"
@@ -229,7 +264,7 @@ describe 'Word objects should', ->
     word.left.length.should.equals 0
     word.right[0].equals(sel).should.be.true
 
-  it 'should remove selection correctly [removeSel]', ->
+  it 'remove selection correctly [removeSel]', ->
     rte = new Rte "This is a test"
     sel = new Selection 0, 6, rte
     word = rte.getWord(0)
@@ -238,3 +273,9 @@ describe 'Word objects should', ->
 
     word = rte.getWord(1)
     word.right.length.should.equals 1
+
+  it 'be able to get its index in RTE instance [index]', ->
+    rte = new Rte "This is a test"
+    rte.val()
+    word = rte.getWord( 3)
+    word.index(rte).should.equal 3
