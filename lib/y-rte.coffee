@@ -228,6 +228,11 @@ class Selection
   #
   # @param [Selection] selection the selection to split
   split: (selection) ->
+    if !selection
+      return
+    if selection == @
+      return
+
     # Check that they have all keys in common (but not necessarily same value!)
     keys = _.keys(@style)
     for key in keys
@@ -264,8 +269,10 @@ class Selection
   #    becomes
   #   [           right selection           ]
   merge: (selection) ->
+    if !selection
+      return
     if @ == selection
-      return                    # nothing to do
+      return
 
     # if they have two styles that differ
     if not (_.isEqual(@style, selection.style))
@@ -620,12 +627,14 @@ class Rte
     rightWord = selection.right or {left: []}
 
     # Merge left…
-    for tmpSelection in leftWord.right when tmpSelection and tmpSelection != selection
+    for tmpSelection in @getSelections()
       selection.merge tmpSelection
-    # …and right (only happens when selections are contiguous or overlapping
-    # and have same style)
-    for tmpSelection in rightWord.left when tmpSelection and tmpSelection != selection
-      selection.merge tmpSelection
+      selection.split tmpSelection
+    # # …and right (only happens when selections are contiguous or overlapping
+    # # and have same style)
+    # for tmpSelection in rightWord.left when tmpSelection and tmpSelection != selection
+    #   selection.merge tmpSelection
+    #   selection.split tmpSelection
 
   # Apply a delta to the object
   # @see http://quilljs.com/docs/deltas/
