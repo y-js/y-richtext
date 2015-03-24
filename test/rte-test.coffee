@@ -257,10 +257,16 @@ describe 'Selection object should', ->
     rte = new Rte "Zero one two three"
     sel0 = new Selection 0, 10, rte, {foo: "bar"}
     sel1 = new Selection 2, 8, rte, {foo: "ping pong is awesome"}
-    sel1.split sel0 # nothing happens
-    rte.getSelections().length.should.equal 3
-    rte.getSelections()[0].should.equal sel0
-    rte.getSelections()[1].should.equal sel1
+    sel0.split sel1 # nothing happens!
+    rte.getSelections().length.should.equal 2
+
+    sel1.split sel0 # should create a new selection at right of sel1
+    sels = rte.getSelections()
+    sels.length.should.equal 3
+    sels[0].should.equal sel0
+    sels[1].should.equal sel1
+    sels[2].leftPos.should.equal(sels[1].rightPos)
+    sels[2].left.word.should.equal(sels[1].right.word)
 
   it 'unbind correctly [unbind]', ->
     rte = new Rte "Zero One two three four five"
