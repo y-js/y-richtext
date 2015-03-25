@@ -728,6 +728,7 @@ class Rte
         array.splice index, 1
         break
 
+  # Only for manual use, so no efficiency research
   garbageCollect: ->
     sels = @_rte.selections
     for index in [0..sels.length-1]
