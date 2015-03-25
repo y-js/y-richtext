@@ -97,17 +97,19 @@ describe 'Rich Text type should', ->
     delta = { ops:[
       { insert: 'Gandalf', attributes: { bold: true } },
       { insert: ' the ' },
-      { insert: 'Grey', attributes: { color: '#ccc' } }
+      { insert: 'Grey', attributes: { color: '#ccc' } },
+      { insert: '.'}
       ] }
     rte1 = new Rte()
 
     rte1.delta delta
 
-    rte1.val().should.equal "Gandalf the Grey"
-    rte1._rte.words.length.should.equal 3
+    rte1.val().should.equal "Gandalf the Grey."
+    rte1._rte.words.length.should.equal 4
     rte1._rte.words[0].word.should.equal "Gandalf "
     rte1._rte.selections[0].should.have.property 'left', rte1.getWord(0)
     rte1._rte.selections.length.should.equal 2
+
   it 'accept styles [delta]', ->
     delta = { ops:[
       { insert: 'Gandalf', attributes: { bold: true } },
@@ -121,7 +123,7 @@ describe 'Rich Text type should', ->
       {retain: 5, attributes: {bold: true}}
       ]}
     rte1.delta delta1
-    console.log rte1._rte.selections
+    rte1.getSelections().length.should.equal 1
 
   it 'should accept deltas (retain & delete) [delta]', ->
     delta = { ops:[
@@ -131,12 +133,6 @@ describe 'Rich Text type should', ->
     rte1 = new Rte "Gandalf the Grey"
     rte1.delta delta
     rte1.val().should.equal "Gandalf Grey"
-
-  it 'should accept deltas (style) [delta]', ->
-    delta = {ops:[
-      { retain: 7, attributes: {bold: true } }]}
-    rte1 = new Rte "Gandalf the Grey"
-    rte1.delta delta
 
 describe 'Utilities', ->
   it 'should convert correctly [relativeFromAbsolute]', ->
