@@ -8,12 +8,12 @@ relativeFromAbsolute = (position, rte)->
     index = 0
     while position > 0
       if index >= rte._rte.words.length
-        position = 0
+        index -= 1 #position = 0
         break
-      if rte._rte.words[index].word.length > position
+      if rte.getWord(index).word.length > position
         break
       else
-        position -= rte._rte.words[index].word.length
+        position -= rte.getWord(index).word.length
         index += 1
 
     return {word: index, pos: position}
@@ -70,29 +70,30 @@ class Word
     index = 0
     for index in [0..array.length-1]
       if array[index].equals selection
-        array.pop(index)
+        array.splice index, 1
         break
 
   # Get index of word in rte list
   index: ->
-    return @rte._rte.words.indexOf @
+    index = @rte._rte.words.indexOf @
+    if index == -1
+      9e99
+    else
+      index
 
-  getSelections: ->
-    uniq = (value, index, self) ->
-      self.indexOf(value) == index and value != @
-
-    ret = []
-    if @left and @left.left
-      ret.append(@left.left)
-    if @left and @left.right
-      ret.append(@left.left)
-    if @right and @right.right
-      ret.append(@right.right)
-    if @right and @right.left
-      ret.append(@right.left)
-
-    ret.filter uniq # return a value with unique elements
-
+  # @overload getSelections()
+  #   Return all the selections
+  #   @return [Array<Selection>] an array of selection
+  #
+  # @overload getSelections(fun)
+  #   Return all the selections and filter using fun
+  #   @param [Function] fun the function to use for filtering
+  #   @return [Array<Selection>] an array of selection
+  getSelections: (fun = null)->
+    if _.isFunction(fun)
+      @_rte.selections.filter(fun) or []
+    else
+      @_rte.selections or []
 
 
 # A class describing a selection with a style (bold, italic, …)
@@ -140,6 +141,14 @@ class Selection
     else throw new Error "Wrong set of parameters
       #{start}, #{end}, #{rte}, #{style}"
 
+  # Print a string reprensetation of string
+  print: () ->
+    r = @.right or {word: 'rightmost'};
+    l = @.left or {word: 'leftmost'};
+    console.log "From '" + l.word + "':" + @leftPos +
+                " to '" + r.word + "':" + @rightPos +
+                " with style", @style
+
   # Returns true if the selection is empty (it has no length)
   isEmpty: () ->
     (@left == @right and @leftPos == @rightPos)
@@ -159,9 +168,10 @@ class Selection
     else if side == "right"
       word1 = @right
       pos1 = @rightPos
-
-    (word1 == word2 and pos1 <= pos2) or
-     ((word1.index @rte) < (word2.index @rte))
+    index1 = word1.index @rte
+    index2 = word2.index @rte
+    (index1 == index2 and pos1 <= pos2) or
+      (index1 < index2)
 
   # Returns true when the "side" side of the selection is greater than the
   # position given as parameters.
@@ -179,8 +189,6 @@ class Selection
       word1 = @right
       pos1 = @rightPos
 
-    if not (word1 and word2)
-      return
     (word1 == word2 and pos1 >= pos2) or
     ((word1.index @rte) > (word2.index @rte))
 
@@ -230,8 +238,9 @@ class Selection
   #
   # @param [Selection] selection the selection to compare to this
   atLeftOf: (selection) ->
-     @gt(selection.left, selection.leftPos, "right") and
-     @lt(selection.right, selection.rightPos, "right")
+     (@gt(selection.left, selection.leftPos, "right") and
+     @lt(selection.right, selection.rightPos, "right"))
+
 
   # Set the style to style
   #
@@ -276,11 +285,11 @@ class Selection
       outSelLeft.bind selection.left, inSel.left
 
       # Remove empty selections
-      [outSelRight, inSel, outSelLeft].forEach( (sel) ->
+      [outSelRight, inSel, outSelLeft].forEach (sel) ->
         if sel.isEmpty()
           sel.unbind()
           @rte.removeSel sel
-          )
+
     else
 
 
@@ -302,7 +311,6 @@ class Selection
     # if they have two styles that differ
     if not (_.isEqual(@style, selection.style))
       return
-
     selToRemove = selection
     selToKeep = @
 
@@ -315,18 +323,18 @@ class Selection
       left = selection.left
       leftPos = selection.leftPos
       right = @right
-      rightPos = selection.rightPos
-    else if @.in selection # remove @
+      rightPos = @rightPos
+    else if @.in selection
       left = selection.left
       leftPos = selection.leftPos
       right = selection.right
       rightPos = selection.rightPos
-    else if @equals selection # remove @
-      left = selection.left
-      leftPos = selection.leftPos
-      right = selection.right
-      rightPos = selection.rightPos
-    else if selection.in @ # remove selection
+    else if @equals selection
+      left = @left
+      leftPos = @leftPos
+      right = @right
+      rightPos = @rightPos
+    else if selection.in @
       left = @left
       leftPos = @leftPos
       right = @right
@@ -357,16 +365,16 @@ class Selection
   # @param [Word] right a word instance to bind at right
   # @note could be optimized
   bind: (left, right) ->
-    if !left
+    if _.isUndefined left
       throw new Error "Missing argument left"
-    if !right
+    if _.isUndefined right
       throw new Error "Missing argument right"
 
     @left = left
     @right = right
-    if !(@ in @left.left)
+    if !(@ in left.left)
       @left.left.push @
-    if !(@ in @right.right)
+    if !(@ in right.right)
       @right.right.push @
 
   # Clone the current selection and apply style
@@ -404,7 +412,7 @@ class Rte
     @_rte.selections = []
     @_rte.cursorInformation = {}
     @_rte.words = []
-    @push(content)
+    @pushString content
 
   _name: "Rich Text Editor"
 
@@ -424,7 +432,7 @@ class Rte
       # reset styles when replacing content
       @_rte.words = []
       @_rte.style = []
-      @push content
+      @pushString content
     else
       # TODO: support breaks (br, new paragraph, …)
       (e.word for e in @_rte.words).join('')
@@ -433,7 +441,7 @@ class Rte
   # @param index [Integer] the index of the word to return
   getWord: (index) ->
     if @_rte.words.length == 0 or index == @_rte.words.length
-      return new Word "", @
+      return (new Word '', @)
 
     if not (0 <= index < @_rte.words.length)
       throw new Error "Index out of bounds #{index}"
@@ -467,7 +475,7 @@ class Rte
 
   # Append new words at the end of the word list
   # @param [String] content the string to append
-  push: (content) ->
+  pushString: (content) ->
     preSpaces = content.match PreSpacesRegExp
     if preSpaces isnt null
       @_rte.words.push(new Word (preSpaces[0]), @)
@@ -482,14 +490,14 @@ class Rte
   # @param [Array<String>] words the words to insert at position
   #
   insertWords: (position, words)->
-    # TODO: update selections
     if not _.isNumber position
       throw new Error "Expected a number as first parameter, got #{position}"
     if not _.isArray words
       throw new Error "Expected a string array as second parameter, got #{words}"
-    if 0 <= position <= @_rte.words.length
-      wordsObj = ((new Word w, @) for w in words)
 
+    length = @_rte.words.length
+    if 0 <= position <= length
+      wordsObj = ((new Word w, @) for w in words)
       left = @_rte.words.slice(0, position)
       right = @_rte.words.slice(position)
       @_rte.words = left.concat(wordsObj).concat(right)
@@ -593,7 +601,8 @@ class Rte
     pos = ret.pos
 
     preSpaces = content.match PreSpacesRegExp
-    currWord = @getWord(index).word
+    currWordObj = @getWord(index)
+    currWord = currWordObj.word
 
     # move the spaces to the previous word if a pos == 0
     if preSpaces isnt null
@@ -610,10 +619,10 @@ class Rte
     currWord = currWord.substring(0, pos) + content + currWord.substring(pos)
 
     # cut the word
-    newWords = currWord.match WordRegExp
-    tmp = currWord.match PreSpacesRegExp
+    newWords = currWord.match WordRegExp or []
+    tmp = currWord.match PreSpacesRegExp or ""
     if tmp isnt null
-      newWords[0] = tmp + newWords[0]
+      newWords[0] = tmp + (newWords[0] or "")
     @setWord index, newWords[0]
     @insertWords index+1, newWords[1..]
 
@@ -676,7 +685,7 @@ class Rte
         @insert position, delta.insert
         if delta.attributes?
           opts = {style: delta.attributes, bind: true}
-          end = position+delta.insert.length-1
+          end = position + delta.insert.length
           selection = new Selection position, end, @, opts
         position += delta.insert.length
 
@@ -687,7 +696,8 @@ class Rte
         selectionList = @getSelections((s) -> s!=selection and s)
         for sel in selectionList
           selection.merge sel
-          selection.split sel
+          if sel.left and sel.right # sel might have been unbound in previous merge
+            selection.split sel
 
   # Add a  selection to the selection list
   pushSel: (selection)->
