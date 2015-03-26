@@ -1,10 +1,14 @@
 _ = require 'underscore'
 Rte = (require './y-rte').Rte
+
 # Function that translates an index from start (absolute position) into a
 # relative position in word index and offset
 #
 # @param [Integer] position the position
 # @param [Rte] rte an rte instance
+# @return [Object] options returning object
+# @option options [Integer] word the index of the word
+# @option options [Integer] position the offset in this word
 relativeFromAbsolute = (position, rte)->
   index = 0
   while position > 0
@@ -24,6 +28,7 @@ relativeFromAbsolute = (position, rte)->
 #
 # @param [Option] relative the position
 # @param [Rte] rte an rte instance
+# @return [Integer] the absolute index
 absoluteFromRelative = (index, offset, rte) ->
   absolute = offset
   if index > 0
@@ -32,9 +37,9 @@ absoluteFromRelative = (index, offset, rte) ->
 
   absolute
 
-
 # Simple class that contains a word and links to the selections pointing
 # to it
+#
 class Word
   # Attribute containing the string
   @word = ''
@@ -44,8 +49,10 @@ class Word
   @right = []
 
   # Construct a new list of words
+  #
   # @param [String] word The initial string value
   # @return [Word] a word instance
+  #
   constructor: (@word, @rte) ->
     # Selections that have this word as left bound
     @left = []
@@ -58,6 +65,7 @@ class Word
   # @param [Option] side the side where to remove the selection
   # @option side [String] left left side
   # @option side [String] right right side
+  #
   removeSel: (selection, side)->
     if side == "left"
       array = @left
@@ -71,7 +79,9 @@ class Word
         array.splice index, 1
         break
 
-  # Get index of word in rte list
+  # Get index of word in the list of words
+  #
+  # @return [Integer] the index of the word
   index: ->
     index = @rte._rte.words.indexOf @
     if index == -1
@@ -83,10 +93,11 @@ class Word
   #   Return all the selections
   #   @return [Array<Selection>] an array of selection
   #
-  # @overload getSelections(fun)
+  # @overload getSelections(filter)
   #   Return all the selections and filter using fun
-  #   @param [Function] fun the function to use for filtering
+  #   @param [Function] filter the function to use for filtering
   #   @return [Array<Selection>] an array of selection
+  #
   getSelections: (filter = null)->
     # console.log "Word.getSelections", @left, @right
     tmp = (if _.isFunction(filter)
@@ -96,29 +107,26 @@ class Word
     # console.log "returning", _.uniq tmp
     _.uniq tmp
 
-
-
 # A class describing a selection with a style (bold, italic, …)
 class Selection
   # Word that is the left bound
   @left = null
   # Word that is the right bound
   @right = null
-  #   Construct a new selection using the index of the first and last character.
-  #   Retrieves the position in (word, position) using an instance of rte
-  #   @param [Integer] start index of the first character
-  #   @param [Integer] end index of the last character
-  #   @param [Rte] rte a rich-text editor (Rte) instance
-  #   @param [Option] option options to pass to the constructor
-  #   @option option [Object] style the style of the selection
-  #   @option option [Bool] bind whether or not to bind the selection
+
+  # Construct a new selection using the index of the first and last character.
+  #
+  # @param [Integer] start index of the first character
+  # @param [Integer] end index of the last character
+  # @param [Rte] rte a rich-text editor (Rte) instance
+  # @param [Object] option options to pass to the constructor
+  # @option option [Bool] bind whether or not to bind the selection
+  #
   constructor: (start, end, rte, options={})->
     if not _.isUndefined(start) and not _.isUndefined(end) and not _.isUndefined(rte)
       if !( _.isNumber(start) and
             _.isNumber(end))
         throw new Error "Expecting numbers as arguments"
-      # if not (rte instanceof Rte)
-      #   throw new Error "Expecting an rte instance as third argument, got #{rte}"
 
       if _.isUndefined(options.bind)
         options.bind = true
@@ -136,31 +144,37 @@ class Selection
       @rightPos = retEnd.pos
 
       if options.bind
-        # console.log "New selection — binding", @
         @bind @left, @right
         @rte.pushSel @
 
 
-    else throw new Error "Wrong set of parameters
-      #{start}, #{end}, #{rte}, #{style}"
+    else
+      throw new Error "Wrong set of parameters #{start}, #{end}, #{rte}, #{style}"
 
-  # Print a string representation of string
+  # Return a string representation of the selection
+  #
+  # @return [String] a representation of the selection
   print: () ->
     r = @right or {word: 'none'}
     l = @left or {word: 'none'}
     "From '" + l.word + "':" + @leftPos +
       " to '" + r.word + "':" + @rightPos +
-      " with style {" + (@style.k+":"+v for k, v of @style).join(',') + "}"
+      ", style {" + (@style.k+":"+v for k, v of @style).join(',') + "}"
 
   # Returns true if the selection is empty (it has no length)
+  #
+  # @return [Bool] true if the selection is empty
   isEmpty: () ->
     (@left == @right and @leftPos == @rightPos)
 
   # Returns true when the "side" side of the selection is less than the
   # position given as parameters.
+  #
   # @param word2 [Word] a word instance
   # @param pos2 [Integer] the offset in this word
   # @param side [String] either "left" or "right"
+  #
+  # @return [Bool] true if the position given in the param is ≤ than the side given
   lt: (word2, pos2, side)->
     if not (_.isString side)
       throw new Error "Expected a string as first argument, got #{side}"
@@ -178,9 +192,12 @@ class Selection
 
   # Returns true when the "side" side of the selection is greater than the
   # position given as parameters.
+  #
   # @param word2 [Word] a word instance
   # @param pos2 [Integer] the offset in this word
   # @param side [String] either "left" or "right"
+  #
+  # @return [Bool] true if the position given in the param is ≥ than the side given
   gt: (word2, pos2, side)->
     if not (_.isString side)
       throw new Error "Expected a string as first argument, got #{side}"
@@ -200,13 +217,16 @@ class Selection
   # position within word
   #
   # @param [Integer] position index of position to find
+  # @return [Object] options returning object
+  # @option options [Integer] word the index of the word
+  # @option options [Integer] position the offset in this word
   _relativeFromAbsolute: (position)->
     relativeFromAbsolute position, @rte
 
-  # Compares *the bounds* of two selections
+  # Compares the bounds of two selections
   #
   # @param [Selection] s the selection to compare to this
-  #
+  # @return [Bool] true if the selections have the same bounds
   equals: (selection)->
     @left == selection.left and
     @leftPos == selection.leftPos and
@@ -216,14 +236,14 @@ class Selection
   # Compares *the bounds* of two selections
   #
   # @param [Selection] s the selection to compare to this
-  #
+  # @return [Bool] false if the selections have the same bounds
   notEquals: (selection) ->
     not @equals(selection)
 
   # Returns true if the given selection is in the current selection
   #
   # @param [Selection] selection the selection to compare to this
-  #
+  # @return [Bool] true if the given selection is within this selection
   in: (selection) ->
     @gt(selection.left, selection.leftPos, "left") and
     @lt(selection.right, selection.rightPos, "right")
@@ -231,7 +251,7 @@ class Selection
   # Returns true if the current selection is in the given selection
   #
   # @param [Selection] selection the selection to compare to this
-  #
+  # @return [Bool] false if the given selection is within this selection
   contains: (selection) ->
     selection.in(@)
 
@@ -240,6 +260,7 @@ class Selection
   # and this selection is at left of the given one
   #
   # @param [Selection] selection the selection to compare to this
+  # @return [Bool] true if the given selection is located on the left of this selection
   atLeftOf: (selection) ->
     (@gt(selection.left, selection.leftPos, "right") and
     @lt(selection.right, selection.rightPos, "right"))
@@ -251,6 +272,7 @@ class Selection
   setStyle: (@style) ->
 
   # Validate a selection if the start is before the end of the selection
+  # @return [Bool] true if the selection's left side is on the left of its right side
   isValid: ->
     @lt(@right, @rightPos, "left")
 
@@ -297,14 +319,11 @@ class Selection
           # console.log "Removing", sel
           @rte.removeSel sel
 
-    else
-
-
   # Try to merge the given selection with this selection, keeping this selection
   #
   # @param [Selection] selection the selection to merge to
   #
-  # @example
+  # @note
   #   1                 2                   3
   #   [  left selection ][  right selection ]
   #    becomes
@@ -361,7 +380,7 @@ class Selection
 
   # Unbind selection from word
   #
-  # @returns [Array<Word>] an array containing the old value of left and right
+  # @return [Array<Word>] an array containing the old value of left and right
   unbind: ->
     @left.removeSel @, "left"
     @right.removeSel @, "right"
@@ -377,7 +396,6 @@ class Selection
   # Bind selection to word
   # @param [Word] left a word instance to bind at left
   # @param [Word] right a word instance to bind at right
-  # @note could be optimized
   bind: (left, right) ->
     if _.isUndefined left
       throw new Error "Missing argument left"
@@ -409,7 +427,8 @@ class Selection
 
 
   # Clone the current selection and apply style
-  # @parameter [String] style the new style
+  # @param [String] style the new style
+  # @return [Selection] a clone of this selection
   clone: (style) ->
     newSel = new Selection 0, 0, @rte, {style: style, bind: false}
 
