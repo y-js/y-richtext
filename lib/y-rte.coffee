@@ -90,14 +90,13 @@ class Word
   #   @param [Function] fun the function to use for filtering
   #   @return [Array<Selection>] an array of selection
   getSelections: (filter = null)->
+    # console.log "Word.getSelections", @left, @right
     tmp = (if _.isFunction(filter)
-             @left.filter(filter).concat(@right.filter(filter)) or []
+             @left.concat(@right).filter(filter) or []
            else
              @left.concat(@right) or [])
-    # filter to get an array with unique values (a.k.a) they
-    # have a unique index in the array
-    tmp.filter (el, index, array)->
-      (array.indexOf el) == index
+    # console.log "returning", _.uniq tmp
+    _.uniq tmp
 
 
 
@@ -387,17 +386,29 @@ class Selection
     if !(@ in right.right)
       @right.right.push @
 
+
+  # Unbind from old selection and rebind it
+  # @param [Word] left a word instance to bind at left, or null to keep previous
+  # @param [Word] right a word instance to bind at right, or null to keep previous
+  rebind: (left, right) ->
+    left = left or @left
+    right = right or @right
+
+    @left.removeSel @, "left"
+    @right.removeSel @, "right"
+
+    @left = left
+    @right = right
+
+    @bind @left, @right
+
+
   # Clone the current selection and apply style
   # @parameter [String] style the new style
   clone: (style) ->
-    newSel = new Selection 0, 0, @rte, {style: style}
+    newSel = new Selection 0, 0, @rte, {style: style, bind: false}
 
-    newSel.unbind()
-
-    newSel.left = @left
     newSel.leftPos = @leftPos
-
-    newSel.right = @right
     newSel.rightPos = @rightPos
 
     newSel.setStyle _.clone(@style)
@@ -420,7 +431,7 @@ class Selection
       if not (sel.in thisSel)
         tmpSelections.push sel
         continue
-      console.log sel.print()+" in "+thisSel.print()
+      # console.log sel.print()+" in "+thisSel.print()
       sel.unbind()
       @rte.removeSel sel
 
@@ -431,7 +442,7 @@ class Selection
       if not (sel.atLeftOf thisSel)
         tmpSelections.push sel
         continue
-      console.log sel.print()+" at left of "+thisSel.print()
+      # console.log sel.print()+" at left of "+thisSel.print()
       [left, right] = sel.unbind()
       sel.rightPos = 0
       sel.bind left, wordToBound
@@ -446,7 +457,7 @@ class Selection
     for sel, index in selections
       if not (thisSel.atLeftOf sel)
         continue
-      console.log thisSel.print()+" at left of "+sel.print()
+      # console.log thisSel.print()+" at left of "+sel.print()
       [left, right] = sel.unbind()
       sel.leftPos = 0
       sel.bind wordToBound, right
@@ -563,7 +574,6 @@ class Rte
     length = @_rte.words.length
     if 0 <= position <= length
       wordsObj = ((new Word w, @) for w in words)
-      console.log "WO/", wordsObj
       Array.prototype.splice.apply(@_rte.words, [position, 0].concat(wordsObj))
       # left = @_rte.words.slice(0, position)
       # right = @_rte.words.slice(position)
@@ -617,34 +627,33 @@ class Rte
   merge: (index) ->
     if 0 <= index < @getWords(0).length
       word = @getWord index
-      [selLeft, selRight] = [word.left, word.right]
-      for selection in selLeft when (selection and selection.left and selection.right)
-        selection.unbind()
+      # use slice to force copy of array
+      [selLeft, selRight] = [word.left.slice(), word.right.slice()]
+      for selection in  _.uniq(selLeft.concat(selRight))
+        # console.log "Merge — unbinding " + selection.print()
+        #selection.unbind()
         @removeSel selection
-      for selection in selRight when (selection and selection.left and selection.right)
-        selection.unbind()
-        @removeSel selection
+
       word.left = word.right = []
-      console.log selLeft
       # remove word at position index
       @deleteWords index
       # insert its content at position where is used to be
       pos = absoluteFromRelative index, 0, @
-      console.log selLeft
+
       @insert pos, word.word.trimRight()
-      console.log selLeft
 
       # the new word is here
       newWord = @getWord index
 
+      # console.log "Merge — before selLeft", selLeft
       for selection in selLeft
-        selection.left = newWord
-        selection.bind selection.left, selection.right
+        # console.log "Merge — rebinding " + selection.print()
+        selection.rebind newWord, null
         @pushSel selection
-
+      # # console.log "Merge — before selRight", selRight
       for selection in selRight
-        selection.right = newWord
-        selection.bind selection.left, selection.right
+        # console.log "Merge — rebinding " + selection.print()
+        selection.rebind null, newWord
         @pushSel selection
     else
       throw new Error "Impossible to merge"
@@ -822,9 +831,10 @@ class Rte
 
   # Add a  selection to the selection list
   pushSel: (selection)->
+    # console.log "Pushing", selection, "in", @_rte.selections
     selections = @_rte.selections
     if !(selection in selections)
-       selections.push selection
+       @_rte.selections.push selection
 
   # @overload getSelections()
   #   Return all the selections
@@ -835,10 +845,13 @@ class Rte
   #   @param [Function] filter the function to use for filtering
   #   @return [Array<Selection>] an array of selection
   getSelections: (filter = null)->
-    if _.isFunction(filter)
-      @_rte.selections.filter(filter) or []
-    else
-      @_rte.selections or []
+    # console.log "Rte.getSelections", @_rte.selections
+    tmp = (if _.isFunction(filter)
+            @_rte.selections.filter(filter) or []
+          else
+            @_rte.selections or [])
+    _.uniq tmp
+
 
   # Remove a selection from selection list
   #
