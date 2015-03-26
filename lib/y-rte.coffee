@@ -90,10 +90,15 @@ class Word
   #   @param [Function] fun the function to use for filtering
   #   @return [Array<Selection>] an array of selection
   getSelections: (filter = null)->
-    if _.isFunction(filter)
-      @_rte.selections.filter(filter) or []
-    else
-      @_rte.selections or []
+    tmp = (if _.isFunction(filter)
+             @left.filter(filter).concat(@right.filter(filter)) or []
+           else
+             @left.concat(@right) or [])
+    # filter to get an array with unique values (a.k.a) they
+    # have a unique index in the array
+    tmp.filter (el, index, array)->
+      (array.indexOf el) == index
+
 
 
 # A class describing a selection with a style (bold, italic, …)
@@ -143,11 +148,11 @@ class Selection
 
   # Print a string representation of string
   print: () ->
-    r = @.right or {word: 'rightmost'};
-    l = @.left or {word: 'leftmost'};
-    console.log "From '" + l.word + "':" + @leftPos +
-                " to '" + r.word + "':" + @rightPos +
-                " with style", @style
+    r = @right or {word: 'rightmost'};
+    l = @left or {word: 'leftmost'};
+    "From '" + l.word + "':" + @leftPos +
+      " to '" + r.word + "':" + @rightPos +
+      " with style {" + (@style.k+":"+v for k, v of @style).join(',') + "}"
 
   # Returns true if the selection is empty (it has no length)
   isEmpty: () ->
@@ -520,6 +525,7 @@ class Rte
   # Set the content of a word
   # @param index [Integer] the index of the word to modify
   # @param content [String] the content to set the word to
+  # @note it pushes all selection to the end of the word
   setWord: (index, content) ->
     if index == @_rte.words.length
       @_rte.words.push(new Word content, @)
@@ -528,16 +534,8 @@ class Rte
 
     word = @getWord(index)
     word.word = content
-    # the word has been replaced, all selections at boundaries of
-    # the selection
-    for selection in word.getSelections()
-      selection.leftPos = word.word.length
-      selection.rightPos = 0
-      # if by this, the selection becomes empty (== length 0), remove it
-      if selection.isEmpty()
-        selection.unbind()
-        @removeSel selection
 
+    return word
 
   # Append new words at the end of the word list
   # @param [String] content the string to append
@@ -555,6 +553,7 @@ class Rte
   # @param [Integer] position the position where to insert words
   # @param [Array<String>] words the words to insert at position
   #
+  # @return [Array<Word>] an array of word objects inserted
   insertWords: (position, words)->
     if not _.isNumber position
       throw new Error "Expected a number as first parameter, got #{position}"
@@ -564,9 +563,13 @@ class Rte
     length = @_rte.words.length
     if 0 <= position <= length
       wordsObj = ((new Word w, @) for w in words)
-      left = @_rte.words.slice(0, position)
-      right = @_rte.words.slice(position)
-      @_rte.words = left.concat(wordsObj).concat(right)
+      console.log "WO/", wordsObj
+      Array.prototype.splice.apply(@_rte.words, [position, 0].concat(wordsObj))
+      # left = @_rte.words.slice(0, position)
+      # right = @_rte.words.slice(position)
+      # @_rte.words = left.concat(wordsObj).concat(right)
+
+      return wordsObj or []
 
     else
       throw new Error 'Index #{position} out of bound in word list'
@@ -590,9 +593,6 @@ class Rte
       end = start+1
 
     if start <= end
-      @_rte.words.splice(start, end-start)
-
-      # delete all the selections within
       indexStart = absoluteFromRelative start, 0, @
       length = (@getWords 0).length
 
@@ -616,10 +616,36 @@ class Rte
   # be done with the word at right (if any)
   merge: (index) ->
     if 0 <= index < @getWords(0).length
-      word = @getWord(index).word.trimRight()
+      word = @getWord index
+      [selLeft, selRight] = [word.left, word.right]
+      for selection in selLeft when (selection and selection.left and selection.right)
+        selection.unbind()
+        @removeSel selection
+      for selection in selRight when (selection and selection.left and selection.right)
+        selection.unbind()
+        @removeSel selection
+      word.left = word.right = []
+      console.log selLeft
+      # remove word at position index
       @deleteWords index
+      # insert its content at position where is used to be
       pos = absoluteFromRelative index, 0, @
-      @insert pos, word
+      console.log selLeft
+      @insert pos, word.word.trimRight()
+      console.log selLeft
+
+      # the new word is here
+      newWord = @getWord index
+
+      for selection in selLeft
+        selection.left = newWord
+        selection.bind selection.left, selection.right
+        @pushSel selection
+
+      for selection in selRight
+        selection.right = newWord
+        selection.bind selection.left, selection.right
+        @pushSel selection
     else
       throw new Error "Impossible to merge"
 
@@ -677,6 +703,11 @@ class Rte
     currWordObj = @getWord(index)
     currWord = currWordObj.word
 
+    # selections at right of insertion point
+    selAtRight = currWordObj.getSelections((s) -> s.leftPos >= pos or s.rightPos >= pos)
+    oldLength = currWord.length
+    selAtLeft = currWordObj.getSelections((s) -> s.leftPos < pos or s.rightPos < pos)
+
     # move the spaces to the previous word if a pos == 0
     if preSpaces isnt null
       if pos == 0
@@ -693,11 +724,28 @@ class Rte
 
     # cut the word
     newWords = currWord.match WordRegExp or []
+    # get the pre spaces
     tmp = currWord.match PreSpacesRegExp or ""
     if tmp isnt null
       newWords[0] = tmp + (newWords[0] or "")
-    @setWord index, newWords[0]
-    @insertWords index+1, newWords[1..]
+
+    # get the new words inserted as an array
+    tmp1 = [@setWord index, newWords[0]]
+    tmp2 = @insertWords index+1, newWords[1..]
+    wordsInserted = tmp1.concat(tmp2)
+
+    # update the positions of all selections
+    lastWord = _.last wordsInserted
+    newLength = lastWord.word.length
+    for sel in selAtRight
+      if sel.left == currWordObj
+        sel.left = lastWord
+        sel.leftPos = sel.leftPos + newLength - oldLength
+      if sel.right == currWordObj
+        sel.right = lastWord
+        sel.rightPos = sel.rightPos + newLength - oldLength
+      sel.bind sel.left, sel.right
+
 
   # Relative jump from position
   #
@@ -774,7 +822,9 @@ class Rte
 
   # Add a  selection to the selection list
   pushSel: (selection)->
-    @_rte.selections.push selection
+    selections = @_rte.selections
+    if !(selection in selections)
+       selections.push selection
 
   # @overload getSelections()
   #   Return all the selections

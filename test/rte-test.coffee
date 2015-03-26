@@ -370,4 +370,16 @@ describe 'Selections objects should get updated when', ->
     sel.rightPos.should.equal 0
 
   it 'inserting words [insertWords]', ->
-  it 'setting content of a word [setWord]', ->
+    rte = new Rte "This is a test"
+
+    sel = new Selection 2, 8, rte
+    [leftPos, rightPos, this_word, a_word] = [sel.leftPos, sel.rightPos,
+                                              sel.left, sel.right]
+
+    toInsert = 'is really cool, ain\'t it? Because this'.split(' ')
+    rte.insertWords 1, toInsert
+    sel.left.should.equal this_word
+    sel.right.should.equal a_word
+
+    sel.leftPos.should.equal leftPos
+    sel.rightPos.should.equal rightPos
