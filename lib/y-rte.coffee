@@ -429,7 +429,7 @@ class Selection
   # that overlap with this one to point to the word passed as argument, position
   # 0
   # @param [Word] wordToBoundTo the word to bound overlapping selections to
-  deleteHelper: (wordToBound) ->
+  deleteHelper: (wordToBound, posToBound=0) ->
     thisSel = @
     selections = @rte.getSelections((s) -> s != thisSel)
 
@@ -452,7 +452,7 @@ class Selection
         continue
       # console.log sel.print()+" at left of "+thisSel.print()
       [left, right] = sel.unbind()
-      sel.rightPos = 0
+      sel.rightPos = posToBound
       sel.bind left, wordToBound
 
       if sel.isEmpty()
@@ -467,7 +467,7 @@ class Selection
         continue
       # console.log thisSel.print()+" at left of "+sel.print()
       [left, right] = sel.unbind()
-      sel.leftPos = 0
+      sel.leftPos = posToBound
       sel.bind wordToBound, right
 
       if sel.isEmpty()
@@ -683,19 +683,23 @@ class Rte
     newLeft = left.word.substring 0, selection.leftPos
     newRight = right.word.substring selection.rightPos
 
+    # delete selections inside
     if left == right
-      @setWord leftIndex, (newLeft + newRight)
+      wordToBound = @setWord leftIndex, (newLeft + newRight)
+      posToBound = selection.leftPos
 
-      # delete the words in between
-      @deleteWords leftIndex+1, rightIndex
     else
       @setWord leftIndex, newLeft
-      @setWord rightIndex, newRight
+      wordToBound = @setWord rightIndex, newRight
 
       # delete the words in between
       @deleteWords leftIndex+1, rightIndex
       # merge
       @merge leftIndex
+
+      posToBound = 0
+
+    selection.deleteHelper wordToBound, posToBound
 
   # Insert text at position
   #
