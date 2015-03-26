@@ -261,13 +261,17 @@ describe 'Selection object should', ->
 
   it 'split correcly two selections [split]', ->
     rte = new Rte "Zero one two three"
-    sel0 = new Selection 0, 10, rte, {foo: "bar"}
-    sel1 = new Selection 2, 8, rte, {foo: "ping pong is awesome"}
+    sel0 = new Selection 0, 10, rte, {style: {foo: "bar"}}
+    sel1 = new Selection 2, 8, rte, {style: {foo: "ping pong is awesome"}}
+
     sel0.split sel1 # nothing happens!
     rte.getSelections().length.should.equal 2
+    console.log rte.getSelections()
 
     sel1.split sel0 # should create a new selection at right of sel1
     sels = rte.getSelections()
+    console.log sels
+
     sels.length.should.equal 3
     sels[0].should.equal sel0
     sels[1].should.equal sel1
@@ -332,6 +336,17 @@ describe 'Selections objects should get updated when', ->
     sel3.leftPos.should.equal 0
     sel3.right.should.equal rte.getWord(1)
     sel3.rightPos.should.equal 3
+
+  it 'merging words [merge]', ->
+    rte = new Rte "Long sword is a kind of sword."
+    sel1 = new Selection 2, 15, rte # will point on Longsword at left
+    sel2 = new Selection 4, 6, rte # will point on Longsword at left
+    rte.merge 0
+    sel1.left.should.equal rte.getWord(0)
+    sel1.right.should.equal rte.getWord(2)
+
+    sel2.left.should.equal rte.getWord(0)
+    sel2.right.should.equal rte.getWord(0)
 
   it 'deleting a selection [deleteSel]', ->
     # rte = new Rte "This is a test"
