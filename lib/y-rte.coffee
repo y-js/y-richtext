@@ -89,9 +89,9 @@ class Word
   #   Return all the selections and filter using fun
   #   @param [Function] fun the function to use for filtering
   #   @return [Array<Selection>] an array of selection
-  getSelections: (fun = null)->
-    if _.isFunction(fun)
-      @_rte.selections.filter(fun) or []
+  getSelections: (filter = null)->
+    if _.isFunction(filter)
+      @_rte.selections.filter(filter) or []
     else
       @_rte.selections or []
 
@@ -141,7 +141,7 @@ class Selection
     else throw new Error "Wrong set of parameters
       #{start}, #{end}, #{rte}, #{style}"
 
-  # Print a string reprensetation of string
+  # Print a string representation of string
   print: () ->
     r = @.right or {word: 'rightmost'};
     l = @.left or {word: 'leftmost'};
@@ -256,9 +256,7 @@ class Selection
   #
   # @param [Selection] selection the selection to split
   split: (selection) ->
-    if !selection
-      return
-    if selection == @
+    if !selection or selection == @
       return
 
     # Check that they have all keys in common (but not necessarily same value!)
@@ -707,13 +705,13 @@ class Rte
   #   Return all the selections
   #   @return [Array<Selection>] an array of selection
   #
-  # @overload getSelections(fun)
-  #   Return all the selections and filter using fun
-  #   @param [Function] fun the function to use for filtering
+  # @overload getSelections(filter)
+  #   Return all the selections and filter using filter
+  #   @param [Function] filter the function to use for filtering
   #   @return [Array<Selection>] an array of selection
-  getSelections: (fun = null)->
-    if _.isFunction(fun)
-      @_rte.selections.filter(fun) or []
+  getSelections: (filter = null)->
+    if _.isFunction(filter)
+      @_rte.selections.filter(filter) or []
     else
       @_rte.selections or []
 
