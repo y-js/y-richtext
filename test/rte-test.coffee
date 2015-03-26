@@ -93,30 +93,37 @@ describe 'Rich Text type should', ->
     rte1.val().should.equal "Two inserted words"
     rte1._rte.words.length.should.equal 3
 
-  it 'support styles [setStyle]', ->
-    rte1 =  new Rte "I am testing styles"
-    sel0 = new Selection 0, 3, rte1
-    sel1 = new Selection 3, 4, rte1, 'some random style'
-
-    rte1.setStyle sel0, "bold" # should leave sel0
-    rte1._rte.selections.length.should.equal 2
-
-    rte1.setStyle sel1, "italic" # should create a clone of sel0 with style italic
-    rte1._rte.selections.length.should.equal 2
-    rte1.setStyle sel1, "bold" # should merge
-    rte1._rte.selections.length.should.equal 1
-
-  it 'accept deltas (insert) [delta]', ->
+   it 'accept deltas (insert) [delta]', ->
     delta = { ops:[
       { insert: 'Gandalf', attributes: { bold: true } },
       { insert: ' the ' },
-      { insert: 'Grey', attributes: { color: '#ccc' } }
+      { insert: 'Grey', attributes: { color: '#ccc' } },
+      { insert: '.'}
       ] }
-    rte1 = new Rte ""
+    rte1 = new Rte()
+
     rte1.delta delta
-    rte1.val().should.equal "Gandalf the Grey"
-    rte1._rte.words.length.should.equal 3
+
+    rte1.val().should.equal "Gandalf the Grey."
+    rte1._rte.words.length.should.equal 4
     rte1._rte.words[0].word.should.equal "Gandalf "
+    rte1._rte.selections[0].should.have.property 'left', rte1.getWord(0)
+    rte1._rte.selections.length.should.equal 2
+
+  it 'accept styles [delta]', ->
+    delta = { ops:[
+      { insert: 'Gandalf', attributes: { bold: true } },
+      { insert: ' the ' },
+      { insert: 'Grey', attributes: { bold: true } }
+      ] }
+    rte1 = new Rte()
+    rte1.delta delta
+    delta1 = {ops: [
+      {retain: 7},
+      {retain: 5, attributes: {bold: true}}
+      ]}
+    rte1.delta delta1
+    rte1.getSelections().length.should.equal 1
 
   it 'should accept deltas (retain & delete) [delta]', ->
     delta = { ops:[
@@ -126,12 +133,6 @@ describe 'Rich Text type should', ->
     rte1 = new Rte "Gandalf the Grey"
     rte1.delta delta
     rte1.val().should.equal "Gandalf Grey"
-
-  it 'should accept deltas (style) [delta]', ->
-    delta = {ops:[
-      { retain: 7, attributes: {bold: true } }]}
-    rte1 = new Rte "Gandalf the Grey"
-    rte1.delta delta
 
 describe 'Utilities', ->
   it 'should convert correctly [relativeFromAbsolute]', ->
@@ -214,7 +215,8 @@ describe 'Selection object should', ->
     sel2.contains(sel0).should.be.true
 
     sel0.atLeftOf(sel1).should.be.true
-    sel0.atLeftOf(sel2).should.be.false
+    sel0.atLeftOf(sel2).should.be.true
+    sel0.atLeftOf(sel3).should.be.false
 
   it 'return good values for [isValid]', ->
     sel0 = new Selection 1, 0, rte
@@ -223,22 +225,54 @@ describe 'Selection object should', ->
     sel0.isValid().should.be.false
     sel1.isValid().should.be.true
 
-  it 'merge correctly the selections [merge]', ->
+  it 'merge correctly the selections [merge] 1/2', ->
     rte = new Rte "Zero One two three four five"
-    sel = new Selection 0, 1, rte
-    sel2 = new Selection 1, 10, rte
+    sel0 = new Selection 0, 1, rte, {foo: "bar"}
+    sel1 = new Selection 0, 1, rte, {mergeMe: "I'm famous"}
+    sel2 = new Selection 1, 10, rte, {foo: "bar"}
 
-    sel.merge sel2, rte
-    rte._rte.selections.length.should.equal 1
-    rte._rte.selections[0].equals(sel2).should.be.true
+    sel0.merge sel0, sel1 # sel and sel1 not merging!
+    rte._rte.selections.length.should.equal 3
+
+    sel0.merge sel2, rte
+    rte._rte.selections.length.should.equal 2
+    rte._rte.selections.indexOf(sel).should.equal -1
+
 
     leftWord = rte.getWord 0
     rightWord = rte.getWord 2
 
-    sel2.should.have.deep.property 'left', leftWord
-    sel2.should.have.deep.property 'leftPos', 0
-    sel2.should.have.deep.property 'right', rightWord
-    sel2.should.have.deep.property 'rightPos', 1
+    sel0.should.have.deep.property 'left', leftWord
+    sel0.should.have.deep.property 'leftPos', 0
+    sel0.should.have.deep.property 'right', rightWord
+    sel0.should.have.deep.property 'rightPos', 1
+
+  it 'merge correctly the selections [merge] 2/2', ->
+    rte = new Rte "Zero One two three four five"
+    sel0 = new Selection 0, 1, rte, {foo: "bar"}
+    sel2 = new Selection 1, 10, rte, {foo: "bar"}
+
+    sel2.merge sel0, rte
+    rte._rte.selections.length.should.equal 1
+    rte._rte.selections.indexOf(sel0).should.equal -1
+
+    leftWord = rte.getWord 0
+    rightWord = rte.getWord 2
+
+  it 'split correcly two selections [split]', ->
+    rte = new Rte "Zero one two three"
+    sel0 = new Selection 0, 10, rte, {foo: "bar"}
+    sel1 = new Selection 2, 8, rte, {foo: "ping pong is awesome"}
+    sel0.split sel1 # nothing happens!
+    rte.getSelections().length.should.equal 2
+
+    sel1.split sel0 # should create a new selection at right of sel1
+    sels = rte.getSelections()
+    sels.length.should.equal 3
+    sels[0].should.equal sel0
+    sels[1].should.equal sel1
+    sels[2].leftPos.should.equal(sels[1].rightPos)
+    sels[2].left.word.should.equal(sels[1].right.word)
 
   it 'unbind correctly [unbind]', ->
     rte = new Rte "Zero One two three four five"
