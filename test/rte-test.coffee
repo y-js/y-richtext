@@ -313,3 +313,41 @@ describe 'Word objects should', ->
     rte.val()
     word = rte.getWord( 3)
     word.index(rte).should.equal 3
+
+describe 'Selections objects should get updated when', ->
+  it 'deleting words [deleteWords]', ->
+    rte = new Rte "This is a test with many words."
+    sel1 = new Selection 8, 10, rte # will be deleted
+    sel2 = new Selection 0, 6, rte # will be updated
+    sel3 = new Selection 10, 18, rte # will be updated
+    rte.deleteWords 1, 4 # deleting "is ", "a " and "test "
+    # rte is now "This with many words."
+    #
+    rte.getSelections().indexOf(sel1).should.equal -1
+
+    sel2.left.should.equal rte.getWord(0)
+    sel2.right.should.equal rte.getWord(1)
+
+    sel3.left.should.equal rte.getWord(1)
+    sel3.leftPos.should.equal 0
+    sel3.right.should.equal rte.getWord(1)
+    sel3.rightPos.should.equal 3
+
+  it 'deleting a selection [deleteSel]', ->
+    # rte = new Rte "This is a test"
+    # sel = new Selection 2, 8, rte
+    # sel2 = new Selection 0, 2, rte, {bind: false}
+    # rte.deleteSel sel2
+    # sel.left.should.equal (rte.getWord 0)
+    # sel.leftPos.should.equal 0
+
+  it 'inserting content [insert]', ->
+    # rte = new Rte "This is a test"
+    # sel = new Selection 2, 8, rte
+    # sel2 = new Selection 0, 2, rte, {bind: false}
+    # rte.deleteSel sel2
+    # sel.left.should.equal (rte.getWord 0)
+    # sel.leftPos.should.equal 0
+
+  it 'inserting words [insertWords]', ->
+  it 'setting content of a word [setWord]', ->
