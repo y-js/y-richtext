@@ -68,8 +68,8 @@ class Word
     else
       throw new Error "Invalid argument #{side}, expected 'left' or 'right'"
     index = 0
-    for index in [0..array.length-1]
-      if array[index].equals selection
+    for sel, index in array
+      if sel.equals selection
         array.splice index, 1
         break
 
@@ -351,12 +351,19 @@ class Selection
     @rte.removeSel selToRemove
 
   # Unbind selection from word
+  #
+  # @returns [Array<Word>] an array containing the old value of left and right
   unbind: ->
     @left.removeSel @, "left"
     @right.removeSel @, "right"
 
+    left = @left
+    right = @right
+
     @left = null
     @right = null
+
+    [left, right]
 
   # Bind selection to word
   # @param [Word] left a word instance to bind at left
@@ -393,6 +400,56 @@ class Selection
     newSel.bind @left, @right
 
     newSel
+
+  # Delete all selections within this selection and update all selections
+  # that overlap with this one to point to the word passed as argument, position
+  # 0
+  # @param [Word] wordToBoundTo the word to bound overlapping selections to
+  deleteHelper: (wordToBound) ->
+    thisSel = @
+    selections = @rte.getSelections((s) -> s != thisSel)
+
+    tmpSelections = []
+    # delete selection contained in deleted selection
+    for sel, index in selections
+      if not (sel.in thisSel)
+        tmpSelections.push sel
+        continue
+      console.log sel.print()+" in "+thisSel.print()
+      sel.unbind()
+      @rte.removeSel sel
+
+    selections = tmpSelections
+    tmpSelections = []
+    # update selections at left of deleted selection
+    for sel, index in selections
+      if not (sel.atLeftOf thisSel)
+        tmpSelections.push sel
+        continue
+      console.log sel.print()+" at left of "+thisSel.print()
+      [left, right] = sel.unbind()
+      sel.rightPos = 0
+      sel.bind left, wordToBound
+
+      if sel.isEmpty()
+        sel.unbind()
+        @rte.removeSel sel
+
+    selections = tmpSelections
+    tmpSelections = []
+    # update selections at right of deleted selection
+    for sel, index in selections
+      if not (thisSel.atLeftOf sel)
+        continue
+      console.log thisSel.print()+" at left of "+sel.print()
+      [left, right] = sel.unbind()
+      sel.leftPos = 0
+      sel.bind wordToBound, right
+
+      if sel.isEmpty()
+        sel.unbind()
+        @rte.removeSel sel
+
 
 # Class describing the Rich Text Editor type
 #
@@ -469,7 +526,18 @@ class Rte
     if not (0 <= index < @_rte.words.length)
       throw new Error "Index out of bounds"
 
-    @_rte.words[index].word = content
+    word = @getWord(index)
+    word.word = content
+    # the word has been replaced, all selections at boundaries of
+    # the selection
+    for selection in word.getSelections()
+      selection.leftPos = word.word.length
+      selection.rightPos = 0
+      # if by this, the selection becomes empty (== length 0), remove it
+      if selection.isEmpty()
+        selection.unbind()
+        @removeSel selection
+
 
   # Append new words at the end of the word list
   # @param [String] content the string to append
@@ -514,6 +582,9 @@ class Rte
   #   Delete the word at position
   #
   #   @param [Integer] position position the word to delete
+  #
+  # @note selections that where bound to any of the deleted word
+  # are moved to the beginning of the first word not deleted
   deleteWords: (start, end) ->
     if _.isUndefined(end)
       end = start+1
@@ -524,16 +595,20 @@ class Rte
       # delete all the selections within
       indexStart = absoluteFromRelative start, 0, @
       length = (@getWords 0).length
-      while end >= length
-        end -= 1
-      endPos = (@getWord end).word.length-1
-      indexEnd = absoluteFromRelative end, endPos, @
+
+      endPos = (@getWord (end-1)).word.length-1
+      indexEnd = absoluteFromRelative (end-1), endPos, @
+
+      # remove all the selections within deleted area
+      # and change the extremities of those overlapping
       opts = {bind: false}
       selection = new Selection indexStart, indexEnd, @, opts
 
-      for sel in @getSelections((s) -> s.in(selection))
-        sel.unbind()
-        @removeSel sel
+      selection.deleteHelper (@getWord (end))
+
+      # remove words
+      @_rte.words.splice start, (end-start)
+
 
   # Merge two words at position
   #
@@ -721,7 +796,7 @@ class Rte
   removeSel: (selection) ->
     index = 0
     array = @_rte.selections
-    for index in [0..array.length-1]
+    for el, index in array
       if (array[index] == selection)
         array.splice index, 1
         break
@@ -729,11 +804,11 @@ class Rte
   # Only for manual use, so no efficiency research
   garbageCollect: ->
     sels = @_rte.selections
-    for index in [0..sels.length-1]
-      for key, value of sels[index]
+    for sel, index in sels
+      for key, value of sel
         if value == null or value == ""
-          sels[index].unbind()
-          @removeSel sels[index]
+          sel.unbind()
+          @removeSel sel
 
 
 if window?
