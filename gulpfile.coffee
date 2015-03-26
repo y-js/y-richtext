@@ -1,10 +1,10 @@
-gulp = require('gulp')
-coffee = require('gulp-coffee')
-gutil = require('gulp-util')
-concat = require('gulp-concat')
+gulp = require 'gulp'
+coffee = require 'gulp-coffee'
+gutil = require 'gulp-util'
+concat = require 'gulp-concat'
 uglify = require 'gulp-uglify'
-sourcemaps = require('gulp-sourcemaps')
-browserify = require('gulp-browserify')
+sourcemaps = require 'gulp-sourcemaps'
+browserify = require 'gulp-browserify'
 rename = require 'gulp-rename'
 rimraf = require 'gulp-rimraf'
 gulpif = require 'gulp-if'
@@ -25,7 +25,7 @@ gulp.task 'default', ['build_browser']
 
 files =
   lib : ['./lib/**/*.coffee']
-  browser : ['./lib/y-xml.coffee']
+  browser : ['./lib/y-rte.coffee']
   test : ['./test/**/*test.coffee']
   gulp : ['./gulpfile.coffee']
   examples : ['./examples/**/*.js']
@@ -88,7 +88,7 @@ gulp.task 'coffee',->
 gulp.task 'mocha', ['coffee'], ->
   gulp.src files.test, ['coffee'], { read: true }
     .pipe mocha {reporter : 'list'}
-    # .pipe exit()
+    .pipe exit()
 
 gulp.task 'test', ['mocha'], ->
   gulp.watch files.all, ['mocha']
