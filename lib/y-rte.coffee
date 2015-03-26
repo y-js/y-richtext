@@ -138,6 +138,7 @@ class Selection
       @rightPos = retEnd.pos
 
       if options.bind
+        # console.log "New selection — binding", @
         @bind @left, @right
         @rte.pushSel @
 
@@ -265,13 +266,18 @@ class Selection
 
     # Check that they have all keys in common (but not necessarily same value!)
     keys = _.keys(@style)
+    # console.log "keys", keys
     for key in keys
       if not(_.has(selection.style, key))
         return
+    # console.log "same keys, going forward", @, selection
 
     if @in(selection)
       outSelLeft = selection
       outSelRight = selection.clone()
+
+      # console.log "~~~~~~~~~~~~~~",outSelRight,"~~~~~~~~~~~~~~",
+      #   "~~~~~~~~~~~~~~", @rte._rte.selections
 
       # joke here, because Insel means island in German
       inSel = @
@@ -290,6 +296,7 @@ class Selection
       [outSelRight, inSel, outSelLeft].forEach (sel) ->
         if sel.isEmpty()
           sel.unbind()
+          # console.log "Removing", sel
           @rte.removeSel sel
 
     else
@@ -414,6 +421,7 @@ class Selection
     newSel.setStyle _.clone(@style)
 
     newSel.bind @left, @right
+    newSel.rte.pushSel newSel
 
     newSel
 
