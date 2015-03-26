@@ -266,11 +266,9 @@ describe 'Selection object should', ->
 
     sel0.split sel1 # nothing happens!
     rte.getSelections().length.should.equal 2
-    console.log rte.getSelections()
 
     sel1.split sel0 # should create a new selection at right of sel1
     sels = rte.getSelections()
-    console.log sels
 
     sels.length.should.equal 3
     sels[0].should.equal sel0
