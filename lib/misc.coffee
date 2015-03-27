@@ -36,48 +36,18 @@ absoluteFromRelative = (index, offset, richText) ->
 
   absolute
 
-# Initialize an Yjs list and add commont array operations
-# over it
-customList = (Operation, self) ->
-  ret = new Operation.ListManager(@).execute()
-
-  # Another name for delete is slice
-  # TODO: remove all occurences of slice!
-  ret.slice = (start, end) ->
-    @delete start, end
-  ret.splice = (start, end, insert...) ->
-    @delete start, end
-    @insert start, insert
-  ret.indexOf = (element) ->
-    @val().indexOf(element)
-
-  return ret
-
-# a basic class with generic getter / setter funciton
-class BaseClass
-  constructor: ->
-
-  # Try to find the property in @_model, else return the
-  # own property
   _get: (prop) ->
     if @hasOwnProperty(prop)
       @[prop]
     else
       @_model.val(prop)
-  # Try to set the property in @_model, else set the
-  # own property
   _set: (prop, val) ->
     if @hasOwnProperty(prop)
       @[prop] = val
     else
       @_model.val(prop, val)
 
-
-# Simple class that contains a word and links to the selections pointing
-# to it
-#
-class Word extends BaseClass
-    # Attribute containing the string
+  # Attribute containing the string
   @word = ''
   # Selections that have this word as left bound
   @left = []
@@ -89,8 +59,6 @@ class Word extends BaseClass
   _getModel: (Y, Operation) ->
     if @_model == null
       @_model = new Operation.MapManager(@).execute()
-      left = customList(Operation, @, @left)
-      right = customList(Operation, @, @right)
       @_model.val("left", @left)
       @_model.val("right", @right)
       @_model.val("word", @word)
@@ -170,7 +138,7 @@ class Word extends BaseClass
     _.uniq tmp
 
 # A class describing a selection with a style (bold, italic, …)
-class Selection extends BaseClass
+class Selection
   _name = "Selection"
 
   _getModel: (Y, Operation) ->
@@ -232,9 +200,19 @@ class Selection extends BaseClass
         @bind @left, @right
         @richText.pushSel @
 
-
     else
       throw new Error "Wrong set of parameters #{start}, #{end}, #{rte}, #{style}"
+
+  _get: (prop) ->
+    if @hasOwnProperty(prop)
+      @[prop]
+    else
+      @_model.val(prop)
+  _set: (prop, val) ->
+    if @hasOwnProperty(prop)
+      @[prop] = val
+    else
+      @_model.val(prop, val)
 
   # Return a string representation of the selection
   #
@@ -380,9 +358,6 @@ class Selection extends BaseClass
     if @in(selection)
       outSelLeft = selection
       outSelRight = selection.clone()
-
-      # console.log "~~~~~~~~~~~~~~",outSelRight,"~~~~~~~~~~~~~~",
-      #   "~~~~~~~~~~~~~~", @rte._rte.selections
 
       # joke here, because Insel means island in German
       inSel = @
