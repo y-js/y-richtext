@@ -40,12 +40,47 @@ absoluteFromRelative = (index, offset, richText) ->
 # to it
 #
 class Word
+  _get: (prop) ->
+    if @hasOwnProperty(prop)
+      @[prop]
+    else
+      @_model.val(prop)
+  _set: (prop, val) ->
+    if @hasOwnProperty(prop)
+      @[prop] = val
+    else
+      @_model.val(prop, val)
+
   # Attribute containing the string
   @word = ''
   # Selections that have this word as left bound
   @left = []
   # Selections that have this word as right bound
   @right = []
+
+  _name: "Word"
+
+  _getModel: (Y, Operation) ->
+    if @_model == null
+      @_model = new Operation.MapManager(@).execute()
+      @_model.val("left", @left)
+      @_model.val("right", @right)
+      @_model.val("word", @word)
+      @_model.val("rte", @rte)
+
+      delete @left
+      delete @right
+      delete @rte
+
+    return @_model
+
+  _setModel: (model) ->
+    delete @left
+    delete @right
+    delete @word
+    delete @rte
+
+    @_model = model
 
   # Construct a new list of words
   #
@@ -67,9 +102,9 @@ class Word
   #
   removeSel: (selection, side)->
     if side == "left"
-      array = @left
+      array = @_get("left")
     else if side == "right"
-      array = @right
+      array = @_get("right")
     else
       throw new Error "Invalid argument #{side}, expected 'left' or 'right'"
     index = 0
@@ -100,19 +135,42 @@ class Word
   getSelections: (filter = null)->
     # console.log "Word.getSelections", @left, @right
     tmp = (if _.isFunction(filter)
-      @left.concat(@right).filter(filter) or []
+      @_get("left").concat(@_get("right")).filter(filter) or []
     else
-      @left.concat(@right) or [])
+      @_get("left").concat(@_get("right")) or [])
     # console.log "returning", _.uniq tmp
     _.uniq tmp
 
 # A class describing a selection with a style (bold, italic, …)
 class Selection
-  # Word that is the left bound
-  @left = null
-  # Word that is the right bound
-  @right = null
+  _name = "Selection"
 
+  _getModel: (Y, Operation) ->
+    if @_model == null
+      @_model = new Operation.MapManager(@).execute()
+      @_model.val("left", @left)
+      @_model.val("leftPos", @leftPos)
+      @_model.val("right", @right)
+      @_model.val("rightPos", @leftPos)
+      @_model.val("style", @style)
+
+      delete @left
+      delete @leftPos
+      delete @right
+      delete @rightPos
+      delete @style
+
+    return @_model
+
+  _setModel: (model) ->
+    delete @left
+    delete @left
+    delete @leftPos
+    delete @right
+    delete @rightPos
+    delete @style
+
+    @_model = model
   # Construct a new selection using the index of the first and last character.
   #
   # @param [Integer] start index of the first character
@@ -148,7 +206,18 @@ class Selection
 
 
     else
-      throw new Error "Wrong set of parameters #{start}, #{end}, #{richText}, #{style}"
+      throw new Error "Wrong set of parameters #{start}, #{end}, #{rte}, #{style}"
+
+  _get: (prop) ->
+    if @hasOwnProperty(prop)
+      @[prop]
+    else
+      @_model.val(prop)
+  _set: (prop, val) ->
+    if @hasOwnProperty(prop)
+      @[prop] = val
+    else
+      @_model.val(prop, val)
 
   # Return a string representation of the selection
   #
@@ -227,10 +296,10 @@ class Selection
   # @param [Selection] s the selection to compare to this
   # @return [Bool] true if the selections have the same bounds
   equals: (selection)->
-    @left == selection.left and
-    @leftPos == selection.leftPos and
-    @right == selection.right and
-    @rightPos == selection.rightPos
+    @left == selection._get("left") and
+    @leftPos == selection._get("leftPos") and
+    @right == selection._get("right") and
+    @rightPos == selection._get("rightPos")
 
   # Compares *the bounds* of two selections
   #
@@ -244,8 +313,8 @@ class Selection
   # @param [Selection] selection the selection to compare to this
   # @return [Bool] true if the given selection is within this selection
   in: (selection) ->
-    @gt(selection.left, selection.leftPos, "left") and
-    @lt(selection.right, selection.rightPos, "right")
+    @gt(selection._get("left"), selection._get("leftPos"), "left") and
+    @lt(selection._get("right"), selection._get("rightPos"), "right")
 
   # Returns true if the current selection is in the given selection
   #
@@ -261,8 +330,8 @@ class Selection
   # @param [Selection] selection the selection to compare to this
   # @return [Bool] true if the given selection is located on the left of this selection
   atLeftOf: (selection) ->
-    (@gt(selection.left, selection.leftPos, "right") and
-    @lt(selection.right, selection.rightPos, "right"))
+    (@gt(selection._get("left"), selection._get("leftPos"), "right") and
+    @lt(selection._get("right"), selection._get("rightPos"), "right"))
 
 
   # Set the style to style
@@ -296,20 +365,20 @@ class Selection
       outSelRight = selection.clone()
 
       # console.log "~~~~~~~~~~~~~~",outSelRight,"~~~~~~~~~~~~~~",
-      #   "~~~~~~~~~~~~~~", @richText._richText.selections
+      #   "~~~~~~~~~~~~~~", @rte._rte.selections
 
       # joke here, because Insel means island in German
       inSel = @
 
       # order is important because outSelLeft == selection
       # outSelRight has to be updated first
-      outSelRight.leftPos = inSel.rightPos
-      outSelRight.rightPos = selection.rightPos
-      outSelRight.bind inSel.right, selection.right
+      outSelRight._set("leftPos",  inSel._get("rightPos"))
+      outSelRight.rightPos = selection._get("rightPos")
+      outSelRight.bind inSel.right, selection._get("right")
 
-      outSelLeft.leftPos = selection.leftPos
-      outSelLeft.rightPos = inSel.leftPos
-      outSelLeft.bind selection.left, inSel.left
+      outSelLeft._set("leftPos",  selection._get("leftPos"))
+      outSelLeft._set("rightPos", inSel._get("leftPos"))
+      outSelLeft.bind selection._get("left"), inSel._get("left")
 
       # Remove empty selections
       [outSelRight, inSel, outSelLeft].forEach (sel) ->
@@ -342,18 +411,18 @@ class Selection
     if @atLeftOf selection
       left = @left
       leftPos = @leftPos
-      right = selection.right
-      rightPos = selection.rightPos
+      right = selection._get("right")
+      rightPos = selection._get("rightPos")
     else if selection.atLeftOf @
-      left = selection.left
-      leftPos = selection.leftPos
+      left = selection._get("left")
+      leftPos = selection._get("leftPos")
       right = @right
       rightPos = @rightPos
-    else if @.in selection
-      left = selection.left
-      leftPos = selection.leftPos
-      right = selection.right
-      rightPos = selection.rightPos
+    else if @in selection
+      left = selection._get("left")
+      leftPos = selection._get("leftPos")
+      right = selection._get("right")
+      rightPos = selection._get("rightPos")
     else if @equals selection
       left = @left
       leftPos = @leftPos
@@ -370,8 +439,8 @@ class Selection
     selToRemove.unbind()
     selToKeep.unbind()
 
-    selToKeep.leftPos = leftPos
-    selToKeep.rightPos = rightPos
+    selToKeep._set("leftPos",  leftPos)
+    selToKeep._set("rightPos", rightPos)
 
     selToKeep.bind left, right
 
@@ -387,8 +456,8 @@ class Selection
     left = @left
     right = @right
 
-    @left = null
-    @right = null
+    @_set("left", null)
+    @_set("right", null)
 
     [left, right]
 
@@ -401,11 +470,11 @@ class Selection
     if _.isUndefined right
       throw new Error "Missing argument right"
 
-    @left = left
-    @right = right
-    if !(@ in left.left)
+    @_set("left", left)
+    @_set("right", right)
+    if !(@ in left._get("left"))
       @left.left.push @
-    if !(@ in right.right)
+    if !(@ in right._get("right"))
       @right.right.push @
 
 
@@ -419,8 +488,8 @@ class Selection
     @left.removeSel @, "left"
     @right.removeSel @, "right"
 
-    @left = left
-    @right = right
+    @_set("left", left)
+    @_set("right", right)
 
     @bind @left, @right
 
@@ -431,8 +500,8 @@ class Selection
   clone: (style) ->
     newSel = new Selection 0, 0, @richText, {style: style, bind: false}
 
-    newSel.leftPos = @leftPos
-    newSel.rightPos = @rightPos
+    newSel._set("leftPos",  @leftPos)
+    newSel._set("rightPos", @rightPos)
 
     newSel.setStyle _.clone(@style)
 
@@ -483,7 +552,7 @@ class Selection
         continue
       # console.log thisSel.print()+" at left of "+sel.print()
       [left, right] = sel.unbind()
-      sel.leftPos = posToBound
+      sel._set("leftPos",  posToBound)
       sel.bind wordToBound, right
 
       if sel.isEmpty()
