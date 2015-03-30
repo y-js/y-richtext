@@ -125,7 +125,7 @@ gulp.task 'clean', ->
 
 gulp.task 'mocha', ['coffee'], ->
   gulp.src files.test, ['coffee'], { read: true }
-    .pipe mocha {reporter : 'nyan'}
+    .pipe mocha {reporter : 'spec'}
     # .pipe exit()
 
 gulp.task 'test', ['mocha'], ->

@@ -1,24 +1,23 @@
 _ = require 'underscore'
-Rte = (require './y-rte').Rte
 
 # Function that translates an index from start (absolute position) into a
 # relative position in word index and offset
 #
 # @param [Integer] position the position
-# @param [Rte] rte an rte instance
+# @param [Y.RichText] RichText a richText instance
 # @return [Object] options returning object
 # @option options [Integer] word the index of the word
 # @option options [Integer] position the offset in this word
-relativeFromAbsolute = (position, rte)->
+relativeFromAbsolute = (position, richText)->
   index = 0
   while position > 0
-    if index >= rte.getWords(0).length
+    if index >= richText.getWords(0).length
       index-- #position = 0
       break
-    if rte.getWord(index).word.length > position
+    if richText.getWord(index).word.length > position
       break
     else
-      position -= rte.getWord(index).word.length
+      position -= richText.getWord(index).word.length
       index++
 
   return {word: index, pos: position}
@@ -27,20 +26,27 @@ relativeFromAbsolute = (position, rte)->
 # relative position in word index and offset
 #
 # @param [Option] relative the position
-# @param [Rte] rte an rte instance
+# @param [Y.RichText] richText an richText instance
 # @return [Integer] the absolute index
-absoluteFromRelative = (index, offset, rte) ->
+absoluteFromRelative = (index, offset, richText) ->
   absolute = offset
   if index > 0
     for i in [0..(index-1)]
-      absolute += rte.getWord(i).word.length
+      absolute += richText.getWord(i).word.length
 
   absolute
 
-# Simple class that contains a word and links to the selections pointing
-# to it
-#
-class Word
+  _get: (prop) ->
+    if @hasOwnProperty(prop)
+      @[prop]
+    else
+      @_model.val(prop)
+  _set: (prop, val) ->
+    if @hasOwnProperty(prop)
+      @[prop] = val
+    else
+      @_model.val(prop, val)
+
   # Attribute containing the string
   @word = ''
   # Selections that have this word as left bound
@@ -48,12 +54,52 @@ class Word
   # Selections that have this word as right bound
   @right = []
 
+# Simple class that contains a word and links to the selections pointing
+# to it
+#
+class Word extends BaseClass
+  _name: "Word"
+
+  _getModel: (Y, Operation) ->
+    if @_model == null
+      @_model = new Operation.MapManager(@).execute()
+      # create left and right list of selections
+      left = new Operation.MapManager(@).execute()
+      left.insert 0, @left
+
+      right = new Operation.MapManager(@).execute()
+      right.insert 0, @right
+
+      # extend the lists
+      extend @_model, customList
+      extend left, customList
+      extend right, customList
+
+      @_model.val("left", left)
+      @_model.val("right", right)
+      @_model.val("word", @word)
+      @_model.val("rte", @richText)
+
+      delete @left
+      delete @right
+      delete @richText
+
+    return @_model
+
+  _setModel: (model) ->
+    delete @left
+    delete @right
+    delete @word
+    delete @rte
+
+    @_model = model
+
   # Construct a new list of words
   #
   # @param [String] word The initial string value
   # @return [Word] a word instance
   #
-  constructor: (@word, @rte) ->
+  constructor: (@word, @richText) ->
     # Selections that have this word as left bound
     @left = []
     # Selections that have this word as right bound
@@ -68,9 +114,9 @@ class Word
   #
   removeSel: (selection, side)->
     if side == "left"
-      array = @left
+      array = @_get("left")
     else if side == "right"
-      array = @right
+      array = @_get("right")
     else
       throw new Error "Invalid argument #{side}, expected 'left' or 'right'"
     index = 0
@@ -83,7 +129,7 @@ class Word
   #
   # @return [Integer] the index of the word
   index: ->
-    index = @rte._rte.words.indexOf @
+    index = @richText._richText.words.indexOf @
     if index == -1
       9e99
     else
@@ -101,29 +147,52 @@ class Word
   getSelections: (filter = null)->
     # console.log "Word.getSelections", @left, @right
     tmp = (if _.isFunction(filter)
-      @left.concat(@right).filter(filter) or []
+      @_get("left").concat(@_get("right")).filter(filter) or []
     else
-      @left.concat(@right) or [])
+      @_get("left").concat(@_get("right")) or [])
     # console.log "returning", _.uniq tmp
     _.uniq tmp
 
 # A class describing a selection with a style (bold, italic, …)
-class Selection
-  # Word that is the left bound
-  @left = null
-  # Word that is the right bound
-  @right = null
+class Selection extends BaseClass
+  _name = "Selection"
 
+  _getModel: (Y, Operation) ->
+    if @_model == null
+      @_model = new Operation.MapManager(@).execute()
+      @_model.val("left", @left)
+      @_model.val("leftPos", @leftPos)
+      @_model.val("right", @right)
+      @_model.val("rightPos", @leftPos)
+      @_model.val("style", @style)
+
+      delete @left
+      delete @leftPos
+      delete @right
+      delete @rightPos
+      delete @style
+
+    return @_model
+
+  _setModel: (model) ->
+    delete @left
+    delete @left
+    delete @leftPos
+    delete @right
+    delete @rightPos
+    delete @style
+
+    @_model = model
   # Construct a new selection using the index of the first and last character.
   #
   # @param [Integer] start index of the first character
   # @param [Integer] end index of the last character
-  # @param [Rte] rte a rich-text editor (Rte) instance
+  # @param [Y.RichText] rt a richText editor (Y.RichText) instance
   # @param [Object] option options to pass to the constructor
   # @option option [Bool] bind whether or not to bind the selection
   #
-  constructor: (start, end, rte, options={})->
-    if not _.isUndefined(start) and not _.isUndefined(end) and not _.isUndefined(rte)
+  constructor: (start, end, richText, options={})->
+    if not _.isUndefined(start) and not _.isUndefined(end) and not _.isUndefined(richText)
       if !( _.isNumber(start) and
             _.isNumber(end))
         throw new Error "Expecting numbers as arguments"
@@ -131,25 +200,24 @@ class Selection
       if _.isUndefined(options.bind)
         options.bind = true
 
-      @rte = rte
+      @richText = richText
 
       retStart = @_relativeFromAbsolute start
       retEnd = @_relativeFromAbsolute end
 
       @setStyle (options.style or {})
 
-      @left = @rte.getWord retStart.word
+      @left = @richText.getWord retStarichText.word
       @leftPos = retStart.pos
-      @right = @rte.getWord retEnd.word
+      @right = @richText.getWord retEnd.word
       @rightPos = retEnd.pos
 
       if options.bind
         @bind @left, @right
-        @rte.pushSel @
-
+        @richText.pushSel @
 
     else
-      throw new Error "Wrong set of parameters #{start}, #{end}, #{rte}, #{style}"
+      throw new Error "Wrong set of parameters #{start}, #{end}, #{RichText}, #{style}"
 
   # Return a string representation of the selection
   #
@@ -185,8 +253,8 @@ class Selection
     else if side == "right"
       word1 = @right
       pos1 = @rightPos
-    index1 = word1.index @rte
-    index2 = word2.index @rte
+    index1 = word1.index @richText
+    index2 = word2.index @richText
     (index1 == index2 and pos1 <= pos2) or
       (index1 < index2)
 
@@ -210,7 +278,7 @@ class Selection
       pos1 = @rightPos
 
     (word1 == word2 and pos1 >= pos2) or
-    ((word1.index @rte) > (word2.index @rte))
+    ((word1.index @richText) > (word2.index @richText))
 
 
   # Convert indexes from beginning of text to coordinates expressed in word and
@@ -221,17 +289,17 @@ class Selection
   # @option options [Integer] word the index of the word
   # @option options [Integer] position the offset in this word
   _relativeFromAbsolute: (position)->
-    relativeFromAbsolute position, @rte
+    relativeFromAbsolute position, @richText
 
   # Compares the bounds of two selections
   #
   # @param [Selection] s the selection to compare to this
   # @return [Bool] true if the selections have the same bounds
   equals: (selection)->
-    @left == selection.left and
-    @leftPos == selection.leftPos and
-    @right == selection.right and
-    @rightPos == selection.rightPos
+    @left == selection._get("left") and
+    @leftPos == selection._get("leftPos") and
+    @right == selection._get("right") and
+    @rightPos == selection._get("rightPos")
 
   # Compares *the bounds* of two selections
   #
@@ -245,8 +313,8 @@ class Selection
   # @param [Selection] selection the selection to compare to this
   # @return [Bool] true if the given selection is within this selection
   in: (selection) ->
-    @gt(selection.left, selection.leftPos, "left") and
-    @lt(selection.right, selection.rightPos, "right")
+    @gt(selection._get("left"), selection._get("leftPos"), "left") and
+    @lt(selection._get("right"), selection._get("rightPos"), "right")
 
   # Returns true if the current selection is in the given selection
   #
@@ -262,8 +330,8 @@ class Selection
   # @param [Selection] selection the selection to compare to this
   # @return [Bool] true if the given selection is located on the left of this selection
   atLeftOf: (selection) ->
-    (@gt(selection.left, selection.leftPos, "right") and
-    @lt(selection.right, selection.rightPos, "right"))
+    (@gt(selection._get("left"), selection._get("leftPos"), "right") and
+    @lt(selection._get("right"), selection._get("rightPos"), "right"))
 
 
   # Set the style to style
@@ -296,28 +364,25 @@ class Selection
       outSelLeft = selection
       outSelRight = selection.clone()
 
-      # console.log "~~~~~~~~~~~~~~",outSelRight,"~~~~~~~~~~~~~~",
-      #   "~~~~~~~~~~~~~~", @rte._rte.selections
-
       # joke here, because Insel means island in German
       inSel = @
 
       # order is important because outSelLeft == selection
       # outSelRight has to be updated first
-      outSelRight.leftPos = inSel.rightPos
-      outSelRight.rightPos = selection.rightPos
-      outSelRight.bind inSel.right, selection.right
+      outSelRight._set("leftPos",  inSel._get("rightPos"))
+      outSelRight.rightPos = selection._get("rightPos")
+      outSelRight.bind inSel.right, selection._get("right")
 
-      outSelLeft.leftPos = selection.leftPos
-      outSelLeft.rightPos = inSel.leftPos
-      outSelLeft.bind selection.left, inSel.left
+      outSelLeft._set("leftPos",  selection._get("leftPos"))
+      outSelLeft._set("rightPos", inSel._get("leftPos"))
+      outSelLeft.bind selection._get("left"), inSel._get("left")
 
       # Remove empty selections
       [outSelRight, inSel, outSelLeft].forEach (sel) ->
         if sel.isEmpty()
           sel.unbind()
           # console.log "Removing", sel
-          @rte.removeSel sel
+          @richText.removeSel sel
 
   # Try to merge the given selection with this selection, keeping this selection
   #
@@ -343,18 +408,18 @@ class Selection
     if @atLeftOf selection
       left = @left
       leftPos = @leftPos
-      right = selection.right
-      rightPos = selection.rightPos
+      right = selection._get("right")
+      rightPos = selection._get("rightPos")
     else if selection.atLeftOf @
-      left = selection.left
-      leftPos = selection.leftPos
+      left = selection._get("left")
+      leftPos = selection._get("leftPos")
       right = @right
       rightPos = @rightPos
-    else if @.in selection
-      left = selection.left
-      leftPos = selection.leftPos
-      right = selection.right
-      rightPos = selection.rightPos
+    else if @in selection
+      left = selection._get("left")
+      leftPos = selection._get("leftPos")
+      right = selection._get("right")
+      rightPos = selection._get("rightPos")
     else if @equals selection
       left = @left
       leftPos = @leftPos
@@ -371,12 +436,12 @@ class Selection
     selToRemove.unbind()
     selToKeep.unbind()
 
-    selToKeep.leftPos = leftPos
-    selToKeep.rightPos = rightPos
+    selToKeep._set("leftPos",  leftPos)
+    selToKeep._set("rightPos", rightPos)
 
     selToKeep.bind left, right
 
-    @rte.removeSel selToRemove
+    @richText.removeSel selToRemove
 
   # Unbind selection from word
   #
@@ -388,8 +453,8 @@ class Selection
     left = @left
     right = @right
 
-    @left = null
-    @right = null
+    @_set("left", null)
+    @_set("right", null)
 
     [left, right]
 
@@ -402,11 +467,11 @@ class Selection
     if _.isUndefined right
       throw new Error "Missing argument right"
 
-    @left = left
-    @right = right
-    if !(@ in left.left)
+    @_set("left", left)
+    @_set("right", right)
+    if !(@ in left._get("left"))
       @left.left.push @
-    if !(@ in right.right)
+    if !(@ in right._get("right"))
       @right.right.push @
 
 
@@ -420,8 +485,8 @@ class Selection
     @left.removeSel @, "left"
     @right.removeSel @, "right"
 
-    @left = left
-    @right = right
+    @_set("left", left)
+    @_set("right", right)
 
     @bind @left, @right
 
@@ -430,15 +495,15 @@ class Selection
   # @param [String] style the new style
   # @return [Selection] a clone of this selection
   clone: (style) ->
-    newSel = new Selection 0, 0, @rte, {style: style, bind: false}
+    newSel = new Selection 0, 0, @richText, {style: style, bind: false}
 
-    newSel.leftPos = @leftPos
-    newSel.rightPos = @rightPos
+    newSel._set("leftPos",  @leftPos)
+    newSel._set("rightPos", @rightPos)
 
     newSel.setStyle _.clone(@style)
 
     newSel.bind @left, @right
-    newSel.rte.pushSel newSel
+    newSel.richText.pushSel newSel
 
     newSel
 
@@ -448,7 +513,7 @@ class Selection
   # @param [Word] wordToBoundTo the word to bound overlapping selections to
   deleteHelper: (wordToBound, posToBound=0) ->
     thisSel = @
-    selections = @rte.getSelections((s) -> s != thisSel)
+    selections = @richText.getSelections((s) -> s != thisSel)
 
     tmpSelections = []
     # delete selection contained in deleted selection
@@ -458,7 +523,7 @@ class Selection
         continue
       # console.log sel.print()+" in "+thisSel.print()
       sel.unbind()
-      @rte.removeSel sel
+      @richText.removeSel sel
 
     selections = tmpSelections
     tmpSelections = []
@@ -474,7 +539,7 @@ class Selection
 
       if sel.isEmpty()
         sel.unbind()
-        @rte.removeSel sel
+        @richText.removeSel sel
 
     selections = tmpSelections
     tmpSelections = []
@@ -484,18 +549,20 @@ class Selection
         continue
       # console.log thisSel.print()+" at left of "+sel.print()
       [left, right] = sel.unbind()
-      sel.leftPos = posToBound
+      sel._set("leftPos",  posToBound)
       sel.bind wordToBound, right
 
       if sel.isEmpty()
         sel.unbind()
-        @rte.removeSel sel
+        @richText.removeSel sel
 
 if module?
   module.exports.relativeFromAbsolute = relativeFromAbsolute
   module.exports.absoluteFromRelative =absoluteFromRelative
   module.exports.Selection = Selection
   module.exports.Word = Word
+  module.exports.customList = customList
+  module.exports.BaseClass = BaseClass
 
 if window?
   window.relativeFromAbsolute = relativeFromAbsolute
