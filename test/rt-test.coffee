@@ -9,7 +9,7 @@ $         = require('jquery')
 chai.use(sinonChai)
 chai.config.includeStack = true
 
-yRt = require '../lib/y-rte'
+yRt = require '../lib/y-rt'
 
 describe 'Rich Text type should', ->
   rt1 = rt2 = null
