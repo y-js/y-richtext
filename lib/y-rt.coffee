@@ -31,9 +31,6 @@ class YRichText extends BaseClass
       @_model.val(words, @_rt.words)
       @_model.val(selections, @_rt.selections)
 
-  # _setModel:
-  # observe:
-  # unobserve:
 
   # @overload val()
   #   Return the value of the Y.RichText instance as a non formatted string
