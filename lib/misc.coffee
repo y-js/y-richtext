@@ -1,24 +1,24 @@
 _ = require 'underscore'
-Rte = (require './y-rte').Rte
+Rt = (require './y-rt').Rt
 
 # Function that translates an index from start (absolute position) into a
 # relative position in word index and offset
 #
 # @param [Integer] position the position
-# @param [Rte] rte an rte instance
+# @param [Rt] rt an rt instance
 # @return [Object] options returning object
 # @option options [Integer] word the index of the word
 # @option options [Integer] position the offset in this word
-relativeFromAbsolute = (position, rte)->
+relativeFromAbsolute = (position, rt)->
   index = 0
   while position > 0
-    if index >= rte.getWords(0).length
+    if index >= rt.getWords(0).length
       index-- #position = 0
       break
-    if rte.getWord(index).word.length > position
+    if rt.getWord(index).word.length > position
       break
     else
-      position -= rte.getWord(index).word.length
+      position -= rt.getWord(index).word.length
       index++
 
   return {word: index, pos: position}
@@ -27,13 +27,13 @@ relativeFromAbsolute = (position, rte)->
 # relative position in word index and offset
 #
 # @param [Option] relative the position
-# @param [Rte] rte an rte instance
+# @param [Rt] rt an rt instance
 # @return [Integer] the absolute index
-absoluteFromRelative = (index, offset, rte) ->
+absoluteFromRelative = (index, offset, rt) ->
   absolute = offset
   if index > 0
     for i in [0..(index-1)]
-      absolute += rte.getWord(i).word.length
+      absolute += rt.getWord(i).word.length
 
   absolute
 
