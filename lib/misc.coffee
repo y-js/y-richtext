@@ -54,19 +54,35 @@ absoluteFromRelative = (index, offset, richText) ->
   # Selections that have this word as right bound
   @right = []
 
+# Simple class that contains a word and links to the selections pointing
+# to it
+#
+class Word extends BaseClass
   _name: "Word"
 
   _getModel: (Y, Operation) ->
     if @_model == null
       @_model = new Operation.MapManager(@).execute()
-      @_model.val("left", @left)
-      @_model.val("right", @right)
+      # create left and right list of selections
+      left = new Operation.MapManager(@).execute()
+      left.insert 0, @left
+
+      right = new Operation.MapManager(@).execute()
+      right.insert 0, @right
+
+      # extend the lists
+      extend @_model, customList
+      extend left, customList
+      extend right, customList
+
+      @_model.val("left", left)
+      @_model.val("right", right)
       @_model.val("word", @word)
-      @_model.val("rte", @rte)
+      @_model.val("rte", @richText)
 
       delete @left
       delete @right
-      delete @rte
+      delete @richText
 
     return @_model
 
@@ -138,7 +154,7 @@ absoluteFromRelative = (index, offset, richText) ->
     _.uniq tmp
 
 # A class describing a selection with a style (bold, italic, …)
-class Selection
+class Selection extends BaseClass
   _name = "Selection"
 
   _getModel: (Y, Operation) ->
@@ -201,18 +217,7 @@ class Selection
         @richText.pushSel @
 
     else
-      throw new Error "Wrong set of parameters #{start}, #{end}, #{rte}, #{style}"
-
-  _get: (prop) ->
-    if @hasOwnProperty(prop)
-      @[prop]
-    else
-      @_model.val(prop)
-  _set: (prop, val) ->
-    if @hasOwnProperty(prop)
-      @[prop] = val
-    else
-      @_model.val(prop, val)
+      throw new Error "Wrong set of parameters #{start}, #{end}, #{RichText}, #{style}"
 
   # Return a string representation of the selection
   #

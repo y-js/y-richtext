@@ -28,9 +28,16 @@ class Rte extends BaseClass
 
   _getModel: (Y, Operation) ->
     if @_model == null
+      words = new Operation.ListManager(@_rt.words).execute()
+      selections = new Operation.ListManager(@_rt.selections).execute()
+
+      # extend the word and selection
+      extend word, customList
+      extend selections, customList
+
       @_model = new Operation.MapManager(@).execute()
-      @_model.val(words, @_rt.words)
-      @_model.val(selections, @_rt.selections)
+      @_model.val("words", words)
+      @_model.val("selections", selections)
 
       delete @_rte
     return @_model
@@ -38,6 +45,8 @@ class Rte extends BaseClass
   _setModel: (model) ->
     delete @_rte
     @_model = model
+    extend @_model.words, customList
+    extend @_model.selections, customList
 
   # @overload val()
   #   Return the value of the Y.RichText instance as a non formatted string
