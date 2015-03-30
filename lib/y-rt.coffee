@@ -12,7 +12,7 @@ PostSpacesRegExp = /\s+$/
 
 # Class describing the Rich Text Editor type
 #
-class Rt
+class YRichText extends BaseClass
   # @property [Options] _rt the RTE object
   # @param [String] content the initial content to set
   constructor: (content = '')->
@@ -36,11 +36,11 @@ class Rt
   # unobserve:
 
   # @overload val()
-  #   Return the value of the Rt instance as a non formatted string
+  #   Return the value of the Y.RichText instance as a non formatted string
   #
   # @overload val(content)
-  #   Set the content of the Rt instance
-  #   @param content [String] Set the strings of the Rt to this content
+  #   Set the content of the Y.RichText instance
+  #   @param content [String] Set the strings of the Y.RichText to this content
   val: (content)->
     if not _.isUndefined(content)
       # reset styles when replacing content
@@ -392,7 +392,7 @@ class Rt
   #   @param [Function] filter the function to use for filtering
   #   @return [Array<Selection>] an array of selection
   getSelections: (filter = null)->
-    # console.log "Rt.getSelections", @_rt.selections
+    # console.log "Y.RichText.getSelections", @_rt.selections
     tmp = (if _.isFunction(filter)
       @_rt.selections.filter(filter) or []
     else
@@ -422,14 +422,17 @@ class Rt
 
 
 if window?
-  window.Rt = Rt
+  if window.Y?
+    window.Y.RichText = YRichText
+  else
+    throw new Error "Import first Y!"
   window.Selection = Selection
   window.Word = Word
   window.relativeFromAbsolute = relativeFromAbsolute
   window.absoluteFromRelative = absoluteFromRelative
 
 if module?
-  module.exports.Rt = Rt
+  module.exports.YRichText = YRichText
   module.exports.Selection = Selection
   module.exports.Word = Word
   module.exports.relativeFromAbsolute = relativeFromAbsolute

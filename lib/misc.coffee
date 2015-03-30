@@ -1,24 +1,23 @@
 _ = require 'underscore'
-Rt = (require './y-rt').Rt
 
 # Function that translates an index from start (absolute position) into a
 # relative position in word index and offset
 #
 # @param [Integer] position the position
-# @param [Rt] rt an rt instance
+# @param [Y.RichText] RichText a richText instance
 # @return [Object] options returning object
 # @option options [Integer] word the index of the word
 # @option options [Integer] position the offset in this word
-relativeFromAbsolute = (position, rt)->
+relativeFromAbsolute = (position, richText)->
   index = 0
   while position > 0
-    if index >= rt.getWords(0).length
+    if index >= richText.getWords(0).length
       index-- #position = 0
       break
-    if rt.getWord(index).word.length > position
+    if richText.getWord(index).word.length > position
       break
     else
-      position -= rt.getWord(index).word.length
+      position -= richText.getWord(index).word.length
       index++
 
   return {word: index, pos: position}
@@ -27,13 +26,13 @@ relativeFromAbsolute = (position, rt)->
 # relative position in word index and offset
 #
 # @param [Option] relative the position
-# @param [Rt] rt an rt instance
+# @param [Y.RichText] richText an richText instance
 # @return [Integer] the absolute index
-absoluteFromRelative = (index, offset, rt) ->
+absoluteFromRelative = (index, offset, richText) ->
   absolute = offset
   if index > 0
     for i in [0..(index-1)]
-      absolute += rt.getWord(i).word.length
+      absolute += richText.getWord(i).word.length
 
   absolute
 
@@ -53,7 +52,7 @@ class Word
   # @param [String] word The initial string value
   # @return [Word] a word instance
   #
-  constructor: (@word, @rt) ->
+  constructor: (@word, @richText) ->
     # Selections that have this word as left bound
     @left = []
     # Selections that have this word as right bound
@@ -83,7 +82,7 @@ class Word
   #
   # @return [Integer] the index of the word
   index: ->
-    index = @rt._rt.words.indexOf @
+    index = @richText._richText.words.indexOf @
     if index == -1
       9e99
     else
@@ -118,12 +117,12 @@ class Selection
   #
   # @param [Integer] start index of the first character
   # @param [Integer] end index of the last character
-  # @param [Rt] rt a rich-text editor (Rt) instance
+  # @param [Y.RichText] rt a richText editor (Y.RichText) instance
   # @param [Object] option options to pass to the constructor
   # @option option [Bool] bind whether or not to bind the selection
   #
-  constructor: (start, end, rt, options={})->
-    if not _.isUndefined(start) and not _.isUndefined(end) and not _.isUndefined(rt)
+  constructor: (start, end, richText, options={})->
+    if not _.isUndefined(start) and not _.isUndefined(end) and not _.isUndefined(richText)
       if !( _.isNumber(start) and
             _.isNumber(end))
         throw new Error "Expecting numbers as arguments"
@@ -131,25 +130,25 @@ class Selection
       if _.isUndefined(options.bind)
         options.bind = true
 
-      @rt = rt
+      @richText = richText
 
       retStart = @_relativeFromAbsolute start
       retEnd = @_relativeFromAbsolute end
 
       @setStyle (options.style or {})
 
-      @left = @rt.getWord retStart.word
+      @left = @richText.getWord retStarichText.word
       @leftPos = retStart.pos
-      @right = @rt.getWord retEnd.word
+      @right = @richText.getWord retEnd.word
       @rightPos = retEnd.pos
 
       if options.bind
         @bind @left, @right
-        @rt.pushSel @
+        @richText.pushSel @
 
 
     else
-      throw new Error "Wrong set of parameters #{start}, #{end}, #{rt}, #{style}"
+      throw new Error "Wrong set of parameters #{start}, #{end}, #{richText}, #{style}"
 
   # Return a string representation of the selection
   #
@@ -185,8 +184,8 @@ class Selection
     else if side == "right"
       word1 = @right
       pos1 = @rightPos
-    index1 = word1.index @rt
-    index2 = word2.index @rt
+    index1 = word1.index @richText
+    index2 = word2.index @richText
     (index1 == index2 and pos1 <= pos2) or
       (index1 < index2)
 
@@ -210,7 +209,7 @@ class Selection
       pos1 = @rightPos
 
     (word1 == word2 and pos1 >= pos2) or
-    ((word1.index @rt) > (word2.index @rt))
+    ((word1.index @richText) > (word2.index @richText))
 
 
   # Convert indexes from beginning of text to coordinates expressed in word and
@@ -221,7 +220,7 @@ class Selection
   # @option options [Integer] word the index of the word
   # @option options [Integer] position the offset in this word
   _relativeFromAbsolute: (position)->
-    relativeFromAbsolute position, @rt
+    relativeFromAbsolute position, @richText
 
   # Compares the bounds of two selections
   #
@@ -297,7 +296,7 @@ class Selection
       outSelRight = selection.clone()
 
       # console.log "~~~~~~~~~~~~~~",outSelRight,"~~~~~~~~~~~~~~",
-      #   "~~~~~~~~~~~~~~", @rt._rt.selections
+      #   "~~~~~~~~~~~~~~", @richText._richText.selections
 
       # joke here, because Insel means island in German
       inSel = @
@@ -317,7 +316,7 @@ class Selection
         if sel.isEmpty()
           sel.unbind()
           # console.log "Removing", sel
-          @rt.removeSel sel
+          @richText.removeSel sel
 
   # Try to merge the given selection with this selection, keeping this selection
   #
@@ -376,7 +375,7 @@ class Selection
 
     selToKeep.bind left, right
 
-    @rt.removeSel selToRemove
+    @richText.removeSel selToRemove
 
   # Unbind selection from word
   #
@@ -430,7 +429,7 @@ class Selection
   # @param [String] style the new style
   # @return [Selection] a clone of this selection
   clone: (style) ->
-    newSel = new Selection 0, 0, @rt, {style: style, bind: false}
+    newSel = new Selection 0, 0, @richText, {style: style, bind: false}
 
     newSel.leftPos = @leftPos
     newSel.rightPos = @rightPos
@@ -438,7 +437,7 @@ class Selection
     newSel.setStyle _.clone(@style)
 
     newSel.bind @left, @right
-    newSel.rt.pushSel newSel
+    newSel.richText.pushSel newSel
 
     newSel
 
@@ -448,7 +447,7 @@ class Selection
   # @param [Word] wordToBoundTo the word to bound overlapping selections to
   deleteHelper: (wordToBound, posToBound=0) ->
     thisSel = @
-    selections = @rt.getSelections((s) -> s != thisSel)
+    selections = @richText.getSelections((s) -> s != thisSel)
 
     tmpSelections = []
     # delete selection contained in deleted selection
@@ -458,7 +457,7 @@ class Selection
         continue
       # console.log sel.print()+" in "+thisSel.print()
       sel.unbind()
-      @rt.removeSel sel
+      @richText.removeSel sel
 
     selections = tmpSelections
     tmpSelections = []
@@ -474,7 +473,7 @@ class Selection
 
       if sel.isEmpty()
         sel.unbind()
-        @rt.removeSel sel
+        @richText.removeSel sel
 
     selections = tmpSelections
     tmpSelections = []
@@ -489,7 +488,7 @@ class Selection
 
       if sel.isEmpty()
         sel.unbind()
-        @rt.removeSel sel
+        @richText.removeSel sel
 
 if module?
   module.exports.relativeFromAbsolute = relativeFromAbsolute
