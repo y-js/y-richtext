@@ -53,7 +53,7 @@ customList = (Operation, self) ->
 
   return ret
 
-
+# a basic class with generic getter / setter funciton
 class BaseClass
   constructor: ->
 
@@ -582,6 +582,7 @@ if module?
   module.exports.Selection = Selection
   module.exports.Word = Word
   module.exports.customList = customList
+  module.exports.BaseClass = BaseClass
 
 if window?
   window.relativeFromAbsolute = relativeFromAbsolute
