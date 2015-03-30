@@ -1,10 +1,10 @@
-gulp = require('gulp')
-coffee = require('gulp-coffee')
-gutil = require('gulp-util')
-concat = require('gulp-concat')
+gulp = require 'gulp'
+coffee = require 'gulp-coffee'
+gutil = require 'gulp-util'
+concat = require 'gulp-concat'
 uglify = require 'gulp-uglify'
-sourcemaps = require('gulp-sourcemaps')
-browserify = require('gulp-browserify')
+sourcemaps = require 'gulp-sourcemaps'
+browserify = require 'gulp-browserify'
 rename = require 'gulp-rename'
 rimraf = require 'gulp-rimraf'
 gulpif = require 'gulp-if'
@@ -25,7 +25,7 @@ gulp.task 'default', ['build_browser']
 
 files =
   lib : ['./lib/**/*.coffee']
-  browser : ['./lib/y-xml.coffee']
+  browser : ['./lib/y-rte.coffee']
   test : ['./test/**/*test.coffee']
   gulp : ['./gulpfile.coffee']
   examples : ['./examples/**/*.js']
@@ -72,7 +72,7 @@ gulp.task 'build_browser', ->
 gulp.task 'build_node', ->
   gulp.src files.lib
     .pipe plumber()
-    .pipe coffee({bare:true})
+    .pipe coffee({bare:true, sourceMap: true})
     .pipe gulp.dest './build/node'
 
 gulp.task 'build', ['build_node', 'build_browser'], ->
@@ -82,16 +82,13 @@ gulp.task 'watch', ['build'], ->
 
 gulp.task 'coffee',->
   gulp.src files.lib
-    .pipe coffee({bare: true}).on('error', gutil.log)
+    # .pipe sourcemaps.init()
+    .pipe coffee {bare: true}
+      .on('error', gutil.log)
+    # .pipe concat()
+    # .pipe sourcemaps.write()
     .pipe gulp.dest('./lib/')
 
-gulp.task 'mocha', ['coffee'], ->
-  gulp.src files.test, ['coffee'], { read: true }
-    .pipe mocha {reporter : 'list'}
-    # .pipe exit()
-
-gulp.task 'test', ['mocha'], ->
-  gulp.watch files.all, ['mocha']
 
 gulp.task 'lint', ->
   gulp.src files.all
@@ -123,7 +120,16 @@ gulp.task 'phantom_test', ['build_browser'], ()->
     .pipe mochaPhantomJS()
 
 gulp.task 'clean', ->
-  gulp.src ['./build/{browser,test,node}/**/*.{js,map}','./doc/'], { read: false }
+  gulp.src ['./build/{browser,test,node}/**/*.{js,map}','./doc/','./lib/*.js'], { read: false }
     .pipe rimraf()
+
+gulp.task 'mocha', ['coffee'], ->
+  gulp.src files.test, ['coffee'], { read: true }
+    .pipe mocha {reporter : 'nyan'}
+    # .pipe exit()
+
+gulp.task 'test', ['mocha'], ->
+  gulp.watch files.all, ['mocha']
+
 
 gulp.task 'default', ['clean','build'], ->
