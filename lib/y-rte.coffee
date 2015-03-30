@@ -12,15 +12,15 @@ PostSpacesRegExp = /\s+$/
 
 # Class describing the Rich Text Editor type
 #
-class Rte
-  # @property [Options] _rte the RTE object
+class Rt
+  # @property [Options] _rt the RTE object
   # @param [String] content the initial content to set
   constructor: (content = '')->
     if content.constructor isnt String
       throw new Error "Only accepts strings."
-    @_rte = {}
-    @_rte.selections = []
-    @_rte.words = []
+    @_rt = {}
+    @_rt.selections = []
+    @_rt.words = []
     @pushString content
 
   _name: "Rich Text Editor"
@@ -28,49 +28,49 @@ class Rte
   _getModel: (Y, Operation) ->
     if @_model == null
       @_model = new Operation.MapManager(@).execute()
-      @_model.val(words, @_rte.words)
-      @_model.val(selections, @_rte.selections)
+      @_model.val(words, @_rt.words)
+      @_model.val(selections, @_rt.selections)
 
   # _setModel:
   # observe:
   # unobserve:
 
   # @overload val()
-  #   Return the value of the Rte instance as a non formatted string
+  #   Return the value of the Rt instance as a non formatted string
   #
   # @overload val(content)
-  #   Set the content of the Rte instance
-  #   @param content [String] Set the strings of the Rte to this content
+  #   Set the content of the Rt instance
+  #   @param content [String] Set the strings of the Rt to this content
   val: (content)->
     if not _.isUndefined(content)
       # reset styles when replacing content
-      @_rte.words = []
-      @_rte.style = []
+      @_rt.words = []
+      @_rt.style = []
       @pushString content
     else
       # TODO: support breaks (br, new paragraph, …)
-      (e.word for e in @_rte.words).join('')
+      (e.word for e in @_rt.words).join('')
 
   # Returns the word object of a word.
   # @param index [Integer] the index of the word to return
   getWord: (index) ->
-    if @_rte.words.length == 0 or index == @_rte.words.length
+    if @_rt.words.length == 0 or index == @_rt.words.length
       return (new Word '', @)
 
-    if not (0 <= index < @_rte.words.length)
+    if not (0 <= index < @_rt.words.length)
       throw new Error "Index out of bounds #{index}"
-    @_rte.words[index]
+    @_rt.words[index]
 
   # Returns the *word objects* within boundaries
   # @param begin [Integer] the first word the return
   # @param end [Integer] the first word /not/ to return
   getWords: (begin, end) ->
     if _.isUndefined(end)
-      end = @_rte.words.length
-    if not (0 <= begin <= end <= @_rte.words.length)
+      end = @_rt.words.length
+    if not (0 <= begin <= end <= @_rt.words.length)
       return []
 
-    ret = @_rte.words[begin..end]
+    ret = @_rt.words[begin..end]
     if ret
       ret
     else
@@ -81,9 +81,9 @@ class Rte
   # @param content [String] the content to set the word to
   # @note it pushes all selection to the end of the word
   setWord: (index, content) ->
-    if index == @_rte.words.length
-      @_rte.words.push(new Word content, @)
-    if not (0 <= index < @_rte.words.length)
+    if index == @_rt.words.length
+      @_rt.words.push(new Word content, @)
+    if not (0 <= index < @_rt.words.length)
       throw new Error "Index out of bounds"
 
     word = @getWord(index)
@@ -96,31 +96,31 @@ class Rte
   pushString: (content) ->
     preSpaces = content.match PreSpacesRegExp
     if preSpaces isnt null
-      @_rte.words.push (new Word (preSpaces[0]), @)
+      @_rt.words.push (new Word (preSpaces[0]), @)
     words = content.match WordRegExp
     if _.isArray(words)
       for w in words
-        @_rte.words.push (new Word w, @)
+        @_rt.words.push (new Word w, @)
 
   # Insert words at position
   #
   # @param [Integer] position the position where to insert words
   # @param [Array<String>] words the words to insert at position
   #
-  # @return [Array<Word>] an array of word objects inserted
+  # @return [Array<Word>] an array of word objects insertd
   insertWords: (position, words)->
     if not _.isNumber position
       throw new Error "Expected a number as first parameter, got #{position}"
     if not _.isArray words
       throw new Error "Expected a string array as second parameter, got #{words}"
 
-    length = @_rte.words.length
+    length = @_rt.words.length
     if 0 <= position <= length
       wordsObj = ((new Word w, @) for w in words)
-      Array.prototype.splice.apply(@_rte.words, [position, 0].concat(wordsObj))
-      # left = @_rte.words.slice(0, position)
-      # right = @_rte.words.slice(position)
-      # @_rte.words = left.concat(wordsObj).concat(right)
+      Array.prototype.splice.apply(@_rt.words, [position, 0].concat(wordsObj))
+      # left = @_rt.words.slice(0, position)
+      # right = @_rt.words.slice(position)
+      # @_rt.words = left.concat(wordsObj).concat(right)
 
       return wordsObj or []
 
@@ -160,7 +160,7 @@ class Rte
       selection.deleteHelper (@getWord (end))
 
       # remove words
-      @_rte.words.splice start, (end-start)
+      @_rt.words.splice start, (end-start)
 
 
   # Merge two words at position
@@ -378,10 +378,10 @@ class Rte
 
   # Add a  selection to the selection list
   pushSel: (selection)->
-    # console.log "Pushing", selection, "in", @_rte.selections
-    selections = @_rte.selections
+    # console.log "Pushing", selection, "in", @_rt.selections
+    selections = @_rt.selections
     if !(selection in selections)
-      @_rte.selections.push selection
+      @_rt.selections.push selection
 
   # @overload getSelections()
   #   Return all the selections
@@ -392,11 +392,11 @@ class Rte
   #   @param [Function] filter the function to use for filtering
   #   @return [Array<Selection>] an array of selection
   getSelections: (filter = null)->
-    # console.log "Rte.getSelections", @_rte.selections
+    # console.log "Rt.getSelections", @_rt.selections
     tmp = (if _.isFunction(filter)
-      @_rte.selections.filter(filter) or []
+      @_rt.selections.filter(filter) or []
     else
-      @_rte.selections or [])
+      @_rt.selections or [])
     _.uniq tmp
 
 
@@ -405,7 +405,7 @@ class Rte
   # @param [Selection] selection the selection to remove
   removeSel: (selection) ->
     index = 0
-    array = @_rte.selections
+    array = @_rt.selections
     for el, index in array
       if (array[index] == selection)
         array.splice index, 1
@@ -413,7 +413,7 @@ class Rte
 
   # Only for manual use, so no efficiency research
   garbageCollect: ->
-    sels = @_rte.selections
+    sels = @_rt.selections
     for sel, index in sels
       for key, value of sel
         if value == null or value == ""
@@ -422,14 +422,14 @@ class Rte
 
 
 if window?
-  window.Rte = Rte
+  window.Rt = Rt
   window.Selection = Selection
   window.Word = Word
   window.relativeFromAbsolute = relativeFromAbsolute
   window.absoluteFromRelative = absoluteFromRelative
 
 if module?
-  module.exports.Rte = Rte
+  module.exports.Rt = Rt
   module.exports.Selection = Selection
   module.exports.Word = Word
   module.exports.relativeFromAbsolute = relativeFromAbsolute
