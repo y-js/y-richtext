@@ -5,3 +5,6 @@ bower_components
 .codio
 .settings
 */*.js
+TAGS
+build/
+doc/
