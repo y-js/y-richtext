@@ -12,14 +12,14 @@ Rte = (require './y-rte').Rte
 relativeFromAbsolute = (position, rte)->
   index = 0
   while position > 0
-    if index >= rte._rte.words.length
-      index -= 1 #position = 0
+    if index >= rte.getWords(0).length
+      index-- #position = 0
       break
     if rte.getWord(index).word.length > position
       break
     else
       position -= rte.getWord(index).word.length
-      index += 1
+      index++
 
   return {word: index, pos: position}
 

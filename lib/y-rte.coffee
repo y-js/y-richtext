@@ -15,22 +15,22 @@ PostSpacesRegExp = /\s+$/
 class Rte
   # @property [Options] _rte the RTE object
   # @param [String] content the initial content to set
-  # @option _rte [Array<Selection>] selections array containing all the current selections
-  # @option _rte [Array<String>] words array containing all the words of the text
-  #
   constructor: (content = '')->
     if content.constructor isnt String
       throw new Error "Only accepts strings."
     @_rte = {}
-    @_rte.styles = []
     @_rte.selections = []
-    @_rte.cursorInformation = {}
     @_rte.words = []
     @pushString content
 
   _name: "Rich Text Editor"
 
-  # _getModel:
+  _getModel: (Y, Operation) ->
+    if @_model == null
+      @_model = new Operation.MapManager(@).execute()
+      @_model.val(words, @_rte.words)
+      @_model.val(selections, @_rte.selections)
+
   # _setModel:
   # observe:
   # unobserve:
@@ -268,7 +268,7 @@ class Rte
     if preSpaces isnt null
       if pos == 0
         if index == 0
-          index += 1
+          index++
           @insertWord 0, (new Word '', @)
         prevWord = @getWord(index-1).word
         prevWord += preSpaces
@@ -313,7 +313,7 @@ class Rte
       jump = Math.abs(jump)
       while jump > 0
         if pos < jump
-          word -= 1
+          word--
           jump -= pos
           pos = @getWord(word).word.length - 1
 
@@ -325,7 +325,7 @@ class Rte
       while jump > 0
         delta = pos + jump - @getWord(word).word.length + 1
         if delta > 0
-          word += 1
+          word++
           jump -= delta
           pos = 0
 

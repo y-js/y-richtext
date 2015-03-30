@@ -224,39 +224,6 @@ describe 'y-rte.Selection object should', ->
     sel0.isValid().should.be.false
     sel1.isValid().should.be.true
 
-  it 'merge correctly the selections [merge] 1/2', ->
-    rte = new yRte.Rte "Zero One two three four five"
-    sel0 = new yRte.Selection 0, 1, rte, {foo: "bar"}
-    sel1 = new yRte.Selection 0, 1, rte, {mergeMe: "I'm famous"}
-    sel2 = new yRte.Selection 1, 10, rte, {foo: "bar"}
-
-    sel0.merge sel0, sel1 # sel and sel1 not merging!
-    rte._rte.selections.length.should.equal 3
-
-    sel0.merge sel2, rte
-    rte._rte.selections.length.should.equal 2
-    rte._rte.selections.indexOf(sel).should.equal -1
-
-
-    leftWord = rte.getWord 0
-    rightWord = rte.getWord 2
-
-    sel0.should.have.deep.property 'left', leftWord
-    sel0.should.have.deep.property 'leftPos', 0
-    sel0.should.have.deep.property 'right', rightWord
-    sel0.should.have.deep.property 'rightPos', 1
-
-  it 'merge correctly the selections [merge] 2/2', ->
-    rte = new yRte.Rte "Zero One two three four five"
-    sel0 = new yRte.Selection 0, 1, rte, {foo: "bar"}
-    sel2 = new yRte.Selection 1, 10, rte, {foo: "bar"}
-
-    sel2.merge sel0, rte
-    rte._rte.selections.length.should.equal 1
-    rte._rte.selections.indexOf(sel0).should.equal -1
-
-    leftWord = rte.getWord 0
-    rightWord = rte.getWord 2
 
   it 'split correcly two selections [split]', ->
     rte = new yRte.Rte "Zero one two three"
@@ -284,6 +251,70 @@ describe 'y-rte.Selection object should', ->
     (sel.right == null).should.be.true
     rte.getWord(0).left.length.should.equal 1
     rte.getWord(0).right.length.should.equal 0
+
+describe 'Selection.merge ', ->
+  it 'not merging', ->
+    rte = new yRte.Rte "Zero One two three four five"
+    sel0 = new yRte.Selection 0, 1, rte, {style: {foo: "bar"}}
+    sel1 = new yRte.Selection 0, 1, rte, {style: {mergeMe: "I'm famous"}}
+    sel2 = new yRte.Selection 2, 10, rte, {style: {foo: "bar"}}
+
+    sel0.merge sel0 # same selection
+    rte._rte.selections.length.should.equal 3
+
+    sel0.merge sel1 # not same style
+    rte._rte.selections.length.should.equal 3
+
+    sel0.merge sel2 # not merging
+    rte._rte.selections.length.should.equal 3
+
+    sel0.merge() # no argument
+    rte._rte.selections.length.should.equal 3
+
+  it 'at right', ->
+    rte = new yRte.Rte "Zero One two three four five"
+    sel0 = new yRte.Selection 0, 1, rte, {style: {foo: "bar"}}
+    sel1 = new yRte.Selection 0, 1, rte, {style: {mergeMe: "I'm famous"}}
+    sel2 = new yRte.Selection 1, 10, rte, {style: {foo: "bar"}}
+    sel0.merge sel2
+    rte._rte.selections.length.should.equal 2
+    rte._rte.selections.indexOf(sel2).should.equal -1
+
+    leftWord = rte.getWord 0
+    rightWord = rte.getWord 2
+
+    sel0.should.have.deep.property 'left', leftWord
+    sel0.should.have.deep.property 'leftPos', 0
+    sel0.should.have.deep.property 'right', rightWord
+    sel0.should.have.deep.property 'rightPos', 1
+
+  it 'at left', ->
+    rte = new yRte.Rte "Zero One two three four five"
+    sel0 = new yRte.Selection 0, 1, rte, {style: {foo: "bar"}}
+    sel2 = new yRte.Selection 1, 10, rte, {style: {foo: "bar"}}
+
+    sel2.merge sel0, rte
+    rte._rte.selections.length.should.equal 1
+    rte._rte.selections.indexOf(sel0).should.equal -1
+
+  it 'in', ->
+    rte = new yRte.Rte "Zero One two three four five"
+    sel0 = new yRte.Selection 0, 10, rte
+    sel2 = new yRte.Selection 2, 5, rte
+
+    console.log sel2.in sel0
+    sel2.merge sel0, rte
+    rte._rte.selections.length.should.equal 1
+    rte._rte.selections.indexOf(sel0).should.equal -1
+
+  it 'contains', ->
+    rte = new yRte.Rte "Zero One two three four five"
+    sel0 = new yRte.Selection 0, 10, rte
+    sel2 = new yRte.Selection 2, 5, rte
+
+    sel0.merge sel2, rte
+    rte._rte.selections.length.should.equal 1
+    rte._rte.selections.indexOf(sel2).should.equal -1
 
 
 describe 'Word objects should', ->
