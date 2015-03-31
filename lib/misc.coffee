@@ -51,6 +51,9 @@ customList = (Operation, self) ->
   ret.indexOf = (element) ->
     @val().indexOf(element)
 
+  ret.observe = (e) ->
+    console.log e
+
   return ret
 
 # a basic class with generic getter / setter funciton
@@ -71,7 +74,6 @@ class BaseClass
       @[prop] = val
     else
       @_model.val(prop, val)
-
 
 # Simple class that contains a word and links to the selections pointing
 # to it

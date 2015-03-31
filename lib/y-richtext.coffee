@@ -5,7 +5,6 @@ absoluteFromRelative = misc.absoluteFromRelative
 Word = misc.Word
 Selection = misc.Selection
 
-# XRegExp = require('xregexp').XRegExp
 WordRegExp = /\S+\s*/g
 PreSpacesRegExp = /^\s+/
 PostSpacesRegExp = /\s+$/
@@ -13,7 +12,7 @@ PostSpacesRegExp = /\s+$/
 # Class describing the Rich Text Editor type
 #
 class YRichText extends misc.BaseClass
-  # @property [Options] _rt the RTE object
+  # @property [Options] _richText the rich text object
   # @param [String] content the initial content to set
   constructor: (content = '')->
     if content.constructor isnt String
@@ -28,8 +27,8 @@ class YRichText extends misc.BaseClass
   _getModel: (Y, Operation) ->
     if @_model == null
       @_model = new Operation.MapManager(@).execute()
-      @_model.val(words, @_richText.words)
-      @_model.val(selections, @_richText.selections)
+      @_model.val("words", @_richText.words)
+      @_model.val("selections", @_richText.selections)
 
 
   # @overload val()
