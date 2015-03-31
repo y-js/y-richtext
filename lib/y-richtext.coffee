@@ -30,14 +30,12 @@ class YRichText extends misc.BaseClass
       selections = new Operation.ListManager(@_rt.selections).execute()
 
       # extend the word and selection
-      extend word, customList
-      extend selections, customList
 
       @_model = new Operation.MapManager(@).execute()
       @_model.val("words", @_richText.words)
       @_model.val("selections", @_richText.selections)
 
-      delete @_rte
+      _setModel @_model
     return @_model
 
   _setModel: (model) ->
