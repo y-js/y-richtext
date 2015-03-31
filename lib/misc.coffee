@@ -105,12 +105,7 @@ class Word extends BaseClass
       @_model.val("word", @word)
       @_model.val("richText", @richText)
 
-      delete @left
-      delete @right
-      delete @richText
-      delete @words
-
-    @_model.observe = @observer
+      @_setModel @_model
     return @_model
 
   _setModel: (model) ->
