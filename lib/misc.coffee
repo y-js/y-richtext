@@ -291,7 +291,7 @@ class Selection extends BaseClass
   # @option option [Bool] bind whether or not to bind the selection
   #
   constructor: (start, end, richText, options={})->
-    if not _.isUndefined(start) and not _.isUndefined(end) and not _.isUndefined(richText)
+    if not _.isUndefined(start) and not _.isUndefined(end) and richText?
       if !( _.isNumber(start) and
             _.isNumber(end))
         throw new Error "Expecting numbers as arguments"
