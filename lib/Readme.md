@@ -1,9 +1,11 @@
 # RTE is simple Rich Text grammar for collaborative editors
 
-Its grammar is well defined:
+Its grammar is defined as follow:
 
 ```
-rich_text = { words: [word] }
+richText = { words: [word],
+             selections: [selection]
+            }
 word = { word: string,
          left: [selection],
          right: [selection],
@@ -13,8 +15,9 @@ word = { word: string,
 selection = { left: word,
               leftPos: number, // offset within word
               right: word,
-              rightPos: number // offset within word
-              style : Object
+              rightPos: number, // offset within word
+              style : Object,
+              richText: richText
 }
 ```
 
