@@ -36,16 +36,86 @@ absoluteFromRelative = (index, offset, richText) ->
 
   absolute
 
+# Initialize an Yjs list and add common array operations
+# over it
+customList = (Operation) ->
+  ret = new Operation.ListManager(@).execute()
+
+  # Another name for delete is slice
+  # TODO: remove all occurrences of slice!
+  ret.slice = (start, end) ->
+    @delete start, end
+  ret.splice = (start, end, insert...) ->
+    @delete start, end
+    @insert start, insert
+  ret.indexOf = (element) ->
+    @val().indexOf(element)
+
+  ret.observe = (e) ->
+    console.log e
+
+  return ret
+
+
+# a basic class with generic getter / setter function
+class BaseClass
+  constructor: ->
+
+  # Try to find the property in @_model, else return the
+  # own property
+  _get: (prop) ->
+    if @hasOwnProperty(prop)
+      @[prop]
+    else
+      @_model.val(prop)
+  # Try to set the property in @_model, else set the
+  # own property
+  _set: (prop, val) ->
+    if @hasOwnProperty(prop)
+      @[prop] = val
+    else
+      @_model.val(prop, val)
+
+
 # Simple class that contains a word and links to the selections pointing
 # to it
 #
-class Word
-  # Attribute containing the string
-  @word = ''
-  # Selections that have this word as left bound
-  @left = []
-  # Selections that have this word as right bound
-  @right = []
+class Word extends BaseClass
+    # Attribute containing the string
+
+  _name: "Word"
+
+  _getModel: (Y, Operation) ->
+    if @_model == null
+      @_model = new Operation.MapManager(@).execute()
+      # create left and right list of selections
+      left = new Operation.MapManager(@).execute()
+      left.insert 0, @left
+
+      right = new Operation.MapManager(@).execute()
+      right.insert 0, @right
+
+      # extend the lists
+      extend @_model, customList
+      extend left, customList
+      extend right, customList
+
+      @_model.val("left", left)
+      @_model.val("right", right)
+      @_model.val("word", @word)
+      @_model.val("richText", @richText)
+
+      @_setModel @_model
+    return @_model
+
+  _setModel: (model) ->
+    delete @left
+    delete @right
+    delete @word
+    delete @richText
+
+    @_model = model
+    @_model.observe = @observer
 
   # Construct a new list of words
   #
@@ -67,9 +137,9 @@ class Word
   #
   removeSel: (selection, side)->
     if side == "left"
-      array = @left
+      array = @_get("left")
     else if side == "right"
-      array = @right
+      array = @_get("right")
     else
       throw new Error "Invalid argument #{side}, expected 'left' or 'right'"
     index = 0
@@ -82,7 +152,7 @@ class Word
   #
   # @return [Integer] the index of the word
   index: ->
-    index = @richText._richText.words.indexOf @
+    index = @richText.getWords(0).indexOf @
     if index == -1
       9e99
     else
@@ -100,19 +170,118 @@ class Word
   getSelections: (filter = null)->
     # console.log "Word.getSelections", @left, @right
     tmp = (if _.isFunction(filter)
-      @left.concat(@right).filter(filter) or []
+      @_get("left").concat(@_get("right")).filter(filter) or []
     else
-      @left.concat(@right) or [])
+      @_get("left").concat(@_get("right")) or [])
     # console.log "returning", _.uniq tmp
     _.uniq tmp
 
-# A class describing a selection with a style (bold, italic, …)
-class Selection
-  # Word that is the left bound
-  @left = null
-  # Word that is the right bound
-  @right = null
+  diffToDelta: (target)->
+    if source == null
+      source = @word
+    info = [[]]
+    for i in [0..source.length]
+      info[i] = []
+      for j in [0..target.length]
+        info[i][j] = {val: 0}
+        info[0][j].val = j
+      info[i][0].val = i
 
+    for tgt, j in target
+      for src, i in source
+        if src == tgt
+          info[i+1][j+1] =
+            val: info[i][j].val
+            delta: [{retain: 1}]
+
+          info[i+1][j+1].prev = [i,j]
+
+        else
+          # delete letter i from source
+          del = info[i][j+1].val + 1
+          # insert letter at position j
+          ins = info[i+1][j].val + 1
+          # substitute letter i with letter j
+          subs = info[i][j].val + 1
+          min = Math.min del, ins, subs
+
+          if min == del
+            info[i+1][j+1] =
+              prev: [i, j+1]
+              delta: [{delete: 1}]
+          else if min == ins
+            info[i+1][j+1] =
+              prev: [i+1, j]
+              delta: [{insert: target[j]}]
+          if min == subs
+            info[i+1][j+1]=
+              prev: [i, j]
+              delta: [{delete:1}, {insert: target[j]}]
+          info[i+1][j+1].val = min
+    info
+
+    # convert the array to a list of deltas
+    i = info.length-1
+    j = info[0].length-1
+    dist = info[i][j].val
+    ops = []
+    while dist > 0
+      [previ, prevj] = info[i][j].prev
+      dist = info[previ][prevj].val
+
+      ops.push.apply(ops, info[i][j].delta.reverse())
+
+      [i, j] = [previ, prevj]
+    {ops: ops.reverse()}
+
+  observer: (event) ->
+    if event.name == "word"
+      if event.type == "update"
+        oldValue = event.oldValue
+        position = absoluteFromRelative @index(), 0, @richText
+        # TODO: room for improvement there (could merge same deltas together)
+        # @example:
+        # {retain: 1}, {retain:1} → {retain: 2}
+        deltas = {
+          ops: [{retain: position}].concat (@diffToDelta oldValue).ops
+        }
+      else if (event.type == "delete")
+        console.log "Unsupported operation: delete"
+      else if (event.type == "add")
+        console.log "Unsupported operation: add"
+    else
+      # nothing to do
+
+# A class describing a selection with a style (bold, italic, …)
+class Selection extends BaseClass
+  _name = "Selection"
+
+  _getModel: (Y, Operation) ->
+    if @_model == null
+      @_model = new Operation.MapManager(@).execute()
+      @_model.val("left", @left)
+      @_model.val("leftPos", @leftPos)
+      @_model.val("right", @right)
+      @_model.val("rightPos", @leftPos)
+      @_model.val("style", @style)
+
+      delete @left
+      delete @leftPos
+      delete @right
+      delete @rightPos
+      delete @style
+
+    return @_model
+
+  _setModel: (model) ->
+    delete @left
+    delete @left
+    delete @leftPos
+    delete @right
+    delete @rightPos
+    delete @style
+
+    @_model = model
   # Construct a new selection using the index of the first and last character.
   #
   # @param [Integer] start index of the first character
@@ -122,7 +291,7 @@ class Selection
   # @option option [Bool] bind whether or not to bind the selection
   #
   constructor: (start, end, richText, options={})->
-    if not _.isUndefined(start) and not _.isUndefined(end) and not _.isUndefined(richText)
+    if not _.isUndefined(start) and not _.isUndefined(end) and richText?
       if !( _.isNumber(start) and
             _.isNumber(end))
         throw new Error "Expecting numbers as arguments"
@@ -137,7 +306,7 @@ class Selection
 
       @setStyle (options.style or {})
 
-      @left = @richText.getWord retStarichText.word
+      @left = @richText.getWord retStart.word
       @leftPos = retStart.pos
       @right = @richText.getWord retEnd.word
       @rightPos = retEnd.pos
@@ -227,10 +396,10 @@ class Selection
   # @param [Selection] s the selection to compare to this
   # @return [Bool] true if the selections have the same bounds
   equals: (selection)->
-    @left == selection.left and
-    @leftPos == selection.leftPos and
-    @right == selection.right and
-    @rightPos == selection.rightPos
+    @left == selection._get("left") and
+    @leftPos == selection._get("leftPos") and
+    @right == selection._get("right") and
+    @rightPos == selection._get("rightPos")
 
   # Compares *the bounds* of two selections
   #
@@ -244,8 +413,8 @@ class Selection
   # @param [Selection] selection the selection to compare to this
   # @return [Bool] true if the given selection is within this selection
   in: (selection) ->
-    @gt(selection.left, selection.leftPos, "left") and
-    @lt(selection.right, selection.rightPos, "right")
+    @gt(selection._get("left"), selection._get("leftPos"), "left") and
+    @lt(selection._get("right"), selection._get("rightPos"), "right")
 
   # Returns true if the current selection is in the given selection
   #
@@ -261,8 +430,8 @@ class Selection
   # @param [Selection] selection the selection to compare to this
   # @return [Bool] true if the given selection is located on the left of this selection
   atLeftOf: (selection) ->
-    (@gt(selection.left, selection.leftPos, "right") and
-    @lt(selection.right, selection.rightPos, "right"))
+    (@gt(selection._get("left"), selection._get("leftPos"), "right") and
+    @lt(selection._get("right"), selection._get("rightPos"), "right"))
 
 
   # Set the style to style
@@ -296,20 +465,20 @@ class Selection
       outSelRight = selection.clone()
 
       # console.log "~~~~~~~~~~~~~~",outSelRight,"~~~~~~~~~~~~~~",
-      #   "~~~~~~~~~~~~~~", @richText._richText.selections
+      #   "~~~~~~~~~~~~~~", @rte._rte.selections
 
       # joke here, because Insel means island in German
       inSel = @
 
       # order is important because outSelLeft == selection
       # outSelRight has to be updated first
-      outSelRight.leftPos = inSel.rightPos
-      outSelRight.rightPos = selection.rightPos
-      outSelRight.bind inSel.right, selection.right
+      outSelRight._set("leftPos",  inSel._get("rightPos"))
+      outSelRight.rightPos = selection._get("rightPos")
+      outSelRight.bind inSel.right, selection._get("right")
 
-      outSelLeft.leftPos = selection.leftPos
-      outSelLeft.rightPos = inSel.leftPos
-      outSelLeft.bind selection.left, inSel.left
+      outSelLeft._set("leftPos",  selection._get("leftPos"))
+      outSelLeft._set("rightPos", inSel._get("leftPos"))
+      outSelLeft.bind selection._get("left"), inSel._get("left")
 
       # Remove empty selections
       [outSelRight, inSel, outSelLeft].forEach (sel) ->
@@ -342,18 +511,18 @@ class Selection
     if @atLeftOf selection
       left = @left
       leftPos = @leftPos
-      right = selection.right
-      rightPos = selection.rightPos
+      right = selection._get("right")
+      rightPos = selection._get("rightPos")
     else if selection.atLeftOf @
-      left = selection.left
-      leftPos = selection.leftPos
+      left = selection._get("left")
+      leftPos = selection._get("leftPos")
       right = @right
       rightPos = @rightPos
-    else if @.in selection
-      left = selection.left
-      leftPos = selection.leftPos
-      right = selection.right
-      rightPos = selection.rightPos
+    else if @in selection
+      left = selection._get("left")
+      leftPos = selection._get("leftPos")
+      right = selection._get("right")
+      rightPos = selection._get("rightPos")
     else if @equals selection
       left = @left
       leftPos = @leftPos
@@ -370,8 +539,8 @@ class Selection
     selToRemove.unbind()
     selToKeep.unbind()
 
-    selToKeep.leftPos = leftPos
-    selToKeep.rightPos = rightPos
+    selToKeep._set("leftPos",  leftPos)
+    selToKeep._set("rightPos", rightPos)
 
     selToKeep.bind left, right
 
@@ -387,8 +556,8 @@ class Selection
     left = @left
     right = @right
 
-    @left = null
-    @right = null
+    @_set("left", null)
+    @_set("right", null)
 
     [left, right]
 
@@ -401,11 +570,11 @@ class Selection
     if _.isUndefined right
       throw new Error "Missing argument right"
 
-    @left = left
-    @right = right
-    if !(@ in left.left)
+    @_set("left", left)
+    @_set("right", right)
+    if !(@ in left._get("left"))
       @left.left.push @
-    if !(@ in right.right)
+    if !(@ in right._get("right"))
       @right.right.push @
 
 
@@ -419,8 +588,8 @@ class Selection
     @left.removeSel @, "left"
     @right.removeSel @, "right"
 
-    @left = left
-    @right = right
+    @_set("left", left)
+    @_set("right", right)
 
     @bind @left, @right
 
@@ -431,8 +600,8 @@ class Selection
   clone: (style) ->
     newSel = new Selection 0, 0, @richText, {style: style, bind: false}
 
-    newSel.leftPos = @leftPos
-    newSel.rightPos = @rightPos
+    newSel._set("leftPos",  @leftPos)
+    newSel._set("rightPos", @rightPos)
 
     newSel.setStyle _.clone(@style)
 
@@ -483,7 +652,7 @@ class Selection
         continue
       # console.log thisSel.print()+" at left of "+sel.print()
       [left, right] = sel.unbind()
-      sel.leftPos = posToBound
+      sel._set("leftPos",  posToBound)
       sel.bind wordToBound, right
 
       if sel.isEmpty()
@@ -495,6 +664,8 @@ if module?
   module.exports.absoluteFromRelative =absoluteFromRelative
   module.exports.Selection = Selection
   module.exports.Word = Word
+  module.exports.customList = customList
+  module.exports.BaseClass = BaseClass
 
 if window?
   window.relativeFromAbsolute = relativeFromAbsolute

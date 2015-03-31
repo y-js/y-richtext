@@ -5,15 +5,14 @@ absoluteFromRelative = misc.absoluteFromRelative
 Word = misc.Word
 Selection = misc.Selection
 
-# XRegExp = require('xregexp').XRegExp
 WordRegExp = /\S+\s*/g
 PreSpacesRegExp = /^\s+/
 PostSpacesRegExp = /\s+$/
 
 # Class describing the Rich Text Editor type
 #
-class YRichText extends BaseClass
-  # @property [Options] _richText the RTE object
+class Rt
+  # @property [Options] _rt the RTE object
   # @param [String] content the initial content to set
   constructor: (content = '')->
     if content.constructor isnt String
@@ -27,13 +26,23 @@ class YRichText extends BaseClass
 
   _getModel: (Y, Operation) ->
     if @_model == null
-      @_model = new Operation.MapManager(@).execute()
-      @_model.val(words, @_richText.words)
-      @_model.val(selections, @_richText.selections)
+      words = new Operation.ListManager(@_rt.words).execute()
+      selections = new Operation.ListManager(@_rt.selections).execute()
 
-  # _setModel:
-  # observe:
-  # unobserve:
+      # extend the word and selection
+
+      @_model = new Operation.MapManager(@).execute()
+      @_model.val(words, @_rt.words)
+      @_model.val(selections, @_rt.selections)
+
+      _setModel @_model
+    return @_model
+
+  _setModel: (model) ->
+    delete @_rte
+    @_model = model
+    extend @_model.words, customList
+    extend @_model.selections, customList
 
   # @overload val()
   #   Return the value of the Y.RichText instance as a non formatted string
@@ -107,7 +116,7 @@ class YRichText extends BaseClass
   # @param [Integer] position the position where to insert words
   # @param [Array<String>] words the words to insert at position
   #
-  # @return [Array<Word>] an array of word objects insertd
+  # @return [Array<Word>] an array of word objects inserted
   insertWords: (position, words)->
     if not _.isNumber position
       throw new Error "Expected a number as first parameter, got #{position}"
@@ -118,9 +127,6 @@ class YRichText extends BaseClass
     if 0 <= position <= length
       wordsObj = ((new Word w, @) for w in words)
       Array.prototype.splice.apply(@_richText.words, [position, 0].concat(wordsObj))
-      # left = @_rt.words.slice(0, position)
-      # right = @_rt.words.slice(position)
-      # @_rt.words = left.concat(wordsObj).concat(right)
 
       return wordsObj or []
 
@@ -147,7 +153,6 @@ class YRichText extends BaseClass
 
     if start <= end
       indexStart = absoluteFromRelative start, 0, @
-      length = (@getWords 0).length
 
       endPos = (@getWord (end-1)).word.length-1
       indexEnd = absoluteFromRelative (end-1), endPos, @
@@ -378,8 +383,8 @@ class YRichText extends BaseClass
 
   # Add a  selection to the selection list
   pushSel: (selection)->
-    # console.log "Pushing", selection, "in", @_richText.selections
-    selections = @_richText.selections
+    # console.log "Pushing", selection, "in", @_rt.selections
+    selections = @_rt.selections
     if !(selection in selections)
       @_richText.selections.push selection
 
@@ -392,7 +397,7 @@ class YRichText extends BaseClass
   #   @param [Function] filter the function to use for filtering
   #   @return [Array<Selection>] an array of selection
   getSelections: (filter = null)->
-    # console.log "Y.RichText.getSelections", @_richText.selections
+    # console.log "Rt.getSelections", @_rt.selections
     tmp = (if _.isFunction(filter)
       @_richText.selections.filter(filter) or []
     else
