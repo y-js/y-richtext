@@ -12,15 +12,15 @@ PostSpacesRegExp = /\s+$/
 
 # Class describing the Rich Text Editor type
 #
-class YRichText extends BaseClass
+class YRichText extends misc.BaseClass
   # @property [Options] _rt the RTE object
   # @param [String] content the initial content to set
   constructor: (content = '')->
     if content.constructor isnt String
       throw new Error "Only accepts strings."
-    @_rt = {}
-    @_rt.selections = []
-    @_rt.words = []
+    @_richText = {}
+    @_richText.selections = []
+    @_richText.words = []
     @pushString content
 
   _name: "Rich Text Editor"
@@ -28,8 +28,8 @@ class YRichText extends BaseClass
   _getModel: (Y, Operation) ->
     if @_model == null
       @_model = new Operation.MapManager(@).execute()
-      @_model.val(words, @_rt.words)
-      @_model.val(selections, @_rt.selections)
+      @_model.val(words, @_richText.words)
+      @_model.val(selections, @_richText.selections)
 
 
   # @overload val()
@@ -41,33 +41,33 @@ class YRichText extends BaseClass
   val: (content)->
     if not _.isUndefined(content)
       # reset styles when replacing content
-      @_rt.words = []
-      @_rt.style = []
+      @_richText.words = []
+      @_richText.style = []
       @pushString content
     else
       # TODO: support breaks (br, new paragraph, …)
-      (e.word for e in @_rt.words).join('')
+      (e.word for e in @_richText.words).join('')
 
   # Returns the word object of a word.
   # @param index [Integer] the index of the word to return
   getWord: (index) ->
-    if @_rt.words.length == 0 or index == @_rt.words.length
+    if @_richText.words.length == 0 or index == @_richText.words.length
       return (new Word '', @)
 
-    if not (0 <= index < @_rt.words.length)
+    if not (0 <= index < @_richText.words.length)
       throw new Error "Index out of bounds #{index}"
-    @_rt.words[index]
+    @_richText.words[index]
 
   # Returns the *word objects* within boundaries
   # @param begin [Integer] the first word the return
   # @param end [Integer] the first word /not/ to return
   getWords: (begin, end) ->
     if _.isUndefined(end)
-      end = @_rt.words.length
-    if not (0 <= begin <= end <= @_rt.words.length)
+      end = @_richText.words.length
+    if not (0 <= begin <= end <= @_richText.words.length)
       return []
 
-    ret = @_rt.words[begin..end]
+    ret = @_richText.words[begin..end]
     if ret
       ret
     else
@@ -78,9 +78,9 @@ class YRichText extends BaseClass
   # @param content [String] the content to set the word to
   # @note it pushes all selection to the end of the word
   setWord: (index, content) ->
-    if index == @_rt.words.length
-      @_rt.words.push(new Word content, @)
-    if not (0 <= index < @_rt.words.length)
+    if index == @_richText.words.length
+      @_richText.words.push(new Word content, @)
+    if not (0 <= index < @_richText.words.length)
       throw new Error "Index out of bounds"
 
     word = @getWord(index)
@@ -93,31 +93,28 @@ class YRichText extends BaseClass
   pushString: (content) ->
     preSpaces = content.match PreSpacesRegExp
     if preSpaces isnt null
-      @_rt.words.push (new Word (preSpaces[0]), @)
+      @_richText.words.push (new Word (preSpaces[0]), @)
     words = content.match WordRegExp
     if _.isArray(words)
       for w in words
-        @_rt.words.push (new Word w, @)
+        @_richText.words.push (new Word w, @)
 
   # Insert words at position
   #
   # @param [Integer] position the position where to insert words
   # @param [Array<String>] words the words to insert at position
   #
-  # @return [Array<Word>] an array of word objects insertd
+  # @return [Array<Word>] an array of word objects inserted
   insertWords: (position, words)->
     if not _.isNumber position
       throw new Error "Expected a number as first parameter, got #{position}"
     if not _.isArray words
       throw new Error "Expected a string array as second parameter, got #{words}"
 
-    length = @_rt.words.length
+    length = @_richText.words.length
     if 0 <= position <= length
       wordsObj = ((new Word w, @) for w in words)
-      Array.prototype.splice.apply(@_rt.words, [position, 0].concat(wordsObj))
-      # left = @_rt.words.slice(0, position)
-      # right = @_rt.words.slice(position)
-      # @_rt.words = left.concat(wordsObj).concat(right)
+      Array.prototype.splice.apply(@_richText.words, [position, 0].concat(wordsObj))
 
       return wordsObj or []
 
@@ -157,7 +154,7 @@ class YRichText extends BaseClass
       selection.deleteHelper (@getWord (end))
 
       # remove words
-      @_rt.words.splice start, (end-start)
+      @_richText.words.splice start, (end-start)
 
 
   # Merge two words at position
@@ -376,9 +373,9 @@ class YRichText extends BaseClass
   # Add a  selection to the selection list
   pushSel: (selection)->
     # console.log "Pushing", selection, "in", @_rt.selections
-    selections = @_rt.selections
+    selections = @_richText.selections
     if !(selection in selections)
-      @_rt.selections.push selection
+      @_richText.selections.push selection
 
   # @overload getSelections()
   #   Return all the selections
@@ -391,9 +388,9 @@ class YRichText extends BaseClass
   getSelections: (filter = null)->
     # console.log "Y.RichText.getSelections", @_rt.selections
     tmp = (if _.isFunction(filter)
-      @_rt.selections.filter(filter) or []
+      @_richText.selections.filter(filter) or []
     else
-      @_rt.selections or [])
+      @_richText.selections or [])
     _.uniq tmp
 
 
@@ -402,7 +399,7 @@ class YRichText extends BaseClass
   # @param [Selection] selection the selection to remove
   removeSel: (selection) ->
     index = 0
-    array = @_rt.selections
+    array = @_richText.selections
     for el, index in array
       if (array[index] == selection)
         array.splice index, 1
@@ -410,7 +407,7 @@ class YRichText extends BaseClass
 
   # Only for manual use, so no efficiency research
   garbageCollect: ->
-    sels = @_rt.selections
+    sels = @_richText.selections
     for sel, index in sels
       for key, value of sel
         if value == null or value == ""

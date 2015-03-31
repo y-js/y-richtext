@@ -94,11 +94,11 @@ class Word extends BaseClass
       @_model.val("left", @left)
       @_model.val("right", @right)
       @_model.val("word", @word)
-      @_model.val("rte", @rte)
+      @_model.val("richText", @richText)
 
       delete @left
       delete @right
-      delete @rte
+      delete @richText
 
     return @_model
 
@@ -106,7 +106,7 @@ class Word extends BaseClass
     delete @left
     delete @right
     delete @word
-    delete @rte
+    delete @richText
 
     @_model = model
 
@@ -223,7 +223,7 @@ class Selection extends BaseClass
 
       @setStyle (options.style or {})
 
-      @left = @richText.getWord retStarichText.word
+      @left = @richText.getWord retStart.word
       @leftPos = retStart.pos
       @right = @richText.getWord retEnd.word
       @rightPos = retEnd.pos
@@ -234,7 +234,7 @@ class Selection extends BaseClass
 
 
     else
-      throw new Error "Wrong set of parameters #{start}, #{end}, #{rte}, #{style}"
+      throw new Error "Wrong set of parameters #{start}, #{end}, #{richText}, #{style}"
 
   # Return a string representation of the selection
   #
