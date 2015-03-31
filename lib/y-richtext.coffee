@@ -155,7 +155,6 @@ class YRichText extends misc.BaseClass
 
     if start <= end
       indexStart = absoluteFromRelative start, 0, @
-      length = (@getWords 0).length
 
       endPos = (@getWord (end-1)).word.length-1
       indexEnd = absoluteFromRelative (end-1), endPos, @

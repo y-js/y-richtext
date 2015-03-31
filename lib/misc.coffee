@@ -36,13 +36,13 @@ absoluteFromRelative = (index, offset, richText) ->
 
   absolute
 
-# Initialize an Yjs list and add commont array operations
+# Initialize an Yjs list and add common array operations
 # over it
-customList = (Operation, self) ->
+customList = (Operation) ->
   ret = new Operation.ListManager(@).execute()
 
   # Another name for delete is slice
-  # TODO: remove all occurences of slice!
+  # TODO: remove all occurrences of slice!
   ret.slice = (start, end) ->
     @delete start, end
   ret.splice = (start, end, insert...) ->
@@ -108,6 +108,7 @@ class Word extends BaseClass
       delete @left
       delete @right
       delete @richText
+      delete @words
 
     @_model.observe = @observer
     return @_model
@@ -180,7 +181,7 @@ class Word extends BaseClass
     # console.log "returning", _.uniq tmp
     _.uniq tmp
 
-  diffToDelta: (source, target)->
+  diffToDelta: (target)->
     if source == null
       source = @word
     info = [[]]
@@ -239,22 +240,22 @@ class Word extends BaseClass
     {ops: ops.reverse()}
 
   observer: (event) ->
-    if (event.name == "word")
-      oldValue = event.oldValue
-      newValue = @_get("word")
-      position = absoluteFromRelative @index(), 0, @richText
-      # naive algorithm @see https://en.wikipedia.org/wiki/String_searching_algorithm#Algorithms_using_a_finite_set_of_patterns for improvements
-      deltas = {
-        ops: [{retain: position}].concat (@diffToDelta null, oldValue).ops
-      }
-    else if (event.name == "left")
-      throw new Error()
-    else if (event.name == "right")
-      throw new Error()
-    else if (event.name == "")
-      throw new Error()
+    if event.name == "word"
+      if event.type == "update"
+        oldValue = event.oldValue
+        position = absoluteFromRelative @index(), 0, @richText
+        # TODO: room for improvement there (could merge same deltas together)
+        # @example:
+        # {retain: 1}, {retain:1} → {retain: 2}
+        deltas = {
+          ops: [{retain: position}].concat (@diffToDelta oldValue).ops
+        }
+      else if (event.type == "delete")
+        console.log "Unsupported operation: delete"
+      else if (event.type == "add")
+        console.log "Unsupported operation: add"
     else
-      throw new Error()
+      # nothing to do
 
 # A class describing a selection with a style (bold, italic, …)
 class Selection extends BaseClass

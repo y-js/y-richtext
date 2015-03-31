@@ -1,10 +1,10 @@
-chai      = require('chai')     # assertion library
+chai      = require 'chai'     # assertion library
 expect    = chai.expect()
 should    = chai.should()
-sinon     = require('sinon')    # test spies, stubs and mocks for js
-sinonChai = require('sinon-chai')
-_         = require("underscore")
-$         = require('jquery')
+sinon     = require 'sinon'    # test spies, stubs and mocks for js
+sinonChai = require 'sinon-chai'
+_         = require "underscore"
+$         = require 'jquery'
 
 chai.use(sinonChai)
 chai.config.includeStack = true
@@ -21,7 +21,6 @@ Y =
 describe 'Rich Text type should', ->
   richText1 = RichText2 = null
   ar = ["This", "is", "a ", "test"]
-
   it 'initialize correctly [constructor, val]', ->
     richText1 = new Y.RichText "Test"
     richText1.val().should.equal "Test"
@@ -352,6 +351,11 @@ describe 'Word objects should', ->
     richText.val()
     word = richText.getWord( 3)
     word.index(richText).should.equal 3
+  it '[diff]', ->
+      # create a test !
+#    richText1 = new Y.Word "Something"
+#    ret = richText1.diffToDelta "machin", "Machierie"
+#    console.log ret
 
 describe 'y-richtext.Selections objects should get updated when', ->
   it 'deleting words [deleteWords]', ->
