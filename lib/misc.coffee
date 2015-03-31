@@ -56,7 +56,8 @@ customList = (Operation, self) ->
 
   return ret
 
-# a basic class with generic getter / setter funciton
+
+# a basic class with generic getter / setter function
 class BaseClass
   constructor: ->
 
@@ -108,6 +109,7 @@ class Word extends BaseClass
       delete @right
       delete @richText
 
+    @_model.observe = @observer
     return @_model
 
   _setModel: (model) ->
@@ -117,6 +119,7 @@ class Word extends BaseClass
     delete @richText
 
     @_model = model
+    @_model.observe = @observer
 
   # Construct a new list of words
   #
@@ -153,7 +156,7 @@ class Word extends BaseClass
   #
   # @return [Integer] the index of the word
   index: ->
-    index = @richText._richText.words.indexOf @
+    index = @richText.getWords(0).indexOf @
     if index == -1
       9e99
     else
@@ -176,6 +179,82 @@ class Word extends BaseClass
       @_get("left").concat(@_get("right")) or [])
     # console.log "returning", _.uniq tmp
     _.uniq tmp
+
+  diffToDelta: (source, target)->
+    if source == null
+      source = @word
+    info = [[]]
+    for i in [0..source.length]
+      info[i] = []
+      for j in [0..target.length]
+        info[i][j] = {val: 0}
+        info[0][j].val = j
+      info[i][0].val = i
+
+    for tgt, j in target
+      for src, i in source
+        if src == tgt
+          info[i+1][j+1] =
+            val: info[i][j].val
+            delta: [{retain: 1}]
+
+          info[i+1][j+1].prev = [i,j]
+
+        else
+          # delete letter i from source
+          del = info[i][j+1].val + 1
+          # insert letter at position j
+          ins = info[i+1][j].val + 1
+          # substitute letter i with letter j
+          subs = info[i][j].val + 1
+          min = Math.min del, ins, subs
+
+          if min == del
+            info[i+1][j+1] =
+              prev: [i, j+1]
+              delta: [{delete: 1}]
+          else if min == ins
+            info[i+1][j+1] =
+              prev: [i+1, j]
+              delta: [{insert: target[j]}]
+          if min == subs
+            info[i+1][j+1]=
+              prev: [i, j]
+              delta: [{delete:1}, {insert: target[j]}]
+          info[i+1][j+1].val = min
+    info
+
+    # convert the array to a list of deltas
+    i = info.length-1
+    j = info[0].length-1
+    dist = info[i][j].val
+    ops = []
+    while dist > 0
+      [previ, prevj] = info[i][j].prev
+      dist = info[previ][prevj].val
+
+      ops.push.apply(ops, info[i][j].delta.reverse())
+
+      [i, j] = [previ, prevj]
+    {ops: ops.reverse()}
+
+  observer: (event) ->
+    if (event.name == "word")
+      oldValue = event.oldValue
+      newValue = @_get("word")
+      position = absoluteFromRelative @index(), 0, @richText
+      # naive algorithm @see https://en.wikipedia.org/wiki/String_searching_algorithm#Algorithms_using_a_finite_set_of_patterns for improvements
+      deltas = {
+        ops: [{retain: position}].concat (@diffToDelta null, oldValue).ops
+      }
+    else if (event.name == "left")
+      throw new Error()
+    else if (event.name == "right")
+      throw new Error()
+    else if (event.name == "")
+      throw new Error()
+    else
+      throw new Error()
 
 # A class describing a selection with a style (bold, italic, …)
 class Selection extends BaseClass
