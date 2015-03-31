@@ -75,26 +75,32 @@ class BaseClass
     else
       @_model.val(prop, val)
 
+
 # Simple class that contains a word and links to the selections pointing
 # to it
 #
 class Word extends BaseClass
     # Attribute containing the string
-  @word = ''
-  # Selections that have this word as left bound
-  @left = []
-  # Selections that have this word as right bound
-  @right = []
 
   _name: "Word"
 
   _getModel: (Y, Operation) ->
     if @_model == null
       @_model = new Operation.MapManager(@).execute()
-      left = customList(Operation, @, @left)
-      right = customList(Operation, @, @right)
-      @_model.val("left", @left)
-      @_model.val("right", @right)
+      # create left and right list of selections
+      left = new Operation.MapManager(@).execute()
+      left.insert 0, @left
+
+      right = new Operation.MapManager(@).execute()
+      right.insert 0, @right
+
+      # extend the lists
+      extend @_model, customList
+      extend left, customList
+      extend right, customList
+
+      @_model.val("left", left)
+      @_model.val("right", right)
       @_model.val("word", @word)
       @_model.val("richText", @richText)
 

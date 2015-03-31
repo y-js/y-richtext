@@ -26,10 +26,25 @@ class YRichText extends misc.BaseClass
 
   _getModel: (Y, Operation) ->
     if @_model == null
+      words = new Operation.ListManager(@_rt.words).execute()
+      selections = new Operation.ListManager(@_rt.selections).execute()
+
+      # extend the word and selection
+      extend word, customList
+      extend selections, customList
+
       @_model = new Operation.MapManager(@).execute()
       @_model.val("words", @_richText.words)
       @_model.val("selections", @_richText.selections)
 
+      delete @_rte
+    return @_model
+
+  _setModel: (model) ->
+    delete @_rte
+    @_model = model
+    extend @_model.words, customList
+    extend @_model.selections, customList
 
   # @overload val()
   #   Return the value of the Y.RichText instance as a non formatted string
