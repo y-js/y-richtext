@@ -11,8 +11,8 @@ PostSpacesRegExp = /\s+$/
 
 # Class describing the Rich Text Editor type
 #
-class YRichText extends misc.BaseClass
-  # @property [Options] _richText the rich text object
+class Rt
+  # @property [Options] _rt the RTE object
   # @param [String] content the initial content to set
   constructor: (content = '')->
     if content.constructor isnt String
@@ -32,8 +32,8 @@ class YRichText extends misc.BaseClass
       # extend the word and selection
 
       @_model = new Operation.MapManager(@).execute()
-      @_model.val("words", @_richText.words)
-      @_model.val("selections", @_richText.selections)
+      @_model.val(words, @_rt.words)
+      @_model.val(selections, @_rt.selections)
 
       _setModel @_model
     return @_model
@@ -384,7 +384,7 @@ class YRichText extends misc.BaseClass
   # Add a  selection to the selection list
   pushSel: (selection)->
     # console.log "Pushing", selection, "in", @_rt.selections
-    selections = @_richText.selections
+    selections = @_rt.selections
     if !(selection in selections)
       @_richText.selections.push selection
 
@@ -397,7 +397,7 @@ class YRichText extends misc.BaseClass
   #   @param [Function] filter the function to use for filtering
   #   @return [Array<Selection>] an array of selection
   getSelections: (filter = null)->
-    # console.log "Y.RichText.getSelections", @_rt.selections
+    # console.log "Rt.getSelections", @_rt.selections
     tmp = (if _.isFunction(filter)
       @_richText.selections.filter(filter) or []
     else
