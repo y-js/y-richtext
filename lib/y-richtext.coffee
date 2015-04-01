@@ -397,7 +397,6 @@ class YRichText extends misc.BaseClass
   #   @param [Function] filter the function to use for filtering
   #   @return [Array<Selection>] an array of selection
   getSelections: (filter = null)->
-    # console.log "Y.RichText.getSelections", @_rt.selections
     tmp = (if _.isFunction(filter)
       @_richText.selections.filter(filter) or []
     else
