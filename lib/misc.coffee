@@ -464,8 +464,6 @@ class Selection extends BaseClass
       outSelLeft = selection
       outSelRight = selection.clone()
 
-      # console.log "~~~~~~~~~~~~~~",outSelRight,"~~~~~~~~~~~~~~",
-      #   "~~~~~~~~~~~~~~", @rte._rte.selections
 
       # joke here, because Insel means island in German
       inSel = @
