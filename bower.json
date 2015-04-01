@@ -2,14 +2,16 @@
   "name": "opce",
   "version": "0.0.0",
   "authors": [
-    "corentin.cadiou@linagora.com"
+    "corentin.cadiou@linagora.com",
+    "kevin.jahns@rwth-aachen.de"
   ],
-  "description": "Real-time collaborative text edition using WebRTC",
+  "description": "Real-time collaborative rich text edition using WebRTC",
   "keywords": [
     "webrtc",
     "text",
     "edition",
-    "collaborative"
+    "collaborative",
+    "rich text"
   ],
   "license": "MIT",
   "private": true,
