@@ -49,8 +49,11 @@ This type has several mechanisms to ensure that the intention of your actions ar
 * If two users fix a word concurrently, only one change will prevail. A classical example is that two users want to correct the word "missplled". If two users correct it at the same time (or they merge after they corrected it offline), the result in operation transformation algorithms would be "misspeelled". This type will ensure that the result is "misspelled"
 * When a user inserts content *c* after a set of content *C_left*, and before a set of content *C_right*, then *C_left* will be always to the left of c, and *C_right* will be always to the right of *c*. This property will also hold when content is deleted or when a deletion is undone.
 
+## Contribution
+We thank [Veeting](https://www.veeting.com/) and [Linagora](https://www.linagora.com/) who sponsored this work, and agreed to publish it as Open Source.
 
 ## License
 Yjs and the RichText type are licensed under the [MIT License](./LICENSE.txt).
 
-<kevin.jahns@rwth-aachen.de>
+- Corentin Cadiou <corentin.cadiou@cphyc.me>
+- Kevin Jahns <kevin.jahns@rwth-aachen.de>
