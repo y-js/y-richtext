@@ -38,6 +38,7 @@ Now if these modifications are sent, what should happen? A has lost the memory o
 On the other side, Yjs objects.that are deleted aren't deleted immediately. They are destroyed by a garbage collector when it is known for sure that no peer can make modifications prior to the deletion of the object. Using this, it is possible to imagine an ordered list of actions, very similar to operational transforms (https://github.com/ottypes/docs) that result in the creation of selections (formatting). The list is garbage collected so it doesn't grow indefinitely. To prevent the issue of relative adressing within word, strings are stored as a list of characters, and selections are pointing at the object holding each character.
 
 The structure of the text-type would then be:
+
     Char = {
         val: string,
         left: [selection],
@@ -48,7 +49,6 @@ The structure of the text-type would then be:
         right: char,
         style: object
     }
-
     RichText = {
         characters: [Char],
         selections: [Selections]
