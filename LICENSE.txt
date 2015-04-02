@@ -1,8 +1,10 @@
 The MIT License (MIT)
 
 Copyright (c) 2015
-  - Corentin Cadiou <corentin.cadiou@cphyc.me>
+  - Corentin Cadiou <corentin.cadiou@linagora.com>
   - Kevin Jahns <kevin.jahns@rwth-aachen.de>
+  - Linagora
+  - Veeting.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
