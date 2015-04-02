@@ -1,10 +1,10 @@
 {
-  "name": "y-xml",
+  "name": "y-richtext",
   "version": "0.5.0",
-  "description": "XML Type for Yjs",
+  "description": "RichText Type for Yjs",
   "main": "y-xml.js",
   "directories": {
-    "example": "example",
+    "example": "examples",
     "test": "test"
   },
   "scripts": {
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/rwth-acis/y-xmpp"
+    "url": "https://github.com/y-js/y-richtext"
   },
   "keywords": [
     "Yjs",
@@ -22,14 +22,15 @@
     "synchronization",
     "sharejs",
     "coweb",
-    "concurrency"
+    "concurrency",
+    "rich text"
   ],
   "author": "Kevin Jahns <kevin.jahns@rwth-aachen.de>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/rwth-acis/y-xmpp/issues"
+    "url": "https://github.com/y-js/y-richtext/issues"
   },
-  "homepage": "https://dadamonad.github.io/yjs/",
+  "homepage": "y-js.org",
   "devDependencies": {
     "codo": "^2.0.9",
     "coffee-errors": "~0.8.6",
@@ -66,5 +67,8 @@
     "sinon": "^1.12.2",
     "sinon-chai": "^2.7.0",
     "underscore": "^1.6.0"
+  },
+  "dependencies": {
+    "gulp-util": "^3.0.4"
   }
 }
