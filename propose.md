@@ -42,15 +42,18 @@ The structure of the text-type would then be:
     Char = {
         val: string,
         left: [selection],
-        right: [selection,
+        right: [selection],
     }
     Selection = {
         left: char,
         right: char,
         style: object
     }
+    Characters = {
+        characters: [char]
+    }
     RichText = {
-        characters: [Char],
+        characters: Characters,
         selections: [Selections]
     }
 
