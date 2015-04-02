@@ -59,5 +59,5 @@ We thank [Veeting](https://www.veeting.com/) and [Linagora](https://www.linagora
 ## License
 Yjs and the RichText type are licensed under the [MIT License](./LICENSE.txt).
 
-- Corentin Cadiou <corentin.cadiou@cphyc.me>
+- Corentin Cadiou <corentin.cadiou@linagora.com>
 - Kevin Jahns <kevin.jahns@rwth-aachen.de>
