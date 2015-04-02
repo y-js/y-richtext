@@ -69,7 +69,7 @@ Thus, if `f`, `g`, and `h` are three deltas, represented as mathematical functio
     A|  f             g
     B|         h
 
-the state after propagation of all changes is then `S(A) = f ∘ g ∘ g⁻¹ ∘ h ∘ g (S) = f ∘ h ∘ g (S)` and for B `S(B) = h ∘ h⁻¹ ∘ f ∘ h ∘ g`.
+the state after propagation of all changes is then `S(A) = f ∘ g ∘ g⁻¹ ∘ h ∘ g (S) = f ∘ h ∘ g (S)` and for B `S(B) = h ∘ h⁻¹ ∘ f ∘ h ∘ g = f ∘ h ∘ g (S)`.
 Here we see that the order in which deltas are applied is important.
 Yjs is responsible for handling correctly the ordered list of deltas and apply them to the state of each user in the *right order*.
 
