@@ -104,35 +104,42 @@ class Characters
       return char
 
   # Apply a delta and return the new position
+  # @param delta [Object] a delta (see ot-types for more info)
+  # @param position [Integer] the position where to start applying the delta, defaults to 0
+  #
+  # @return [Integer] the position of the cursor after parsing the delta
   delta: (delta, position) ->
     if delta?
+      if delta.attributes?
+        deltaSelection.attributes = delta.attributes
+
       if not position?
         position = 0
       if delta.insert?
         deltaSelection =
-          from: position
-          to: position + delta.insert.length
+          from: @val position
+          to: @val (position + delta.insert.length)
           action: "set"
+
         @insert position, delta.insert
+        state.push deltaSelection
         return position + delta.insert.length
+
       else if delta.delete?
         deltaSelection =
-          from: position
-          to: position + delta.delete
+          from: @val position
+          to: @val (position + delta.delete)
           action: "delete"
+
+        state.push deltaSelection
         @delete position, delta.delete
         return position
+
       else if delta.retain?
         deltaSelection =
-          from: position
-          to: position + delta.retain
+          from: @val position
+          to: @val (position + delta.retain)
           action: "set"
 
-        return position + delta.retain
-
-      # FIXME: their may be a problem here if selections are updated *after* the words are updated
-      # because the new indexes of the word may have changed
-      # do something in case there's a style
-      if delta.attributes?
-        # create the transformation to apply to the selections
-        deltaSelection.attributes = attributes
+        state.push deltaSelection
+        return position+delta.retain
