@@ -35,14 +35,14 @@ At a certain moment, these actions are triggered:
 Now if these modifications are sent, what should happen? A has lost the memory of the selection on *kind* and B has no memory of *is*. So we could imagine to store all the previous modifications, but what happend when theire's 100's of concurrent users creating and deleting selections? The list of past selections grows bigger and bigger.
 
 ## Proposed solution
-On the other side, Yjs objects.that are deleted aren't deleted immediately. They are destroyed by a garbage collector when it is known for sure that no peer can make modifications prior to the deletion of the object. Using this, it is possible to imagine an ordered list of actions, very similar to operational transforms (https://github.com/ottypes/docs) that result in the creation of selections (formatting). The list is garbage collected so it doesn't grow indefinitely. To prevent the issue of relative adressing within word, strings are stored as a list of characters, and selections are pointing at the object holding each character.
+On the other side, Yjs objects that are deleted aren't deleted immediately. They are destroyed by a garbage collector when it is known for sure that no peer can make modifications prior to the deletion of the object. Using this, it is possible to imagine an ordered list of actions, very similar to operational transforms (https://github.com/ottypes/docs) that result in the creation of selections (formatting). The list is garbage collected so it doesn't grow indefinitely. To prevent the issue of relative adressing within word, strings are stored as a list of characters, and selections are pointing at the object holding each character.
 
 The structure of the text-type would then be:
 
     Char = {
         val: string,
-        left: [selection],
-        right: [selection],
+        left*: [selection],
+        right*: [selection],
     }
     Selection = {
         left: char,
@@ -56,6 +56,8 @@ The structure of the text-type would then be:
         characters: Characters,
         selections: [Selections]
     }
+
+Unshared properties were flaged using a *. They are only stored locally to have a faster access from characters to selections.
 
 ## Deltas and state
 The state of the selections is represented by an object, called **state**. The state holds all the selections. Each selection can create **deltas** that modify the state. The deltas fall under the following constraints:
