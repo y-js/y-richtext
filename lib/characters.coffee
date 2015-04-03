@@ -1,7 +1,7 @@
 class Characters
   constructor: (content) ->
     @_chars = []
-    @insert content, 0
+    @insert 0, content
 
   _name: "Characters"
   _setModel: (model) ->
@@ -11,6 +11,7 @@ class Characters
   _getModel: (Y, Operation) ->
     if (@_model == null)
       model = new Operation.ListManager(@).execute()
+      model.insert 0, @_chars
       _setModel model
     return @_model
 
@@ -30,12 +31,22 @@ class Characters
     object
 
   # Insert content at position
+  #
   # @param [Integer] position the position where to insert
   # @param [String] content the content to insert
+  #
+  # @note if the _model hasn't been created, push it in  _chars
   insert: (position, content) ->
+    pusher = (position, char) =>
+      if @_model?
+        @_model.insert position, char
+      else
+        @_chars.splice position, 0, char
+      return position + 1
+
     if content != null
       for char in content
-        @_model.insert position, (@createChar char)
+        position = pusher position, (@createChar char)
 
   # @override val (position)
   #   get the content at position
@@ -53,16 +64,6 @@ class Characters
   # @return char [Object] the deleted character at position
   delete: (position, length) ->
     char = @val position
-    # remove any selection over this character
-    delta =
-      action: "remove"
-      from: char
-      to: char
-    for selection in char.left
-      selection.pushDelta delta
-    # TODO: check that we do not apply twice the same delta
-    for selection in char.right
-      selection.pushDelta delta
 
     @_model.delete position, length
 
@@ -142,4 +143,4 @@ class Characters
           action: "set"
 
         state.push deltaSelection
-        return position+delta.retain
+        return position + delta.retain
