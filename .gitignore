@@ -9,3 +9,4 @@ TAGS
 build/
 doc/
 .idea/
+*.map
