@@ -1,20 +1,32 @@
 Y = require "../../yjs"
 Y.Test = require "../../y-test"
+_ = require "./is.coffee"
 
 class Characters
-  constructor: (content) ->
+  constructor: (content, selections) ->
     @_chars = []
-    @insert 0, content
+    if content?
+      @insert 0, content
+    else
+
+    if not selections?
+      throw new Error "Missing argument 'selections'"
+    else
+      @selections = selections
 
   _name: "Characters"
+
   _setModel: (model) ->
+    console.log "being set dude"
     delete @_chars
     @_model = model
 
   _getModel: (Y, Operation) ->
-    if (@_model == null)
+    if not @_model?
       model = new Operation.ListManager(@).execute()
+      console.log model
       model.insert 0, @_chars
+      console.lg model
       @_setModel model
     return @_model
 
@@ -61,13 +73,16 @@ class Characters
   val: (position) ->
     @_model.val position
 
+  # Get a reference to the position
+  # @param position [Integer] the position to reference
+  ref: (position) ->
+    @_model.ref position
+
   # Remove content at position and report the selections to the character to the left, if any
   # @param position [Integer] the first position where to delete the value
   # @param length [Integer] the number of characters to remove, defaults to 1
   # @return char [Object] the deleted character at position
   delete: (position, length) ->
-    char = @val position
-
     @_model.delete position, length
 
   # Updates the character value at position with new character
@@ -94,7 +109,7 @@ class Characters
         char[side].push selection
       return char
 
-  # Unind a selection from a character
+  # Unind a selectiocreateCharn from a character
   # @param position [Integer] the position of the character where to unbind
   # @param selection [Selection] the selection to unbind
   # @param side [String] the side to unbind, either "left" or "right"
@@ -107,6 +122,13 @@ class Characters
           char[side].splice key, 1
       return char
 
+  # Find the index of a character
+  # parma
+  indexOf: (character) ->
+    for char, index in @_model.val()
+      if char == character
+        return index
+    return -1
   # Apply a delta and return the new position
   # @param delta [Object] a delta (see ot-types for more info)
   # @param position [Integer] the position where to start applying the delta, defaults to 0
@@ -114,40 +136,33 @@ class Characters
   # @return [Integer] the position of the cursor after parsing the delta
   delta: (delta, position) ->
     if delta?
-      if delta.attributes?
-        deltaSelection.attributes = delta.attributes
-
       if not position?
         position = 0
-      if delta.insert?
-        deltaSelection =
-          from: @val position
-          to: @val (position + delta.insert.length)
-          action: "set"
 
+      arentNull = (el) ->
+        el != null
+      if _.all delta.attributes, arentNull
+        operation = @_selections.select
+      else
+        operation = @_selections.unselect
+
+      if delta.insert?
         @insert position, delta.insert
-        state.push deltaSelection
+        from = @val position
+        to = @val (position + delta.insert.length)
+        operation from, to, delta.attributes
         return position + delta.insert.length
 
       else if delta.delete?
-        deltaSelection =
-          from: @val position
-          to: @val (position + delta.delete)
-          action: "delete"
-
-        state.push deltaSelection
         @delete position, delta.delete
         return position
 
       else if delta.retain?
-        deltaSelection =
-          from: @val position
-          to: @val (position + delta.retain)
-          action: "set"
+        from = @val position
+        to = @val (position + delta.retain)
 
-        state.push deltaSelection
+        operation from, to, delta.attributes
         return position + delta.retain
 
 if module?
-  module.exports.Characters = Characters
-  module.exports.Y = Y
+  module.exports = Characters
