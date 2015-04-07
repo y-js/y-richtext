@@ -1,3 +1,6 @@
+Y = require "../../yjs"
+Y.Test = require "../../y-test"
+
 class Characters
   constructor: (content) ->
     @_chars = []
@@ -5,14 +8,14 @@ class Characters
 
   _name: "Characters"
   _setModel: (model) ->
-    del @_chars
+    delete @_chars
     @_model = model
 
   _getModel: (Y, Operation) ->
     if (@_model == null)
       model = new Operation.ListManager(@).execute()
       model.insert 0, @_chars
-      _setModel model
+      @_setModel model
     return @_model
 
   # Function that creates a character object
@@ -144,3 +147,7 @@ class Characters
 
         state.push deltaSelection
         return position + delta.retain
+
+if module?
+  module.exports.Characters = Characters
+  module.exports.Y = Y
