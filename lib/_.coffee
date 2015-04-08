@@ -4,20 +4,27 @@ _.isFunction = (obj) ->
   typeof obj == 'function' or false;
 
 _.any = (array, fun) ->
-  if not _.isFunction fun
-    fun = val -> val
+  if not (_.isFunction fun)
+    fun = (val) -> val
   for element in array
-    if fun element
+    if (fun element)
       return true
-  return false
+  false
 
 _.all = (array, fun) ->
-  if not _.isFunction fun
-    fun = val -> val
+  if not (_.isFunction fun)
+    fun = (val) -> val
+
   for element in array
     if not (fun element)
       return false
-  return true
+  true
+
+_.hasNull = (obj) ->
+  for key of obj
+    if obj[key] == null or obj[key] == "null"
+      return true
+  false
 
 # check for equality of all the key values
 _.equals = (obj1, obj2) ->
