@@ -24,17 +24,18 @@ describe 'isFunction', ->
 describe 'any', ->
   it 'should answer true', ->
     (_.any boolArr).should.be.true
-    (_.any arr, (e)->e>5).should.be.true
+    comp = (e) -> (e > 5)
+    (_.any arr, comp).should.be.true
   it 'should answer false', ->
-    (_.any arr, (e)->e>7).should.be.false
+    (_.any arr, (e) -> e>7).should.be.false
 
 describe 'all', ->
   it 'should answer false', ->
-    (_.any arr, (e)->e>=1).should.be.true
+    (_.any arr, (e) -> e >= 1).should.be.true
 
   it 'should answer true', ->
     (_.all boolArr).should.be.false
-    (_.all arr, (e)->e>5).should.be.false
+    (_.all arr, (e) -> e>5).should.be.false
 
 describe 'equals', ->
   objs = []
@@ -42,15 +43,38 @@ describe 'equals', ->
   objs[1] = {bar: "foo", foo: "bar"}
   objs[2] = {foo: "notreallybar", bar:"reallyfoo"}
   objs[3] = {off: "topic"}
-  it 'should say equal', ->
-    _.equals obj1, obj2
-  it 'should say not equal', ->
-    for obj1, key in objs
-      for obj2 in objs[key..]
-        if obj1 == objs[0] and obj2 == objs[1]
+  objs[4] = {foo: "bar", bar: "foo", foobar: "barfoo"}
+  it 'should pass', ->
+    for obj1, key1 in objs
+      for obj2, key2 in objs[key1..]
+
+        if (obj1 == objs[0] and obj2 == objs[1]) or
+           (obj1 == obj2)
+          console.log obj1, "==", obj2
           (_.equals obj1, obj2).should.be.true
         else
+          console.log obj1, "!=", obj2
           (_.equals obj1, obj2).should.be.false
+
+describe 'hasNull', ->
+  nullObjs=[]
+
+  nullObjs[0] = {foo: 'bar', bar:null}
+  nullObjs[1] = {foo: null}
+  nullObjs[2] = {foo: 'bar', bar:"null"}
+  nullObjs[3] = {foo: "null"}
+
+  objs = []
+  objs[0] = {foo: "bar", bar:"reallyfoo"}
+  objs[1] = {off: "topic"}
+  objs[2] = {}
+  it 'should answer true', ->
+    for nullObj in nullObjs
+      (_.hasNull nullObj).should.be.true
+  it 'should answer false', ->
+    for obj in objs
+      (_.hasNull obj).should.be.false
+
 
 
 
