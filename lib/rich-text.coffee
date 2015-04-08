@@ -14,7 +14,7 @@ class RichText
     @author = author
 
     @editor = editor
-    # shouldn't go there
+    # shouldn't go there because of modularity
     @editor.cursors = @editor.getModule("multi-cursor")
 
   _getModel: (Y, Operation) ->
@@ -22,30 +22,21 @@ class RichText
       sels = @selections._getModel(Y, Operation)
       chars = @characters._getModel(Y, Operation)
       cursors = new Operation.ListManager(@).execute()
-      # add self to cursors
-      if @editor.cursors.getSelection()
-        position = @characters.val @editor.cursors.getSelection().start
-      else
-        position = @characters.val 0
-
-      selfCursor =
-        author: @author
-        position: position
-        color: "grey" # FIXME
-      cursors.insert 0, selfCursor
 
       @_model = new Operation.MapManager(@).execute()
       @_model.val "selections", sels
       @_model.val "characters", chars
       @_model.val "cursors", cursors
 
-      @_setModel @_model
+      @setCursor()
+
     return @_model
 
   _setModel: (model) ->
-    # TODO: check that our cursor is in the cursors
     @_model = model
-    delete @_cursors
+    # check that our cursor isn't in the cursor list
+    if _.all (@get "cursors").val(), (cursor -> cursor.author != @author)
+      @setCursor()
 
   set: (key, val) ->
     @_model.val key, val
@@ -53,6 +44,18 @@ class RichText
     @_model.val key
   delete: (key) ->
     @_model.delete key
+
+  setCursor: () ->
+    if @editor.getSelection()
+      position = @characters.val @editor.getSelection().start
+    else
+      position = @characters.val 0
+
+    selfCursor =
+      author: @author
+      position: position
+      color: "grey" # FIXME
+    (@get "cursors").insert 0, selfCursor
 
   toQuill: (events) ->
     for event in events
