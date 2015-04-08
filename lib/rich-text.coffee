@@ -61,28 +61,31 @@ class RichText
     for event in events
       switch event.name
         when "cursors"
-          cursorPos = @characters.indexOf event.object.char
-          @editor.cursors.setCursor event.object.author,
-            cursorPos,
-            event.object.author,
-            'grey' #FIXME
+          id = event.object.author
+          index = @characters.indexOf event.object.char
+          text = event.object.author
+          color = "grey" # FIXME
+
+          if event.type == "update" or event.type == "add"
+            @editor.cursors.setCursor id, index, text, color
+
 
         when "characters"
           charPos = @characters.indexOf event.object
+          delta = {ops: [{retain: charPos}]}
+          del = {delete: 1}
+          ins = {insert: event.object.char, attributes: event.object.attributes}
           if event.type == "update"
             #TODO: inherit attributes
-            delta = {ops: [{retain: charPos},
-              {delete: 1},
-              {insert: event.object.char, attributes: event.object.attributes}
-            ]}
+            delta.ops.push del
+            delta.ops.push ins
+
           else if event.type == "add"
-            delta = {ops: [{retain:charPos},
-              {insert: event.object.char, attributes: event.object.attributes}
-            ]}
+            delta.ops.push ins
+
           else if event.type == "delete"
-            delta = {ops: [{retain:charPos},
-              {delete: 1}
-            ]}
+            delta.ops.push del
+
           @editor.setContents delta
 
         when "selections"
