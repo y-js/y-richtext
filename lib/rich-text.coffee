@@ -1,14 +1,20 @@
 Characters = require 'characters'
 Selections = require '../../y-selections'
 
+# A class holding the information about rich text
 class RichText
-  constructor: (content, editor) ->
+  # @param content [String] an initial string
+  # @param editor [Editor] an editor instance
+  # @param author [String] the name of the local author
+  constructor: (content, editor, author) ->
     # TODO: generate a UID
     @selections = new Selections
     @characters = new Characters content, @selections
-    @_cursors = []
+
+    @author = author
 
     @editor = editor
+    # shouldn't go there
     @editor.cursors = @editor.getModule("multi-cursor")
 
   _getModel: (Y, Operation) ->
@@ -16,7 +22,17 @@ class RichText
       sels = @selections._getModel(Y, Operation)
       chars = @characters._getModel(Y, Operation)
       cursors = new Operation.ListManager(@).execute()
-      cursors.insert 0, @_cursors
+      # add self to cursors
+      if @editor.cursors.getSelection()
+        position = @characters.val @editor.cursors.getSelection().start
+      else
+        position = @characters.val 0
+
+      selfCursor =
+        author: @author
+        position: position
+        color: "grey" # FIXME
+      cursors.insert 0, selfCursor
 
       @_model = new Operation.MapManager(@).execute()
       @_model.val "selections", sels
@@ -30,6 +46,7 @@ class RichText
     # TODO: check that our cursor is in the cursors
     @_model = model
     delete @_cursors
+
   set: (key, val) ->
     @_model.val key, val
   get: (key) ->
@@ -65,7 +82,6 @@ class RichText
             ]}
           @editor.setContents delta
 
-          # propagate new string
         when "selections"
           selectionStart = @characters.indexOf (event.object.left or event.oldValue.left)
           selectionEnd = @characters.indexOf (event.object.right or event.oldValue.right)
