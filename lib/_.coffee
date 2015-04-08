@@ -1,7 +1,7 @@
 _ = {}
 
-_.isFunction = (fun) ->
-  fun and fun != null and fun.constructor == "function"
+_.isFunction = (obj) ->
+  typeof obj == 'function' or false;
 
 _.any = (array, fun) ->
   if not _.isFunction fun
