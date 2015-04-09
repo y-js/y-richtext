@@ -33,11 +33,11 @@ class QuillJS extends Editor
     @_cursors = @editor.getModule("multi-cursor")
 
   getCursorPosition: ->
-      selection = @editor.getSelection()
-      if selection
-        selection.start
-      else
-        0
+    selection = @editor.getSelection()
+    if selection
+      selection.start
+    else
+      0
 
   setCursor: (param) ->
     @_cursors.setCursor param.id, param.index, param.text, param.color

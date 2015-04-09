@@ -122,8 +122,10 @@ class RichText
           @editor.setContents delta
 
         when "selections"
-          selectionStart = (@get "characters").indexOf (event.object.left or event.oldValue.left)
-          selectionEnd = (@get "characters").indexOf (event.object.right or event.oldValue.right)
+          left = (event.object.left or event.oldValue.left)
+          right = (event.object.right or event.oldValue.right)
+          selectionStart = (@get "characters").indexOf left
+          selectionEnd = (@get "characters").indexOf right
           attributes = event.object.attributes
           if event.type == "update" or event.type == "insert"
             delta = {ops: [{retain: selectionStart},
@@ -131,6 +133,7 @@ class RichText
             ]}
             @editor.setContents delta
           else if event.type == "delete"
-            #FIXME: depending on how it is implemented, selections can be overriden by negating
-            #their values (set them to null) or the can just be deleted, let's see then…
+            #FIXME: depending on how it is implemented, selections can be
+            # overridden by negating their values (set them to null) or they
+            # can just be deleted
             console.log "Ohow… what am I supposed to do there?"

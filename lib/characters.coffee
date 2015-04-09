@@ -69,7 +69,7 @@ class Characters
   ref: (position) ->
     @_model.ref position
 
-  # Remove content at position and report the selections to the character to the left, if any
+  # Remove content at position
   # @param position [Integer] the first position where to delete the value
   # @param length [Integer] the number of characters to remove, defaults to 1
   # @return char [Object] the deleted character at position
@@ -79,7 +79,6 @@ class Characters
   # Updates the character value at position with new character
   # @param position [Integer] the position where to update the value
   # @param newChar [String] the new character to put at position
-  # @note this method does NOT change the selections bound to the character at position
   # @return char [Object] the character at position
   update: (position, newChar) ->
     #TODO: update with an update function
@@ -122,7 +121,7 @@ class Characters
     return -1
   # Apply a delta and return the new position
   # @param delta [Object] a delta (see ot-types for more info)
-  # @param position [Integer] the position where to start applying the delta, defaults to 0
+  # @param position [Integer] start position for the delta, default: 0
   #
   # @return [Integer] the position of the cursor after parsing the delta
   delta: (delta, position) ->
