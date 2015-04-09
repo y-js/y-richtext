@@ -151,11 +151,12 @@ class Characters
         return position
 
       else if delta.retain?
+        retain = parseInt delta.retain
         from = @val position
-        to = @val (position + delta.retain)
+        to = @val (position + retain)
 
         operation.call (@get "selections"), from, to, delta.attributes
-        return position + delta.retain
+        return position + retain
 
 if module?
   module.exports = Characters
