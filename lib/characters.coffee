@@ -154,7 +154,7 @@ class Characters
         from = @val position
         to = @val (position + delta.retain)
 
-        operation from, to, delta.attributes
+        operation.call (@get "selections"), from, to, delta.attributes
         return position + delta.retain
 
 if module?
