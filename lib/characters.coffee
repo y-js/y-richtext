@@ -87,7 +87,7 @@ class Characters
 
   # Updates the character value at position with new character
   # @param position [Integer] the position where to update the value
-  # @parma newChar [String] the new character to put at position
+  # @param newChar [String] the new character to put at position
   # @note this method does NOT change the selections bound to the character at position
   # @return char [Object] the character at position
   update: (position, newChar) ->
@@ -109,7 +109,7 @@ class Characters
         char[side].push selection
       return char
 
-  # Unind a selectiocreateCharn from a character
+  # Unbind a selection from a character
   # @param position [Integer] the position of the character where to unbind
   # @param selection [Selection] the selection to unbind
   # @param side [String] the side to unbind, either "left" or "right"
