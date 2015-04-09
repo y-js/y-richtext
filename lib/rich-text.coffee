@@ -61,7 +61,7 @@ class RichText
       color: "grey" # FIXME
     (@get "cursors").insert 0, selfCursor
 
-  toQuill: (events) ->
+  propagateToEditor = (events) ->
     for event in events
       switch event.name
         when "cursors"
