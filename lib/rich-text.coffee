@@ -13,8 +13,8 @@ class RichText
     @author = author
 
     @editor = editor
-    # FIXME: shouldn't go there because of modularity
-    @editor.cursors = @editor.getModule("multi-cursor")
+    @editor.observeLocalText @passDelta
+    @editor.observeLocalCursor @updateCursorPosition
 
   _getModel: (Y, Operation) ->
     console.log "getting model"
@@ -29,15 +29,26 @@ class RichText
       model.val "characters", @_characters
       model.val "cursors", cursors
 
-      @setCursor()
+      @setCursor @editor.getCursorPosition()
       @_setModel model
+
+      # listen to events on the model using the function propagateToEditor
+      @_model.observe @propagateToEditor
     return @_model
 
   _setModel: (model) ->
     @_model = model
 
-    if _.all (@get "cursors").val(), (cursor -> cursor.author != @author)
-      @setCursor()
+    noneFound = true
+    for cursor in (@get "cursors").val()
+      if cursor.author == @author
+        @updateCursorPosition(cursor.position)
+        noneFound = false
+        break
+
+    if noneFound
+      @setCursor @editor.getCursorPosition()
+    else
 
     delete @_characters
     delete @_selections
@@ -49,18 +60,37 @@ class RichText
   delete: (key) ->
     @_model.delete key
 
-  setCursor: () ->
-    if @editor.getSelection()
-      position = (@get "characters").val @editor.getSelection().start
-    else
-      position = (@get "characters").val 0
-
+  # insert our own cursor in the cursors list
+  # @param position [Integer] the position where to insert it
+  setCursor = (position) ->
+    word = (@get "characters").val(position)
     selfCursor =
       author: @author
-      position: position
+      position: word
       color: "grey" # FIXME
     (@get "cursors").insert 0, selfCursor
+    @selfCursor = (@get "cursors").ref 0
 
+  # pass a delta to the character instance
+  # @param delta [Object] a delta (see ot-types for more info)
+  passDelta = (delta) ->
+    (@get "characters").delta delta
+
+  # @override updateCursorPosition(index)
+  #   update the position of our cursor to the new one using an index
+  #   @param index [Integer] the new index
+  # @override updateCursorPosition(character)
+  #   update the position of our cursor to the new one using a character
+  #   @param character [Character] the new character
+  updateCursorPosition = (obj) ->
+    if typeof obj == "number"
+      char = (@get "characters").val(obj)
+    else
+      char = obj
+    selfCursor = @selfCursor.val()
+    selfCursor.position = char
+
+  # describe how to propagate yjs events to the editor
   propagateToEditor = (events) ->
     for event in events
       switch event.name
@@ -71,7 +101,7 @@ class RichText
           color = "grey" # FIXME
 
           if event.type == "update" or event.type == "add"
-            @editor.cursors.setCursor id, index, text, color
+            @editor.setCursor id, index, text, color
 
         when "characters"
           charPos = (@get "characters").indexOf event.object
