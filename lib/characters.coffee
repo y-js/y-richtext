@@ -135,15 +135,15 @@ class Characters
       arentNull = (el) ->
         el != null
       if _.all delta.attributes, arentNull
-        operation = @_selections.select
+        operation = (@get "selections").select
       else
-        operation = @_selections.unselect
+        operation = (@get "selections").unselect
 
       if delta.insert?
         @insert position, delta.insert
         from = @val position
         to = @val (position + delta.insert.length)
-        operation from, to, delta.attributes
+        operation.call (@get "selections"), from, to, delta.attributes
         return position + delta.insert.length
 
       else if delta.delete?
