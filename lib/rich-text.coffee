@@ -17,26 +17,30 @@ class RichText
     @editor.cursors = @editor.getModule("multi-cursor")
 
   _getModel: (Y, Operation) ->
+    console.log "getting model"
     if not @_model?
       # call the _getModel for each
       sels = @_selections._getModel(Y, Operation)
       chars = @_characters._getModel(Y, Operation)
       cursors = new Operation.ListManager(@).execute()
 
-      @_model = new Operation.MapManager(@).execute()
-      @_model.val "selections", sels
-      @_model.val "characters", chars
-      @_model.val "cursors", cursors
+      model = new Operation.MapManager(@).execute()
+      model.val "selections", @_selections
+      model.val "characters", @_characters
+      model.val "cursors", cursors
 
       @setCursor()
-
+      @_setModel model
     return @_model
 
   _setModel: (model) ->
     @_model = model
-    # check that our cursor isn't in the cursor list
+
     if _.all (@get "cursors").val(), (cursor -> cursor.author != @author)
       @setCursor()
+
+    delete @_characters
+    delete @_selections
 
   set: (key, val) ->
     @_model.val key, val
