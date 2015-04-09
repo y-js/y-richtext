@@ -1,0 +1,56 @@
+# a generic editor class
+class Editor
+  # create an editor instance
+  # @param instance [Editor] the editor object
+  constructor: (@editor) ->
+
+  # get the current cursor position
+  getCursor: () -> throw new Error "Implement me"
+  # set the current cursor position
+  # @param param [Option] the options
+  # @option param [Integer] id the id of the author
+  # @option param [Integer] index the index of the cursor
+  # @option param [String] text the text of the cursor
+  # @option param [String] color the color of the cursor
+  setCursor: (param) -> throw new Error "Implement me"
+
+  # describe how to pass local modifications of the text to the backend.
+  # @param backend [Function] the function to pass the delta to
+  observeLocalText: (backend) -> throw new Error "Implement me"
+
+  # describe how to pass local modifications of the cursor to the backend
+  # @param backend [Function] the function to pass the new position to
+  observeLocalCursor: (backend) -> throw new Error "Implement me"
+
+  # Get a delta and apply it to the editor
+  # @param delta [Delta] the delta to propagate to the editor
+  # @see https://github.com/ottypes/rich-text
+  setContents: (delta) -> throw new Error "Implement me"
+
+class QuillJS extends Editor
+  constructor: (@editor) ->
+    super @editor
+    @_cursors = @editor.getModule("multi-cursor")
+
+  getCursorPosition: ->
+      selection = @editor.getSelection()
+      if selection
+        selection.start
+      else
+        0
+
+  setCursor: (param) ->
+    @_cursors.setCursor param.id, param.index, param.text, param.color
+
+  observeLocalText: (backend) ->
+    @editor.on "text-change", (delta, source) ->
+      # call the backend with delta
+      backend delta
+
+  observeLocalCursor: (backend) ->
+    @editor.on "selection-change", (range) ->
+      # only when there's a cursor (range start === range end)
+      if range and range.start == range.end then backend range.start
+
+  setContents: (delta) ->
+    @editor.setContents delta
