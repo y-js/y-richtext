@@ -5,26 +5,21 @@ class Characters
     @_chars = []
     if content?
       @insert 0, content
-    else
 
-    if not selections?
-      throw new Error "Missing argument 'selections'"
-    else
+    if selections?
       @selections = selections
 
   _name: "Characters"
 
   _setModel: (model) ->
-    console.log "being set dude"
     delete @_chars
     @_model = model
 
   _getModel: (Y, Operation) ->
     if not @_model?
+      console.log "Creating list"
       model = new Operation.ListManager(@).execute()
-      console.log model
       model.insert 0, @_chars
-      console.lg model
       @_setModel model
     return @_model
 
