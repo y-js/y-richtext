@@ -116,7 +116,7 @@ class Characters
       return char
 
   # Find the index of a character
-  # parma
+  # @param character [Character] a character to find index
   indexOf: (character) ->
     for char, index in @_model.val()
       if char == character
