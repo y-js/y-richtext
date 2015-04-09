@@ -26,7 +26,7 @@ gulp.task 'default', ['build_browser']
 files =
   lib : ['./lib/**/*.coffee']
   browser : ['./lib/y-rte.coffee']
-  test : ['./test/**/*test.coffee']
+  test : ['./test/**/tool-test.coffee']
   gulp : ['./gulpfile.coffee']
   examples : ['./examples/**/*.js']
   other: ['./lib/**/*', './test/*']

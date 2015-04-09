@@ -338,9 +338,6 @@ class YRichText extends misc.BaseClass
             return null
         else
           pos += jump
-    else
-      word = word
-      pos = pos
     {word: word, pos: pos}
 
   # Apply a delta to the object
