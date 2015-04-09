@@ -1,5 +1,3 @@
-_ = require "./_.coffee"
-
 class Characters
   constructor: (content, selections) ->
     @_chars = []
