@@ -1,6 +1,4 @@
-Y = require "../../yjs"
-Y.Test = require "../../y-test"
-_ = require "./is.coffee"
+_ = require "./_.coffee"
 
 class Characters
   constructor: (content, selections) ->
