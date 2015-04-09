@@ -1,17 +1,21 @@
+Y = require "../../yjs"
+Y.Test = require "../../y-test"
+
 class Characters
   constructor: (content) ->
     @_chars = []
-    @insert content, 0
+    @insert 0, content
 
   _name: "Characters"
   _setModel: (model) ->
-    del @_chars
+    delete @_chars
     @_model = model
 
   _getModel: (Y, Operation) ->
     if (@_model == null)
       model = new Operation.ListManager(@).execute()
-      _setModel model
+      model.insert 0, @_chars
+      @_setModel model
     return @_model
 
   # Function that creates a character object
@@ -30,12 +34,22 @@ class Characters
     object
 
   # Insert content at position
+  #
   # @param [Integer] position the position where to insert
   # @param [String] content the content to insert
+  #
+  # @note if the _model hasn't been created, push it in  _chars
   insert: (position, content) ->
+    pusher = (position, char) =>
+      if @_model?
+        @_model.insert position, char
+      else
+        @_chars.splice position, 0, char
+      return position + 1
+
     if content != null
       for char in content
-        @_model.insert position, (@createChar char)
+        position = pusher position, (@createChar char)
 
   # @override val (position)
   #   get the content at position
@@ -53,16 +67,6 @@ class Characters
   # @return char [Object] the deleted character at position
   delete: (position, length) ->
     char = @val position
-    # remove any selection over this character
-    delta =
-      action: "remove"
-      from: char
-      to: char
-    for selection in char.left
-      selection.pushDelta delta
-    # TODO: check that we do not apply twice the same delta
-    for selection in char.right
-      selection.pushDelta delta
 
     @_model.delete position, length
 
@@ -104,35 +108,46 @@ class Characters
       return char
 
   # Apply a delta and return the new position
+  # @param delta [Object] a delta (see ot-types for more info)
+  # @param position [Integer] the position where to start applying the delta, defaults to 0
+  #
+  # @return [Integer] the position of the cursor after parsing the delta
   delta: (delta, position) ->
     if delta?
+      if delta.attributes?
+        deltaSelection.attributes = delta.attributes
+
       if not position?
         position = 0
       if delta.insert?
         deltaSelection =
-          from: position
-          to: position + delta.insert.length
+          from: @val position
+          to: @val (position + delta.insert.length)
           action: "set"
+
         @insert position, delta.insert
+        state.push deltaSelection
         return position + delta.insert.length
+
       else if delta.delete?
         deltaSelection =
-          from: position
-          to: position + delta.delete
+          from: @val position
+          to: @val (position + delta.delete)
           action: "delete"
+
+        state.push deltaSelection
         @delete position, delta.delete
         return position
+
       else if delta.retain?
         deltaSelection =
-          from: position
-          to: position + delta.retain
+          from: @val position
+          to: @val (position + delta.retain)
           action: "set"
 
+        state.push deltaSelection
         return position + delta.retain
 
-      # FIXME: their may be a problem here if selections are updated *after* the words are updated
-      # because the new indexes of the word may have changed
-      # do something in case there's a style
-      if delta.attributes?
-        # create the transformation to apply to the selections
-        deltaSelection.attributes = attributes
+if module?
+  module.exports.Characters = Characters
+  module.exports.Y = Y
