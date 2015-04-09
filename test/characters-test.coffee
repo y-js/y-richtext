@@ -8,7 +8,8 @@ _         = require("underscore")
 chai.use(sinonChai)
 
 Y = require "../../yjs/lib/y"
-Y.Characters = (require "../lib/characters").Characters
+Y.Characters = require "../lib/characters.coffee"
+Y.Selections = require "../../y-selections/lib/y-selections"
 
 Connector = require "../../y-test/lib/y-test.coffee"
 
@@ -26,7 +27,9 @@ class CharacterTest extends TestSuite
     new Y conn
 
   initUsers: (u)->
-    u.val("CharacterTest", new Y.Characters())
+    characters = new Y.Characters()
+    characters.selections = new Y.Selections()
+    u.val "CharacterTest", characters
   getRandomRoot: (user_num)->
     @users[user_num].val("CharacterTest")
 
@@ -35,7 +38,6 @@ class CharacterTest extends TestSuite
 
 describe "Text Test", ->
   @timeout 500000
-
   beforeEach (done)->
     @yTest = new CharacterTest()
     done()
@@ -44,7 +46,7 @@ describe "Text Test", ->
     console.log "" # TODO
     @yTest.run()
 
-  it "simple multi-char insert", ->
+  it.only "simple multi-char insert", ->
     u = @yTest.users[0].val("CharacterTest")
     u.insert 0, "abc"
     u = @yTest.users[1].val("CharacterTest")
