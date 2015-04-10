@@ -1,3 +1,7 @@
+Y = require '../../yjs/lib/y.coffee'
+Y.List = require '../../y-list/lib/y-list.coffee'
+
+
 class Characters
   constructor: (content, selections) ->
     @_chars = []
@@ -16,8 +20,9 @@ class Characters
   _getModel: (Y, Operation) ->
     if not @_model?
       console.log "Creating list"
-      model = new Operation.ListManager(@).execute()
-      model.insert 0, @_chars
+      model = new Y.List()
+      model._getModel Y, Operation
+      @insert 0, @_chars
       @_setModel model
     return @_model
 
@@ -25,16 +30,17 @@ class Characters
   # @param char [String] the character
   # @param left [Array<Selection>] an array of selections starting at this char
   # @param right [Array<Selection>] an array of selections ending at this char
+  # @return [Y.Object] a Y.Object instance
   createChar: (char, left, right) ->
     if not left?
       left = []
     if not right?
       right = []
-    object =
+    obj =
       char: char
       left: left
       right: right
-    object
+    return (new Y.Object(obj))
 
   # Insert content at position
   #
@@ -43,6 +49,8 @@ class Characters
   #
   # @note if the _model hasn't been created, push it in  _chars
   insert: (position, content) ->
+    console.log "insertion", position
+
     pusher = (position, char) =>
       if @_model?
         @_model.insert position, char
@@ -51,8 +59,14 @@ class Characters
       return position + 1
 
     if content != null
+      console.log "inserting \"#{content}\""
       for char in content
-        position = pusher position, (@createChar char)
+        console.log "here"
+        charObj = @createChar char
+        console.log "there"
+        pusher position, charObj
+        position++
+        console.dir charObj
 
   # @override val (position)
   #   get the content at position
@@ -95,25 +109,25 @@ class Characters
   bindSelection: (position, selection, side) ->
     if side == "left" or side == "right"
       char = @val position
-      if not (selection in char[side])
-        char[side].push selection
+      if not (selection in char.val(side))
+        char.val(side).push selection
       return char
 
   # Unbind a selection from a character
   # @param position [Integer] the position of the character where to unbind
   # @param selection [Selection] the selection to unbind
   # @param side [String] the side to unbind, either "left" or "right"
-  # @return char [Object] the character at position
+  # @return char [Y.Object] the character at position
   unbindSelection: (position, selection, side) ->
     if side == "left" or side == "right"
       char = @val position
-      for sel, key in char[side]
+      for sel, key in char.val(side)
         if sel == selection
-          char[side].splice key, 1
+          char.val(side).splice key, 1
       return char
 
   # Find the index of a character
-  # @param character [Character] a character to find index
+  # @param character [Y.Object] a character to find index
   indexOf: (character) ->
     for char, index in @_model.val()
       if char == character
@@ -127,8 +141,7 @@ class Characters
   delta: (delta, position = 0) ->
     if delta?
 
-      arentNull = (el) ->
-        el != null
+      arentNull = (el) -> el != null
       if _.all delta.attributes, arentNull
         operation = (@get "selections").select
       else
