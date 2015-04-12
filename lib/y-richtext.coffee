@@ -1,32 +1,29 @@
-Selections = require '../../y-selections'
+# All dependencies (like Y.Selections) to other types (that have its own repository) should be included by the user (in order to reduce the amount of downloaded content).
+# With html5 imports, we can include it automatically too. But with the old script tags this is the best solution that came to my mind.
 
 # A class holding the information about rich text
 class RichText
   # @param content [String] an initial string
   # @param editor [Editor] an editor instance
   # @param author [String] the name of the local author
-  constructor: (content, editor, author) ->
+  constructor: () ->
     # TODO: generate a UID (you can get a unique id by calling `@_model.getUid()` - is this what you mean?)
-    @_selections = new Selections()
-    @_characters = new Characters content, @_selections
     @author = author
 
-    @editor = editor
+  #
+  # Bind the RichText type to an rich text editor (e.g. quilljs)
+  #
+  bindEditor: (@editor)->
+    # TODO: bind to multiple editors
+    # TODO: accept instance of quill, not an editor abstraction
     @editor.observeLocalText @passDelta
     @editor.observeLocalCursor @updateCursorPosition
 
   _getModel: (Y, Operation) ->
     if not @_model?
-      # call the _getModel for each
-      sels = @_selections._getModel(Y, Operation)
-      chars = @_characters._getModel(Y, Operation)
-      cursors = new Operation.ListManager(@).execute()
-
-      model = new Operation.MapManager(@).execute()
-      model.val "selections", @_selections
-      model.val "characters", @_characters
-      model.val "cursors", cursors
-
+      super
+      @_selections = new Y.Selections()
+      @_characters = new Characters content, @_selections 
       @setCursor @editor.getCursorPosition()
       @_setModel model
 
@@ -35,44 +32,37 @@ class RichText
     return @_model
 
   _setModel: (model) ->
-    @_model = model
+    super
 
     noneFound = true
-    for cursor in (@get "cursors").val()
+    for cursor in (@_get "cursors").val()
       if cursor.author == @author
         @updateCursorPosition(cursor.position)
         noneFound = false
         break
 
     if noneFound
-      @setCursor @editor.getCursorPosition()
+      @_setCursor @editor.getCursorPosition()
     else
 
     delete @_characters
     delete @_selections
 
-  set: (key, val) ->
-    @_model.val key, val
-  get: (key) ->
-    @_model.val key
-  delete: (key) ->
-    @_model.delete key
-
   # insert our own cursor in the cursors list
   # @param position [Integer] the position where to insert it
   setCursor = (position) ->
-    word = (@get "characters").val(position)
+    word = (@_get "characters").val(position)
     selfCursor =
       author: @author
       position: word
       color: "grey" # FIXME
-    (@get "cursors").insert 0, selfCursor
-    @selfCursor = (@get "cursors").ref 0
+    (@_get "cursors").insert 0, selfCursor
+    @selfCursor = (@_get "cursors").ref 0
 
   # pass a delta to the character instance
   # @param delta [Object] a delta (see ot-types for more info)
   passDelta = (delta) ->
-    (@get "characters").delta delta
+    (@_get "characters").delta delta
 
   # @override updateCursorPosition(index)
   #   update the position of our cursor to the new one using an index
@@ -82,7 +72,7 @@ class RichText
   #   @param character [Character] the new character
   updateCursorPosition = (obj) ->
     if typeof obj == "number"
-      char = (@get "characters").val(obj)
+      char = (@_get "characters").val(obj)
     else
       char = obj
     selfCursor = @selfCursor.val()
@@ -94,7 +84,7 @@ class RichText
       switch event.name
         when "cursors"
           id = event.object.author
-          index = (@get "characters").indexOf event.object.char
+          index = (@_get "characters").indexOf event.object.char
           text = event.object.author
           color = "grey" # FIXME
 
@@ -102,7 +92,7 @@ class RichText
             @editor.setCursor id, index, text, color
 
         when "characters"
-          charPos = (@get "characters").indexOf event.object
+          charPos = (@_get "characters").indexOf event.object
           delta = {ops: [{retain: charPos}]}
           del = {delete: 1}
           ins = {insert: event.object.char, attributes: event.object.attributes}
@@ -122,8 +112,8 @@ class RichText
         when "selections"
           left = (event.object.left or event.oldValue.left)
           right = (event.object.right or event.oldValue.right)
-          selectionStart = (@get "characters").indexOf left
-          selectionEnd = (@get "characters").indexOf right
+          selectionStart = (@_get "characters").indexOf left
+          selectionEnd = (@_get "characters").indexOf right
           attributes = event.object.attributes
           if event.type == "update" or event.type == "insert"
             delta = {ops: [{retain: selectionStart},
