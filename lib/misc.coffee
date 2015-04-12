@@ -1,8 +1,8 @@
-_ = require '_'
 
 # a basic class with generic getter / setter function
 class BaseClass
   constructor: ->
+    # ownProperty is unsafe. Rather put it on a dedicated property like..
     @_tmp_model = {}
 
   # Try to find the property in @_model, else return the
@@ -30,14 +30,17 @@ class BaseClass
       @_model = new Operation.MapManager(@).execute()
 
 
-
+###
 # Simple class that contains a word and links to the selections pointing
 # to it
 #
 class Word extends BaseClass
 
-
-  # TODO: explain what this does. Can I use it somewhere?
+  #
+  ## TODO: explain what this does. Can I use it somewhere?
+  ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
+  ##
+  #
   diffToDelta: (target)->
     if source == null
       source = @word
@@ -53,7 +56,7 @@ class Word extends BaseClass
       for src, i in source
         if src == tgt
           info[i+1][j+1] =
-            val: info[i][j].val
+            val: info[i][j].val # don't think that this will work..
             delta: [{retain: 1}]
 
           info[i+1][j+1].prev = [i,j]
@@ -95,6 +98,7 @@ class Word extends BaseClass
 
       [i, j] = [previ, prevj]
     {ops: ops.reverse()}
+###
 
 if module?
   module.exports.BaseClass = BaseClass
