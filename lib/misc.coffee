@@ -26,49 +26,49 @@ class BaseClass
     if not @_model?
       @_model = new Operation.MapManager(@).execute()
       for key, value of @_tmp_model
-        @_model.val(key, value)
+          @_model.val(key, value)
 
-  _setModel: (@_model)->
-    delete @_tmp_model
+    _setModel: (@_model)->
+      delete @_tmp_model
 
 
-###
-# Simple class that contains a word and links to the selections pointing
-# to it
-#
-class Word extends BaseClass
-
+  ###
+  # Simple class that contains a word and links to the selections pointing
+  # to it
   #
-  ## TODO: explain what this does. Can I use it somewhere?
-  ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-  ##
-  #
-  diffToDelta: (target)->
-    if source == null
-      source = @word
-    info = [[]]
-    for i in [0..source.length]
-      info[i] = []
-      for j in [0..target.length]
-        info[i][j] = {val: 0}
-        info[0][j].val = j
-      info[i][0].val = i
+  class Word extends BaseClass
 
-    for tgt, j in target
-      for src, i in source
-        if src == tgt
-          info[i+1][j+1] =
-            val: info[i][j].val # don't think that this will work..
-            delta: [{retain: 1}]
+    #
+    ## TODO: explain what this does. Can I use it somewhere?
+    ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
+    ##
+    #
+    diffToDelta: (target)->
+      if source == null
+        source = @word
+      info = [[]]
+      for i in [0..source.length]
+        info[i] = []
+        for j in [0..target.length]
+          info[i][j] = {val: 0}
+          info[0][j].val = j
+        info[i][0].val = i
 
-          info[i+1][j+1].prev = [i,j]
+      for tgt, j in target
+        for src, i in source
+          if src == tgt
+            info[i+1][j+1] =
+              val: info[i][j].val # don't think that this will work..
+              delta: [{retain: 1}]
 
-        else
-          # delete letter i from source
-          del = info[i][j+1].val + 1
-          # insert letter at position j
-          ins = info[i+1][j].val + 1
-          # substitute letter i with letter j
+            info[i+1][j+1].prev = [i,j]
+
+          else
+            # delete letter i from source
+            del = info[i][j+1].val + 1
+            # insert letter at position j
+            ins = info[i+1][j].val + 1
+            # substitute letter i with letter j
           subs = info[i][j].val + 1
           min = Math.min del, ins, subs
 
