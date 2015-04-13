@@ -171,6 +171,27 @@ class RichText extends BaseClass
         operation.call selections, from, to, delta.attributes
         return position + retain
 
+  insertHelper = (position, content) ->
+    pusher = (position, char) =>
+      if @_model?
+        (@_get "characters").insert position, char
+      else
+        @_chars.splice position, 0, char
+      position + 1
+
+    if content != null
+      for char, offset in content
+        charObj = @createChar char
+        pusher (position + offset), charObj
+
+  deleteHelper = (position, length = 1) ->
+    (@_get "characters").delete position, length
+
+  createChar = (char, left=[], right=[]) ->
+    return new Y.Object char: char
+      left: left
+      right: right
+
   # return the index of a character
   # @param character [Y.Object] the character to look for
   #TODO: check that it works
