@@ -143,6 +143,10 @@ class RichText extends BaseClass
   #
   # @return [Integer] the position of the cursor after parsing the delta
   deltaHelper: (delta, position = 0) ->
+    # add delta.attributes if absent
+    if not delta.attributes?
+      delta.attributes = []
+
     val = (position) =>
       (@_get "characters").val(position)
 
@@ -166,7 +170,7 @@ class RichText extends BaseClass
         @insertHelper position, delta.insert
         from = val position
         to = val (position + delta.insert.length)
-        operation.call selections, from, to, delta.attributes
+        operation.call (@_get "selections"), from, to, delta.attributes
         return position + delta.insert.length
 
       else if delta.delete?
