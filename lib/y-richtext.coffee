@@ -96,7 +96,7 @@ class RichText extends BaseClass
       switch event.name
         when "cursors"
           id = event.object.author
-          index = (@_get "characters").indexOf event.object.char
+          index = @indexOf event.object.char
           text = event.object.author
           color = "grey" # FIXME
 
@@ -104,7 +104,7 @@ class RichText extends BaseClass
             @editor.setCursor id, index, text, color
 
         when "characters"
-          charPos = (@_get "characters").indexOf event.object
+          charPos = @indexOf event.object
           delta = {ops: [{retain: charPos}]}
           del = {delete: 1}
           ins = {insert: event.object.char, attributes: event.object.attributes}
@@ -124,8 +124,8 @@ class RichText extends BaseClass
         when "selections"
           left = (event.object.left or event.oldValue.left)
           right = (event.object.right or event.oldValue.right)
-          selectionStart = (@_get "characters").indexOf left
-          selectionEnd = (@_get "characters").indexOf right
+          selectionStart = @indexOf left
+          selectionEnd = @indexOf right
           attributes = event.object.attributes
           if event.type == "update" or event.type == "insert"
             delta = {ops: [{retain: selectionStart},
@@ -170,3 +170,9 @@ class RichText extends BaseClass
 
         operation.call selections, from, to, delta.attributes
         return position + retain
+
+  # return the index of a character
+  # @param character [Y.Object] the character to look for
+  #TODO: check that it works
+  indexOf = (character) ->
+    (@_get "characters").val().indexOf(character)
