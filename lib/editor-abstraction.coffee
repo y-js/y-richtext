@@ -16,10 +16,12 @@ class Editor
 
   # describe how to pass local modifications of the text to the backend.
   # @param backend [Function] the function to pass the delta to
+  # @note The backend function takes a list of deltas as argument
   observeLocalText: (backend) -> throw new Error "Implement me"
 
   # describe how to pass local modifications of the cursor to the backend
   # @param backend [Function] the function to pass the new position to
+  # @note the backend function takes a position as argument
   observeLocalCursor: (backend) -> throw new Error "Implement me"
 
   # Get a delta and apply it to the editor
@@ -43,9 +45,9 @@ class QuillJS extends Editor
     @_cursors.setCursor param.id, param.index, param.text, param.color
 
   observeLocalText: (backend) ->
-    @editor.on "text-change", (delta, source) ->
-      # call the backend with delta
-      backend delta
+    @editor.on "text-change", (deltas, source) ->
+      # call the backend with deltas
+      backend deltas.ops
 
   observeLocalCursor: (backend) ->
     @editor.on "selection-change", (range) ->
