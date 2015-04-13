@@ -177,7 +177,6 @@ class RichText extends BaseClass
         @insertHelper position, delta.insert
         from = ref position
         to = ref (position + delta.insert.length)
-        console.log (@_get "selections")
         operation.call (@_get "selections"), from, to, delta.attributes
         return position + delta.insert.length
 
@@ -190,7 +189,7 @@ class RichText extends BaseClass
         from = ref position
         to = ref (position + retain)
 
-        operation.call selections, from, to, delta.attributes
+        operation.call (@_get "selections"), from, to, delta.attributes
         return position + retain
 
   insertHelper: (position, content) ->

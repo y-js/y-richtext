@@ -14,16 +14,32 @@ Connector = require '../../y-test/lib/y-test.coffee'
 Y.RichText = require '../lib/y-richtext.coffee'
 TestEditor = (require '../lib/editor-abstraction.coffee').TestEditor
 
-describe 'a', ->
+print = (richText) ->
+  value = ""
+  for el in richText._get("characters").val()
+    value += el.val('char')
+  return value
+
+describe 'deltas', ->
   richText = null
   beforeEach () ->
-    con = new Connector "abc"
-    y = new Y con
-    editor = new TestEditor()
-    y.val("test", new Y.RichText(editor))
-    richText = y.val("test")
+    richText = (() ->
+      con = new Connector "abc"
+      y = new Y con
+      editor = new TestEditor()
+      y.val("test", new Y.RichText(editor))
+      y.val("test"))()
 
-
-  it 'b', ->
+  it 'insertion', ->
     richText.passDeltas [{insert: "abc"}]
+    print(richText).should.equal "abc"
 
+  it 'deletion', ->
+    richText.passDeltas [{insert: "abc"}]
+    richText.passDeltas [{delete: 1}]
+    print(richText).should.equal "bc"
+
+  it 'retain', ->
+    richText.passDeltas [{insert: "abc"}]
+    richText.passDeltas [{retain: 1}, {delete: 1}]
+    print(richText).should.equal "ac"
