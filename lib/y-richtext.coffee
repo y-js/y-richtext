@@ -61,10 +61,10 @@ class RichText extends BaseClass
   # insert our own cursor in the cursors list
   # @param position [Integer] the position where to insert it
   setCursor = (position) ->
-    word = (@_get "characters").val(position)
+    character = (@_get "characters").val(position)
     selfCursor =
       author: @author
-      position: word
+      position: character
       color: "grey" # FIXME
     (@_get "cursors").insert 0, selfCursor
     @selfCursor = (@_get "cursors").ref 0
