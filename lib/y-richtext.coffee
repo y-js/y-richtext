@@ -38,7 +38,7 @@ class RichText extends BaseClass
     return @_model
 
   _setModel: (model) ->
-    super
+    super model
 
     noneFound = true
     for cursor in (@_get "cursors").val()
