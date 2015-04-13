@@ -1,4 +1,8 @@
 BaseClass = (require "./misc.coffee").BaseClass
+Y = require '../../yjs/lib/y.coffee'
+Y.List = require '../../y-list/lib/y-list.coffee'
+Y.Selections = require '../../y-selections/lib/y-selections.coffee'
+
 
 # All dependencies (like Y.Selections) to other types (that have its own
 # repository) should  be included by the user (in order to reduce the amount of
@@ -199,3 +203,5 @@ class RichText extends BaseClass
   #TODO: check that it works
   indexOf = (character) ->
     (@_get "characters").val().indexOf(character)
+if module?
+  module.exports = RichText
