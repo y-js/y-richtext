@@ -156,11 +156,11 @@ class RichText extends BaseClass
             return false
         return true
 
-      selections = (@_get "selections")
+
       if noneIsNull delta.attributes
-        operation = selections.select
+        operation = (@_get "selections").select
       else
-        operation = selections.unselect
+        operation = (@_get "selections").unselect
 
       if delta.insert?
         @insertHelper position, delta.insert
