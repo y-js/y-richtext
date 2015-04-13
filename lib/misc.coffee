@@ -21,11 +21,8 @@ class BaseClass
       @_model.val(prop, val)
 
   # since we already assume that any instance of BaseClass uses a MapManager
-  # We can create it here, to save
-  # lines
-  # of
-  # code
-  _setModel: (@_model)->
+  # We can create it here, to save lines of code
+  _getModel: (@_model)->
     if not @_model?
       @_model = new Operation.MapManager(@).execute()
       for n,v of @_tmp_model
