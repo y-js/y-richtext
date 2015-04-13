@@ -124,10 +124,8 @@ class Characters
   # @param position [Integer] start position for the delta, default: 0
   #
   # @return [Integer] the position of the cursor after parsing the delta
-  delta: (delta, position) ->
+  delta: (delta, position = 0) ->
     if delta?
-      if not position?
-        position = 0
 
       arentNull = (el) ->
         el != null

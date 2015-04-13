@@ -10,3 +10,4 @@ build/
 doc/
 .idea/
 *.map
+.idea
