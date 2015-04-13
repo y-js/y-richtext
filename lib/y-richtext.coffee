@@ -1,5 +1,8 @@
-# All dependencies (like Y.Selections) to other types (that have its own repository) should be included by the user (in order to reduce the amount of downloaded content).
-# With html5 imports, we can include it automatically too. But with the old script tags this is the best solution that came to my mind.
+# All dependencies (like Y.Selections) to other types (that have its own
+# repository) should  be included by the user (in order to reduce the amount of
+# downloaded content).
+# With html5 imports, we can include it automatically too. But with the old
+# script tags this is the best solution that came to my mind.
 
 # A class holding the information about rich text
 class RichText
@@ -7,7 +10,8 @@ class RichText
   # @param editor [Editor] an editor instance
   # @param author [String] the name of the local author
   constructor: () ->
-    # TODO: generate a UID (you can get a unique id by calling `@_model.getUid()` - is this what you mean?)
+    # TODO: generate a UID (you can get a unique id by calling
+    # `@_model.getUid()` - is this what you mean?)
     @author = author
 
   #
@@ -23,7 +27,7 @@ class RichText
     if not @_model?
       super
       @_selections = new Y.Selections()
-      @_characters = new Characters content, @_selections 
+      @_characters = new Characters content, @_selections
       @setCursor @editor.getCursorPosition()
       @_setModel model
 
