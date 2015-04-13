@@ -22,7 +22,7 @@ class RichText extends BaseClass
   bindEditor: (@editor)->
     # TODO: bind to multiple editors
     # TODO: accept instance of quill, not an editor abstraction
-    @editor.observeLocalText @passDelta
+    @editor.observeLocalText @passDeltas
     @editor.observeLocalCursor @updateCursorPosition
 
   _getModel: (Y, Operation) ->
@@ -65,10 +65,12 @@ class RichText extends BaseClass
     (@_get "cursors").insert 0, selfCursor
     @selfCursor = (@_get "cursors").ref 0
 
-  # pass a delta to the character instance
-  # @param delta [Object] a delta (see ot-types for more info)
-  passDelta = (delta) ->
-    (@_get "characters").delta delta
+  # pass deltas to the character instance
+  # @param deltas [Array<Object>] an array of deltas (see ot-types for more info)
+  passDeltas = (deltas) ->
+    position = 0
+    for delta in deltas
+     position = @deltaHelper delta, position
 
   # @override updateCursorPosition(index)
   #   update the position of our cursor to the new one using an index
@@ -131,3 +133,36 @@ class RichText extends BaseClass
             # overridden by negating their values (set them to null) or they
             # can just be deleted
             console.log "Ohow… what am I supposed to do there?"
+
+  # Apply a delta and return the new position
+  # @param delta [Object] a *single* delta (see ot-types for more info)
+  # @param position [Integer] start position for the delta, default: 0
+  #
+  # @return [Integer] the position of the cursor after parsing the delta
+  deltaHelper = (delta, position =0) ->
+    if delta?
+      arentNull = (el) -> el != null
+      selections = (@_get "selections")
+      if _.all delta.attributes, arentNull
+        operation = selections.select
+      else
+        operation = selections.unselect
+
+      if delta.insert?
+        @insertHelper position, delta.insert
+        from = @val position
+        to = @val (position + delta.insert.length)
+        operation.call selections, from, to, delta.attributes
+        return position + delta.insert.length
+
+      else if delta.delete?
+        @deleteHelper position, delta.delete
+        return position
+
+      else if delta.retain?
+        retain = parseInt delta.retain
+        from = @val position
+        to = @val (position + retain)
+
+        operation.call selections, from, to, delta.attributes
+        return position + retain
