@@ -22,7 +22,7 @@ class BaseClass
 
   # since we already assume that any instance of BaseClass uses a MapManager
   # We can create it here, to save lines of code
-  _getModel: (@_model)->
+  _getModel: (Y, Operation)->
     if not @_model?
       @_model = new Operation.MapManager(@).execute()
       for n,v of @_tmp_model
