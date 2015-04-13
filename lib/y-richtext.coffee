@@ -36,7 +36,7 @@ class RichText extends BaseClass
       @_set "cursors", new Y.List()
 
       # set the cursor
-      @_setCursor @editor.getCursorPosition()
+      @_setCursor @editor.getCursor()
       @_setModel @_model
 
       # listen to events on the model using the function propagateToEditor
@@ -54,7 +54,7 @@ class RichText extends BaseClass
         break
 
     if noneFound
-      @_setCursor @editor.getCursorPosition()
+      @_setCursor @editor.getCursor()
 
     delete @_characters
     delete @_selections
