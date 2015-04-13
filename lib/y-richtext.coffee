@@ -28,10 +28,14 @@ class RichText extends BaseClass
   _getModel: (Y, Operation) ->
     if not @_model?
       super
-      @_selections = new Y.Selections()
-      @_characters = new Characters content, @_selections
-      @setCursor @editor.getCursorPosition()
-      @_setModel model
+
+      @_set "selections", new Y.Selections()
+      @_set "characters", new Y.List()
+      @_set "cursors", new Y.List()
+
+      # set the cursor
+      @_setCursor @editor.getCursorPosition()
+      @_setModel @_model
 
       # listen to events on the model using the function propagateToEditor
       @_model.observe @propagateToEditor
