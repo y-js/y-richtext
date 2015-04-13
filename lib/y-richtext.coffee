@@ -154,8 +154,8 @@ class RichText extends BaseClass
     if not delta.attributes?
       delta.attributes = []
 
-    val = (position) =>
-      (@_get "characters").val position
+    ref = (position) =>
+      (@_get "characters").ref position
 
     if delta?
       noneIsNull = (array)->
@@ -175,8 +175,9 @@ class RichText extends BaseClass
 
       if delta.insert?
         @insertHelper position, delta.insert
-        from = val position
-        to = val (position + delta.insert.length)
+        from = ref position
+        to = ref (position + delta.insert.length)
+        console.log (@_get "selections")
         operation.call (@_get "selections"), from, to, delta.attributes
         return position + delta.insert.length
 
@@ -186,8 +187,8 @@ class RichText extends BaseClass
 
       else if delta.retain?
         retain = parseInt delta.retain
-        from = val position
-        to = val (position + retain)
+        from = ref position
+        to = ref (position + retain)
 
         operation.call selections, from, to, delta.attributes
         return position + retain

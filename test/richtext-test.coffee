@@ -26,3 +26,4 @@ describe 'a', ->
 
   it 'b', ->
     richText.passDeltas [{insert: "abc"}]
+
