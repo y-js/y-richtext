@@ -26,7 +26,7 @@ class BaseClass
     if not @_model?
       @_model = new Operation.MapManager(@).execute()
       for key, value of @_tmp_model
-          @_model.val(key, value)
+        @_model.val(key, value)
 
     _setModel: (@_model)->
       delete @_tmp_model
@@ -40,9 +40,7 @@ class BaseClass
 
     #
     ## TODO: explain what this does. Can I use it somewhere?
-    ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-    ##
-    #
+    ###
     diffToDelta: (target)->
       if source == null
         source = @word

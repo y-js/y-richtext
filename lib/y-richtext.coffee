@@ -75,7 +75,7 @@ class RichText extends BaseClass
   passDeltas = (deltas) ->
     position = 0
     for delta in deltas
-     position = @deltaHelper delta, position
+      position = @deltaHelper delta, position
 
   # @override updateCursorPosition(index)
   #   update the position of our cursor to the new one using an index
