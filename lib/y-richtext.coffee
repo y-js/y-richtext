@@ -66,22 +66,15 @@ class RichText extends BaseClass
 
   # insert our own cursor in the cursors list
   # @param position [Integer] the position where to insert it
-  setCursor = (position) ->
-    character = (@_get "characters").val(position)
-    selfCursor =
-      author: @author
-      position: character
-      color: "grey" # FIXME
-    (@_get "cursors").insert 0, selfCursor
-    @selfCursor = (@_get "cursors").ref 0
-
-  # pass deltas to the character instance
-  # @param deltas [Array<Object>] an array of deltas (see ot-types for more info)
-  passDeltas = (deltas) ->
-    position = 0
-    for delta in deltas
-      position = @deltaHelper delta, position
-
+  _setCursor: (position) ->
+    if position > -1
+      character = (@_get "characters").val(position)
+      selfCursor =
+        author: @author
+        position: character
+        color: "grey" # FIXME
+      (@_get "cursors").insert 0, selfCursor
+      @selfCursor = (@_get "cursors").ref 0
   # @override updateCursorPosition(index)
   #   update the position of our cursor to the new one using an index
   #   @param index [Integer] the new index
@@ -212,5 +205,14 @@ class RichText extends BaseClass
   #TODO: check that it works
   indexOf = (character) ->
     (@_get "characters").val().indexOf(character)
+
+  # pass deltas to the character instance
+  # @param deltas [Array<Object>] an array of deltas (see ot-types for more info)
+  passDeltas: (deltas) ->
+    if deltas
+      position = 0
+      for delta in deltas
+        position = (@deltaHelper delta, position)
+
 if module?
   module.exports = RichText
