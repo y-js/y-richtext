@@ -142,7 +142,9 @@ class RichText extends BaseClass
   # @param position [Integer] start position for the delta, default: 0
   #
   # @return [Integer] the position of the cursor after parsing the delta
-  deltaHelper = (delta, position =0) ->
+  deltaHelper: (delta, position = 0) ->
+    val = (position) =>
+      (@_get "characters").val(position)
 
     if delta?
       noneIsNull = (array)->
@@ -162,8 +164,8 @@ class RichText extends BaseClass
 
       if delta.insert?
         @insertHelper position, delta.insert
-        from = @val position
-        to = @val (position + delta.insert.length)
+        from = val position
+        to = val (position + delta.insert.length)
         operation.call selections, from, to, delta.attributes
         return position + delta.insert.length
 
@@ -173,13 +175,13 @@ class RichText extends BaseClass
 
       else if delta.retain?
         retain = parseInt delta.retain
-        from = @val position
-        to = @val (position + retain)
+        from = val position
+        to = val (position + retain)
 
         operation.call selections, from, to, delta.attributes
         return position + retain
 
-  insertHelper = (position, content) ->
+  insertHelper: (position, content) ->
     pusher = (position, char) =>
       if @_model?
         (@_get "characters").insert position, char
@@ -192,18 +194,20 @@ class RichText extends BaseClass
         charObj = @createChar char
         pusher (position + offset), charObj
 
-  deleteHelper = (position, length = 1) ->
+  deleteHelper: (position, length = 1) ->
     (@_get "characters").delete position, length
 
-  createChar = (char, left=[], right=[]) ->
-    return new Y.Object char: char
+  createChar: (char, left=[], right=[]) ->
+    return new Y.Object {
+      char: char
       left: left
       right: right
+    }
 
   # return the index of a character
   # @param character [Y.Object] the character to look for
   #TODO: check that it works
-  indexOf = (character) ->
+  indexOf: (character) ->
     (@_get "characters").val().indexOf(character)
 
   # pass deltas to the character instance
