@@ -1,5 +1,5 @@
 BaseClass = (require "./misc.coffee").BaseClass
-
+Editors = (require "./editors.coffee")
 # All dependencies (like Y.Selections) to other types (that have its own
 # repository) should  be included by the user (in order to reduce the amount of
 # downloaded content).
@@ -7,11 +7,12 @@ BaseClass = (require "./misc.coffee").BaseClass
 # script tags this is the best solution that came to my mind.
 
 # A class holding the information about rich text
-class RichText extends BaseClass
+class YRichText extends BaseClass
   # @param content [String] an initial string
   # @param editor [Editor] an editor instance
   # @param author [String] the name of the local author
   constructor: () ->
+    this.lock_editor_propagation = false
     # TODO: generate a UID (you can get a unique id by calling
     # `@_model.getUid()` - is this what you mean?)
     # @author = author
@@ -20,11 +21,39 @@ class RichText extends BaseClass
   #
   # Bind the RichText type to a rich text editor (e.g. quilljs)
   #
-  bindEditor: (@editor)->
+  bind: (editor_name, editor_instance)->
     # TODO: bind to multiple editors
     # TODO: accept instance of quill, not an editor abstraction
-    @editor.observeLocalText @passDeltas
-    @editor.observeLocalCursor @updateCursorPosition
+    Editor = Editors[editor_name]
+    if Editor?
+      @editor = new Editor editor_instance
+
+      # TODO: parse the following directly from $characters+$selections (in O(n))
+      this.editor.editor.deleteText(0, this.editor.editor.getText().length)
+      @editor.updateContents
+        ops: [{insert: @_get("characters").val().join("")}]
+      # transform Y.Selections.getSelections() to a delta
+      expected_pos = 0
+      selections = []
+      for sel in @_get("selections").getSelections(@_get("characters"))
+        selection_length = sel.to - sel.from
+        if expected_pos isnt sel.from
+          selections.push
+            retain: sel.from-expected_pos
+        selections.push
+          retain: selection_length
+          attributes: sel.attrs
+        expected_pos += selection_length
+      # update the selections of the editor accordingly
+      @editor.updateContents
+        ops: selections
+
+      # bind the rest..
+      @editor.observeLocalText @passDeltas
+      @bindEventsToEditor @editor
+      @editor.observeLocalCursor @updateCursorPosition
+    else
+      throw new Error "This type of editor is not supported!"
 
   _getModel: (Y, Operation) ->
     if not @_model?
@@ -34,8 +63,6 @@ class RichText extends BaseClass
       @_set "characters", new Y.List()
       @_set "cursors", new Y.Object()
 
-      # set the cursor
-      @_setCursor @editor.getCursorPosition()
       @_setModel @_model
 
       # listen to events on the model using the function propagateToEditor
@@ -45,28 +72,26 @@ class RichText extends BaseClass
   _setModel: (model) ->
     super
 
-    noneFound = true
-    for cursor in (@_get "cursors").val()
-      if cursor.author == @author
-        @updateCursorPosition(cursor.position)
-        noneFound = false
-        break
-
-    if noneFound
-      @_setCursor @editor.getCursorPosition()
+  _name: "RichText"
 
   # insert our own cursor in the cursors object
   # @param position [Integer] the position where to insert it
-  setCursor = (position) ->
+  setCursor : (position) ->
     @selfCursor = (@_get "characters").ref(position)
     (@_get "cursors").val(@_model.HB.getUserId(), @selfCursor)
 
+
   # pass deltas to the character instance
   # @param deltas [Array<Object>] an array of deltas (see ot-types for more info)
-  passDeltas = (deltas) ->
+  passDeltas : (deltas) => # TODO: don't bind to $this
+    if this.lock_editor_propagation
+      # break, if lock is on
+      return
+    this.lock_editor_propagation = true
     position = 0
-    for delta in deltas
+    for delta in deltas.ops
       position = @deltaHelper delta, position
+    this.lock_editor_propagation = false
 
   # @override updateCursorPosition(index)
   #   update the position of our cursor to the new one using an index
@@ -74,18 +99,28 @@ class RichText extends BaseClass
   # @override updateCursorPosition(character)
   #   update the position of our cursor to the new one using a character
   #   @param character [Character] the new character
-  updateCursorPosition = (obj) ->
+  updateCursorPosition : (obj) =>
+    if this.lock_editor_propagation
+      # break, if lock is on
+      return
+    this.lock_editor_propagation = true
     if typeof obj == "number"
       @selfCursor = (@_get "characters").ref(obj)
     else
       @selfCursor = obj
     (@_get "cursors").val(@_model.HB.getUserId(), @selfCursor)
+    this.lock_editor_propagation = false
 
   # describe how to propagate yjs events to the editor
   # TODO: should be private!
-  bindEventsToEditor = (editor) ->
+  bindEventsToEditor : (editor) ->
     # update the editor when something on the $cursors happens
+    ###
     @_get("cursors").observe (events)=>
+      if this.lock_editor_propagation
+        # break, if lock is on
+        return
+      this.lock_editor_propagation = true
       for event in events
         id = event.name
         index = event.object.val(event.name).getPosition()
@@ -93,9 +128,15 @@ class RichText extends BaseClass
         color = "grey" # FIXME
 
         @editor.setCursor id, index, text, color
+      this.lock_editor_propagation = false
+    ###
 
     # update the editor when something on the $characters happens
     @_get("characters").observe (events)=>
+      if this.lock_editor_propagation
+        # break, if lock is on
+        return
+      this.lock_editor_propagation = true
       for event in events
         delta =
           ops: [{retain: event.position}]
@@ -107,32 +148,38 @@ class RichText extends BaseClass
           delta.ops.push {delete: 1}
 
         @editor.updateContents delta
+      this.lock_editor_propagation = false
 
     # update the editor when something on the $selections happens
-    @_get("selections").observe (events)=>
-      for event in events
-        attrs = {}
-        if event.type is "select"
-          for attr,val of event.attrs
-            attr[attr] = val
-        else # is "unselect"!
-          for attr in event.attrs
-            attrs[attr] = null
-        retain = event.from.getPosition()
-        selection_length = event.to.getPosition()-event.from.getPosition()
-        delta =
-          ops: [
-            {retain: retain},
-            {retain: selection_length, attributes: attrs}
-          ]
- 
+    @_get("selections").observe (event)=>
+      if this.lock_editor_propagation
+        # break, if lock is on
+        return
+      this.lock_editor_propagation = true
+
+      attrs = {}
+      if event.type is "select"
+        for attr,val of event.attrs
+          attrs[attr] = val
+      else # is "unselect"!
+        for attr in event.attrs
+          attrs[attr] = null
+      retain = event.from.getPosition()
+      selection_length = event.to.getPosition()-event.from.getPosition()
+      @editor.updateContents
+        ops: [
+          {retain: retain},
+          {retain: selection_length, attributes: attrs}
+        ]
+
+      this.lock_editor_propagation = false
 
   # Apply a delta and return the new position
   # @param delta [Object] a *single* delta (see ot-types for more info)
   # @param position [Integer] start position for the delta, default: 0
   #
   # @return [Integer] the position of the cursor after parsing the delta
-  deltaHelper = (delta, position =0) ->
+  deltaHelper : (delta, position = 0) ->
     if delta?
       selections = (@_get "selections")
       delta_unselections = []
@@ -167,9 +214,18 @@ class RichText extends BaseClass
         return position + retain
       throw new Error "This part of code must not be reached!"
 
-  insertHelper = (position, content) ->
+  insertHelper : (position, content) ->
     if content?
       @_get("characters").insertContents position, content.split("") # convert content to an array
 
-  deleteHelper = (position, length = 1) ->
+  deleteHelper : (position, length = 1) ->
     (@_get "characters").delete position, length
+
+if window?
+  if window.Y?
+    window.Y.RichText = YRichText
+  else
+    throw new Error "You must first import Y!"
+
+if module?
+  module.exports = YRichText
