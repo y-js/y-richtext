@@ -53,7 +53,6 @@ class RichText extends BaseClass
 
     if noneFound
       @_setCursor @editor.getCursorPosition()
-    else
 
     delete @_characters
     delete @_selections
