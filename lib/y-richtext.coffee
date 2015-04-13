@@ -11,12 +11,13 @@ class RichText extends BaseClass
   # @param content [String] an initial string
   # @param editor [Editor] an editor instance
   # @param author [String] the name of the local author
-  constructor: () ->
+  constructor: (editor) ->
     # TODO: generate a UID (you can get a unique id by calling
     # `@_model.getUid()` - is this what you mean?)
     # @author = author
     # TODO: assign an id / author name to the rich text instance for authorship
-
+    if editor?
+      @bindEditor editor
   #
   # Bind the RichText type to a rich text editor (e.g. quilljs)
   #
