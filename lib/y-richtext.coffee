@@ -150,10 +150,19 @@ class RichText extends BaseClass
   #
   # @return [Integer] the position of the cursor after parsing the delta
   deltaHelper = (delta, position =0) ->
+
     if delta?
-      arentNull = (el) -> el != null
+      noneIsNull = (array)->
+        if not array?
+          return false
+
+        for element in array
+          if element == null
+            return false
+        return true
+
       selections = (@_get "selections")
-      if _.all delta.attributes, arentNull
+      if noneIsNull delta.attributes
         operation = selections.select
       else
         operation = selections.unselect
