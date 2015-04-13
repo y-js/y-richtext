@@ -25,8 +25,8 @@ class BaseClass
   _getModel: (Y, Operation)->
     if not @_model?
       @_model = new Operation.MapManager(@).execute()
-      for n,v of @_tmp_model
-        @_model.val(n,v)
+      for key, value of @_tmp_model
+        @_model.val(key, value)
 
   _setModel: (@_model)->
     delete @_tmp_model
