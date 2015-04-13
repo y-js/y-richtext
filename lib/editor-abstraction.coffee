@@ -29,7 +29,7 @@ class Editor
   # @see https://github.com/ottypes/rich-text
   setContents: (delta) -> throw new Error "Implement me"
 
-class QuillJS extends Editor
+class QuillJs extends Editor
   constructor: (@editor) ->
     super @editor
     @_cursors = @editor.getModule("multi-cursor")
@@ -56,3 +56,6 @@ class QuillJS extends Editor
 
   setContents: (delta) ->
     @editor.setContents delta
+
+exports.QuillJs = QuillJs
+exports.Editor = Editor
