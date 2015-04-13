@@ -11,3 +11,4 @@ doc/
 .idea/
 *.map
 .idea
+./y-richtext.js

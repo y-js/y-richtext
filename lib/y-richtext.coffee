@@ -1,6 +1,4 @@
 BaseClass = (require "./misc.coffee").BaseClass
-YList = require '../../y-list/lib/y-list.coffee'
-YSelections = require '../../y-selections/lib/y-selections.coffee'
 
 # All dependencies (like Y.Selections) to other types (that have its own
 # repository) should  be included by the user (in order to reduce the amount of
@@ -13,13 +11,12 @@ class RichText extends BaseClass
   # @param content [String] an initial string
   # @param editor [Editor] an editor instance
   # @param author [String] the name of the local author
-  constructor: (editor) ->
+  constructor: () ->
     # TODO: generate a UID (you can get a unique id by calling
     # `@_model.getUid()` - is this what you mean?)
     # @author = author
     # TODO: assign an id / author name to the rich text instance for authorship
-    if editor?
-      @bindEditor editor
+
   #
   # Bind the RichText type to a rich text editor (e.g. quilljs)
   #
@@ -33,23 +30,16 @@ class RichText extends BaseClass
     if not @_model?
       super
 
-      @_set "selections", new YSelections()
-      @_set "characters", new YList()
-      @_set "cursors", new YList()
-
-      if @_characters?
-        (@_get "characters").insert 0, @_characters
-      if @_selections?
-        (@_get "selections").insert 0, @_selections
-      if @_cursors?
-        (@_get "cursors").insert 0, @_cursors
+      @_set "selections", new Y.Selections()
+      @_set "characters", new Y.List()
+      @_set "cursors", new Y.Object()
 
       # set the cursor
-      @_setCursor @editor.getCursor()
+      @_setCursor @editor.getCursorPosition()
       @_setModel @_model
 
       # listen to events on the model using the function propagateToEditor
-      @_model.observe propagateToEditor
+      @_model.observe @propagateToEditor
     return @_model
 
   _setModel: (model) ->
@@ -63,23 +53,21 @@ class RichText extends BaseClass
         break
 
     if noneFound
-      @_setCursor @editor.getCursor()
+      @_setCursor @editor.getCursorPosition()
 
-    delete @_characters
-    delete @_selections
-    delete @_cursors
-
-  # insert our own cursor in the cursors list
+  # insert our own cursor in the cursors object
   # @param position [Integer] the position where to insert it
-  _setCursor: (position) ->
-    if position > -1
-      character = (@_get "characters").val(position)
-      selfCursor =
-        author: @author
-        position: character
-        color: "grey" # FIXME
-      (@_get "cursors").insert 0, selfCursor
-      @selfCursor = (@_get "cursors").ref 0
+  setCursor = (position) ->
+    @selfCursor = (@_get "characters").ref(position)
+    (@_get "cursors").val(@_model.HB.getUserId(), @selfCursor)
+
+  # pass deltas to the character instance
+  # @param deltas [Array<Object>] an array of deltas (see ot-types for more info)
+  passDeltas = (deltas) ->
+    position = 0
+    for delta in deltas
+      position = @deltaHelper delta, position
+
   # @override updateCursorPosition(index)
   #   update the position of our cursor to the new one using an index
   #   @param index [Integer] the new index
@@ -88,94 +76,80 @@ class RichText extends BaseClass
   #   @param character [Character] the new character
   updateCursorPosition = (obj) ->
     if typeof obj == "number"
-      char = (@_get "characters").val(obj)
+      @selfCursor = (@_get "characters").ref(obj)
     else
-      char = obj
-    selfCursor = @selfCursor.val()
-    selfCursor.position = char
+      @selfCursor = obj
+    (@_get "cursors").val(@_model.HB.getUserId(), @selfCursor)
 
   # describe how to propagate yjs events to the editor
-  propagateToEditor = (events) ->
-    for event in events
-      switch event.name
-        when "cursors"
-          id = event.object.author
-          index = @indexOf event.object.char
-          text = event.object.author
-          color = "grey" # FIXME
+  # TODO: should be private!
+  bindEventsToEditor = (editor) ->
+    # update the editor when something on the $cursors happens
+    @_get("cursors").observe (events)=>
+      for event in events
+        id = event.name
+        index = event.object.val(event.name).getPosition()
+        text = event.name
+        color = "grey" # FIXME
 
-          if event.type == "update" or event.type == "add"
-            @editor.setCursor id, index, text, color
+        @editor.setCursor id, index, text, color
 
-        when "characters"
-          charPos = @indexOf event.object
-          delta = {ops: [{retain: charPos}]}
-          del = {delete: 1}
-          ins = {insert: event.object.char, attributes: event.object.attributes}
-          if event.type == "update"
-            #TODO: inherit attributes
-            delta.ops.push del
-            delta.ops.push ins
+    # update the editor when something on the $characters happens
+    @_get("characters").observe (events)=>
+      for event in events
+        delta =
+          ops: [{retain: event.position}]
 
-          else if event.type == "add"
-            delta.ops.push ins
+        if event.type == "insert"
+          delta.ops.push {insert: event.value}
 
-          else if event.type == "delete"
-            delta.ops.push del
+        else if event.type == "delete"
+          delta.ops.push {delete: 1}
 
-          @editor.setContents delta
+        @editor.updateContents delta
 
-        when "selections"
-          left = (event.object.left or event.oldValue.left)
-          right = (event.object.right or event.oldValue.right)
-          selectionStart = @indexOf left
-          selectionEnd = @indexOf right
-          attributes = event.object.attributes
-          if event.type == "update" or event.type == "insert"
-            delta = {ops: [{retain: selectionStart},
-              {retain: selectionEnd-selectionStart, attributes: attributes}
-            ]}
-            @editor.setContents delta
-          else if event.type == "delete"
-            #FIXME: depending on how it is implemented, selections can be
-            # overridden by negating their values (set them to null) or they
-            # can just be deleted
-            console.log "Ohow… what am I supposed to do there?"
+    # update the editor when something on the $selections happens
+    @_get("selections").observe (events)=>
+      for event in events
+        attrs = {}
+        if event.type is "select"
+          for attr,val of event.attrs
+            attr[attr] = val
+        else # is "unselect"!
+          for attr in event.attrs
+            attrs[attr] = null
+        retain = event.from.getPosition()
+        selection_length = event.to.getPosition()-event.from.getPosition()
+        delta =
+          ops: [
+            {retain: retain},
+            {retain: selection_length, attributes: attrs}
+          ]
+ 
 
   # Apply a delta and return the new position
   # @param delta [Object] a *single* delta (see ot-types for more info)
   # @param position [Integer] start position for the delta, default: 0
   #
   # @return [Integer] the position of the cursor after parsing the delta
-  deltaHelper: (delta, position = 0) ->
-    # add delta.attributes if absent
-    if not delta.attributes?
-      delta.attributes = []
-
-    ref = (position) =>
-      (@_get "characters").ref position
-
+  deltaHelper = (delta, position =0) ->
     if delta?
-      noneIsNull = (array)->
-        if not array?
-          return false
-
-        for element in array
-          if element == null
-            return false
-        return true
-
-
-      if noneIsNull delta.attributes
-        operation = (@_get "selections").select
-      else
-        operation = (@_get "selections").unselect
+      selections = (@_get "selections")
+      delta_unselections = []
+      delta_selections = {}
+      for n,v of delta.attributes
+        if v?
+          delta_selections[n] = v
+        else
+          delta_unselections.push n
 
       if delta.insert?
         @insertHelper position, delta.insert
-        from = ref position
-        to = ref (position + delta.insert.length)
-        operation.call (@_get "selections"), from, to, delta.attributes
+        from = @_get("characters").ref(position)
+        to = @_get("characters").ref(position+delta.insert.length)
+        @_get("selections").select from, to, delta_selections
+        @_get("selections").unselect from, to, delta_unselections
+
         return position + delta.insert.length
 
       else if delta.delete?
@@ -184,48 +158,18 @@ class RichText extends BaseClass
 
       else if delta.retain?
         retain = parseInt delta.retain
-        from = ref position
-        to = ref (position + retain)
+        from = @_get("characters").ref(position)
+        to = @_get("characters").ref(position + retain)
 
-        operation.call (@_get "selections"), from, to, delta.attributes
+        @_get("selections").select from, to, delta_selections
+        @_get("selections").unselect from, to, delta_unselections
+
         return position + retain
+      throw new Error "This part of code must not be reached!"
 
-  insertHelper: (position, content) ->
-    pusher = (position, char) =>
-      if @_model?
-        (@_get "characters").insert position, char
-      else
-        @_characters.splice position, 0, char
-      position + 1
+  insertHelper = (position, content) ->
+    if content?
+      @_get("characters").insertContents position, content.split("") # convert content to an array
 
-    if content != null
-      for char, offset in content
-        charObj = @createChar char
-        pusher (position + offset), charObj
-
-  deleteHelper: (position, length = 1) ->
+  deleteHelper = (position, length = 1) ->
     (@_get "characters").delete position, length
-
-  createChar: (char, left=[], right=[]) ->
-    return new @_model.custom_types.Object {
-      char: char
-      left: left
-      right: right
-    }
-
-  # return the index of a character
-  # @param character [Y.Object] the character to look for
-  #TODO: check that it works
-  indexOf: (character) ->
-    (@_get "characters").val().indexOf(character)
-
-  # pass deltas to the character instance
-  # @param deltas [Array<Object>] an array of deltas (see ot-types for more info)
-  passDeltas: (deltas) ->
-    if deltas
-      position = 0
-      for delta in deltas
-        position = (@deltaHelper delta, position)
-
-if module?
-  module.exports = RichText
