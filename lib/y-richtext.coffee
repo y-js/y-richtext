@@ -39,6 +39,13 @@ class RichText extends BaseClass
       @_set "characters", new Y.List()
       @_set "cursors", new Y.List()
 
+      if @_characters?
+        (@_get "characters").insert 0, @_characters
+      if @_selections?
+        (@_get "selections").insert 0, @_selections
+      if @_cursors?
+        (@_get "cursors").insert 0, @_cursors
+
       # set the cursor
       @_setCursor @editor.getCursor()
       @_setModel @_model
@@ -148,7 +155,7 @@ class RichText extends BaseClass
       delta.attributes = []
 
     val = (position) =>
-      (@_get "characters").val(position)
+      (@_get "characters").val position
 
     if delta?
       noneIsNull = (array)->
@@ -190,7 +197,7 @@ class RichText extends BaseClass
       if @_model?
         (@_get "characters").insert position, char
       else
-        @_chars.splice position, 0, char
+        @_characters.splice position, 0, char
       position + 1
 
     if content != null
