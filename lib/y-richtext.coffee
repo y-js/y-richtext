@@ -1,3 +1,5 @@
+BaseClass = (require "./misc.coffee").BaseClass
+
 # All dependencies (like Y.Selections) to other types (that have its own
 # repository) should  be included by the user (in order to reduce the amount of
 # downloaded content).
@@ -5,7 +7,7 @@
 # script tags this is the best solution that came to my mind.
 
 # A class holding the information about rich text
-class RichText
+class RichText extends BaseClass
   # @param content [String] an initial string
   # @param editor [Editor] an editor instance
   # @param author [String] the name of the local author
