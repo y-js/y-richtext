@@ -57,6 +57,7 @@ class RichText extends BaseClass
 
     delete @_characters
     delete @_selections
+    delete @_cursors
 
   # insert our own cursor in the cursors list
   # @param position [Integer] the position where to insert it
