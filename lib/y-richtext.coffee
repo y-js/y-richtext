@@ -1,8 +1,6 @@
 BaseClass = (require "./misc.coffee").BaseClass
-Y = require '../../yjs/lib/y.coffee'
-Y.List = require '../../y-list/lib/y-list.coffee'
-Y.Selections = require '../../y-selections/lib/y-selections.coffee'
-
+YList = require '../../y-list/lib/y-list.coffee'
+YSelections = require '../../y-selections/lib/y-selections.coffee'
 
 # All dependencies (like Y.Selections) to other types (that have its own
 # repository) should  be included by the user (in order to reduce the amount of
@@ -35,9 +33,9 @@ class RichText extends BaseClass
     if not @_model?
       super
 
-      @_set "selections", new Y.Selections()
-      @_set "characters", new Y.List()
-      @_set "cursors", new Y.List()
+      @_set "selections", new YSelections()
+      @_set "characters", new YList()
+      @_set "cursors", new YList()
 
       if @_characters?
         (@_get "characters").insert 0, @_characters
@@ -51,7 +49,7 @@ class RichText extends BaseClass
       @_setModel @_model
 
       # listen to events on the model using the function propagateToEditor
-      @_model.observe @propagateToEditor
+      @_model.observe propagateToEditor
     return @_model
 
   _setModel: (model) ->
@@ -209,7 +207,7 @@ class RichText extends BaseClass
     (@_get "characters").delete position, length
 
   createChar: (char, left=[], right=[]) ->
-    return new Y.Object {
+    return new @_model.custom_types.Object {
       char: char
       left: left
       right: right
