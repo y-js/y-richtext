@@ -1,10 +1,9 @@
-gulp = require 'gulp'
-coffee = require 'gulp-coffee'
-gutil = require 'gulp-util'
-concat = require 'gulp-concat'
+gulp = require('gulp')
+coffee = require('gulp-coffee')
+concat = require('gulp-concat')
 uglify = require 'gulp-uglify'
-sourcemaps = require 'gulp-sourcemaps'
-browserify = require 'gulp-browserify'
+sourcemaps = require('gulp-sourcemaps')
+browserify = require('gulp-browserify')
 rename = require 'gulp-rename'
 rimraf = require 'gulp-rimraf'
 gulpif = require 'gulp-if'
@@ -80,15 +79,10 @@ gulp.task 'build', ['build_node', 'build_browser'], ->
 gulp.task 'watch', ['build'], ->
   gulp.watch files.all, ['build']
 
-gulp.task 'coffee',->
-  gulp.src files.lib
-    # .pipe sourcemaps.init()
-    .pipe coffee {bare: true}
-      .on('error', gutil.log)
-    # .pipe concat()
-    # .pipe sourcemaps.write()
-    .pipe gulp.dest('./lib/')
-
+gulp.task 'mocha', ->
+  gulp.src files.test, { read: false }
+    .pipe mocha {reporter : 'list'}
+    .pipe exit()
 
 gulp.task 'lint', ->
   gulp.src files.all
@@ -104,7 +98,7 @@ gulp.task 'phantom_watch', ['phantom_test'], ->
 
 gulp.task 'literate', ->
   gulp.src files.examples
-    .pipe ljs { code : trguue }
+    .pipe ljs { code : true }
     .pipe rename
       basename : "README"
       extname : ".md"
@@ -112,7 +106,7 @@ gulp.task 'literate', ->
     .pipe gulpif '!**/', git.add({args : "-A"})
 
 gulp.task 'codo', [], ()->
-  command = 'codo -o "./doc" --name "yjs" --private true --title "yjs rte type API" ./lib'
+  command = './node_modules/codo/bin/codo -o "./doc" --name "yjs" --readme "README.md" --undocumented false --private true --title "yjs API" ./lib - LICENSE.txt '
   run(command).exec()
 
 gulp.task 'phantom_test', ['build_browser'], ()->
@@ -120,7 +114,7 @@ gulp.task 'phantom_test', ['build_browser'], ()->
     .pipe mochaPhantomJS()
 
 gulp.task 'clean', ->
-  gulp.src ['./build/{browser,test,node}/**/*.{js,map}','./doc/','./lib/*.js'], { read: false }
+  gulp.src ['./build/{browser,test,node}/**/*.{js,map}','./doc/'], { read: false }
     .pipe rimraf()
 
 gulp.task 'mocha', [], ->
