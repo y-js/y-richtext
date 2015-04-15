@@ -117,11 +117,6 @@ gulp.task 'clean', ->
   gulp.src ['./build/{browser,test,node}/**/*.{js,map}','./doc/'], { read: false }
     .pipe rimraf()
 
-gulp.task 'mocha', [], ->
-  gulp.src files.test, { read: true }
-    .pipe mocha {reporter : 'spec'}
-    #.pipe exit()
-
 gulp.task 'test', ['mocha'], ->
   gulp.watch files.all, ['mocha']
 
