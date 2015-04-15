@@ -1,8 +1,8 @@
 language: node_js
 
 before_install:
-  - "npm install -g bowser coffee-script"
-  - "bowser install"
+  - "npm install -g bower coffee-script"
+  - "bower install"
 node_js:
   - "0.12"
   - "0.11"
