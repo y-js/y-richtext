@@ -22,7 +22,7 @@
     "tests"
   ],
   "dependencies": {
-    "y-list": "git@github.com:rwth-acis/y-list.git",
+    "y-list": "git://github.com/y-js/y-list.git",
     "yjs": "0.5"
   }
 }
