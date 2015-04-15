@@ -1,3 +1,5 @@
+(require "blanket")({})
+
 BaseClass = (require "./misc.coffee").BaseClass
 Editors = (require "./editors.coffee")
 # All dependencies (like Y.Selections) to other types (that have its own

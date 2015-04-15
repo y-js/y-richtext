@@ -19,6 +19,7 @@ mochaPhantomJS = require 'gulp-mocha-phantomjs'
 cache = require 'gulp-cached'
 coffeeify = require 'gulp-coffeeify'
 exit = require 'gulp-exit'
+notify = require 'gulp-notify'
 
 gulp.task 'default', ['build_browser']
 
@@ -81,7 +82,10 @@ gulp.task 'watch', ['build'], ->
 
 gulp.task 'mocha', ->
   gulp.src files.test, { read: false }
-    .pipe mocha {reporter : 'list'}
+    .pipe mocha
+      reporter : 'list'
+      compilers:
+        coffee: 'coffee-script/register'
     .pipe exit()
 
 gulp.task 'lint', ->
@@ -120,5 +124,13 @@ gulp.task 'clean', ->
 gulp.task 'test', ['mocha'], ->
   gulp.watch files.all, ['mocha']
 
-
+gulp.task 'coverage', ->
+  gulp.src files.lib, read: false
+    .pipe mocha
+      require: 'coffee-script'
+      ui: 'bdd'
+      reporter: 'html-cov'
+      compilers:
+        coffee: 'coffee-script/register'
+    .on 'error', notify.onError 'test error'
 gulp.task 'default', ['clean','build'], ->

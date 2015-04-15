@@ -8,7 +8,17 @@
     "test": "test"
   },
   "scripts": {
-    "test": "gulp mocha"
+    "test": "multi='list=- mocha-lcov-reporter=lcov.tmp' ./node_modules/mocha/bin/mocha -r blanket --reporter mocha-multi --compilers coffee:coffee-script/register && cat lcov.tmp | ./node_modules/coveralls/bin/coveralls.js"
+  },
+  "config": {
+    "blanket": {
+      "loader": "./node-loaders/coffee-script",
+      "pattern": "/lib/",
+      "data-cover-never": [
+        "node_modules",
+        "test"
+      ]
+    }
   },
   "repository": {
     "type": "git",
@@ -69,6 +79,11 @@
     "underscore": "^1.6.0"
   },
   "dependencies": {
-    "gulp-util": "^3.0.4"
+    "blanket": "^1.1.6",
+    "coveralls": "^2.11.2",
+    "gulp-notify": "^2.2.0",
+    "gulp-util": "^3.0.4",
+    "mocha-lcov-reporter": "0.0.2",
+    "mocha-multi": "^0.6.0"
   }
 }
