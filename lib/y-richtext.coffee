@@ -174,6 +174,26 @@ class YRichText extends BaseClass
 
       this.lock_editor_propagation = false
 
+    # update the editor when the cursor is moved
+    @_get("cursors").observe (events)=>
+      if this.lock_editor_propagation
+        # break, if lock is on
+        return
+      this.lock_editor_propagation = true
+
+      for event in events
+        author = event.changedBy
+        position = event.object.val(author)
+        if position != null
+          params =
+            id: author
+            index: event.object.val(author).getPosition()
+            text: author
+            color: "grey"
+          @editor.setCursor params
+
+      this.lock_editor_propagation = false
+
   # Apply a delta and return the new position
   # @param delta [Object] a *single* delta (see ot-types for more info)
   # @param position [Integer] start position for the delta, default: 0
