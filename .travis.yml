@@ -1,0 +1,9 @@
+language: node_js
+
+before_install:
+  - "npm install -g bowser coffee-script"
+  - "bowser install"
+node_js:
+  - "0.12"
+  - "0.11"
+  - "0.10"
