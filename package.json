@@ -8,7 +8,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "multi='list=- mocha-lcov-reporter=lcov.tmp' ./node_modules/mocha/bin/mocha -r blanket --reporter mocha-multi --compilers coffee:coffee-script/register && cat lcov.tmp | ./node_modules/coveralls/bin/coveralls.js"
+    "test": "gulp mocha; gulp coveralls"
   },
   "config": {
     "blanket": {
@@ -54,6 +54,7 @@
     "gulp-coffeelint": "^0.3.3",
     "gulp-concat": "^2.5.2",
     "gulp-copy": "0.0.2",
+    "gulp-coveralls": "^0.1.3",
     "gulp-debug": "^1.0.0",
     "gulp-exit": "0.0.2",
     "gulp-git": "^0.5.0",
