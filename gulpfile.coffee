@@ -1,5 +1,6 @@
 gulp = require('gulp')
 coffee = require('gulp-coffee')
+require 'coffee-script/register'
 concat = require('gulp-concat')
 uglify = require 'gulp-uglify'
 sourcemaps = require('gulp-sourcemaps')
@@ -20,6 +21,7 @@ cache = require 'gulp-cached'
 coffeeify = require 'gulp-coffeeify'
 exit = require 'gulp-exit'
 notify = require 'gulp-notify'
+coveralls = require 'gulp-coveralls'
 
 gulp.task 'default', ['build_browser']
 
@@ -124,13 +126,18 @@ gulp.task 'clean', ->
 gulp.task 'test', ['mocha'], ->
   gulp.watch files.all, ['mocha']
 
-gulp.task 'coverage', ->
-  gulp.src files.lib, read: false
-    .pipe mocha
-      require: 'coffee-script'
-      ui: 'bdd'
-      reporter: 'html-cov'
-      compilers:
-        coffee: 'coffee-script/register'
-    .on 'error', notify.onError 'test error'
+gulp.task 'generate_report', ->
+  command = './node_modules/mocha/bin/mocha -r blanket
+    --compilers coffee:coffee-script/register
+    --reporter mocha-lcov-reporter > lcov.report'
+  run(command).exec()
+
+gulp.task 'coveralls', ['generate_report'], ->
+  gulp.src 'lcov.report'
+    .pipe coveralls()
+    .pipe exit()
+
+gulp.task 'travis', ['mocha', 'coveralls'], ->
+
+
 gulp.task 'default', ['clean','build'], ->
