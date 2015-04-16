@@ -235,10 +235,16 @@ class YRichText extends BaseClass
       throw new Error "This part of code must not be reached!"
 
   insertHelper : (position, content) ->
+    as_array =
+      if typeof content == "string"
+        content.split("")
+      else if typeof content == "number"
+        [content]
     if content?
-      @_get("characters").insertContents position, content.split("") # convert content to an array
+      @_get("characters").insertContents position, as_array # convert content to an array
 
   deleteHelper : (position, length = 1) ->
+    console.log "deleteHelper"
     (@_get "characters").delete position, length
 
 if window?
