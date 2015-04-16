@@ -56,3 +56,24 @@ class QuillJS extends Editor
 
   setContents: (delta) ->
     @editor.setContents delta
+
+# a test class for editors
+class TestEditor extends Editor
+  constructor: () ->
+    super
+
+  getCursor: () ->
+    -1
+  setCursor: (param) ->
+    true
+  observeLocalText: (backend) ->
+    ""
+  observeLocalCursor: (backend) ->
+    ""
+  setContents: (delta) ->
+    console.log delta
+
+if module?
+  module.exports =
+    QuillJS: QuillJS
+    TestEditor: TestEditor

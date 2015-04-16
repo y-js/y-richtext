@@ -1,4 +1,6 @@
 BaseClass = (require "./misc.coffee").BaseClass
+YList = require '../../y-list/lib/y-list.coffee'
+YSelections = require '../../y-selections/lib/y-selections.coffee'
 
 # All dependencies (like Y.Selections) to other types (that have its own
 # repository) should  be included by the user (in order to reduce the amount of
@@ -11,12 +13,13 @@ class RichText extends BaseClass
   # @param content [String] an initial string
   # @param editor [Editor] an editor instance
   # @param author [String] the name of the local author
-  constructor: () ->
+  constructor: (editor) ->
     # TODO: generate a UID (you can get a unique id by calling
     # `@_model.getUid()` - is this what you mean?)
     # @author = author
     # TODO: assign an id / author name to the rich text instance for authorship
-
+    if editor?
+      @bindEditor editor
   #
   # Bind the RichText type to a rich text editor (e.g. quilljs)
   #
@@ -30,16 +33,23 @@ class RichText extends BaseClass
     if not @_model?
       super
 
-      @_set "selections", new Y.Selections()
-      @_set "characters", new Y.List()
-      @_set "cursors", new Y.List()
+      @_set "selections", new YSelections()
+      @_set "characters", new YList()
+      @_set "cursors", new YList()
+
+      if @_characters?
+        (@_get "characters").insert 0, @_characters
+      if @_selections?
+        (@_get "selections").insert 0, @_selections
+      if @_cursors?
+        (@_get "cursors").insert 0, @_cursors
 
       # set the cursor
-      @_setCursor @editor.getCursorPosition()
+      @_setCursor @editor.getCursor()
       @_setModel @_model
 
       # listen to events on the model using the function propagateToEditor
-      @_model.observe @propagateToEditor
+      @_model.observe propagateToEditor
     return @_model
 
   _setModel: (model) ->
@@ -53,7 +63,7 @@ class RichText extends BaseClass
         break
 
     if noneFound
-      @_setCursor @editor.getCursorPosition()
+      @_setCursor @editor.getCursor()
 
     delete @_characters
     delete @_selections
@@ -61,22 +71,15 @@ class RichText extends BaseClass
 
   # insert our own cursor in the cursors list
   # @param position [Integer] the position where to insert it
-  setCursor = (position) ->
-    character = (@_get "characters").val(position)
-    selfCursor =
-      author: @author
-      position: character
-      color: "grey" # FIXME
-    (@_get "cursors").insert 0, selfCursor
-    @selfCursor = (@_get "cursors").ref 0
-
-  # pass deltas to the character instance
-  # @param deltas [Array<Object>] an array of deltas (see ot-types for more info)
-  passDeltas = (deltas) ->
-    position = 0
-    for delta in deltas
-      position = @deltaHelper delta, position
-
+  _setCursor: (position) ->
+    if position > -1
+      character = (@_get "characters").val(position)
+      selfCursor =
+        author: @author
+        position: character
+        color: "grey" # FIXME
+      (@_get "cursors").insert 0, selfCursor
+      @selfCursor = (@_get "cursors").ref 0
   # @override updateCursorPosition(index)
   #   update the position of our cursor to the new one using an index
   #   @param index [Integer] the new index
@@ -144,20 +147,35 @@ class RichText extends BaseClass
   # @param position [Integer] start position for the delta, default: 0
   #
   # @return [Integer] the position of the cursor after parsing the delta
-  deltaHelper = (delta, position =0) ->
+  deltaHelper: (delta, position = 0) ->
+    # add delta.attributes if absent
+    if not delta.attributes?
+      delta.attributes = []
+
+    ref = (position) =>
+      (@_get "characters").ref position
+
     if delta?
-      arentNull = (el) -> el != null
-      selections = (@_get "selections")
-      if _.all delta.attributes, arentNull
-        operation = selections.select
+      noneIsNull = (array)->
+        if not array?
+          return false
+
+        for element in array
+          if element == null
+            return false
+        return true
+
+
+      if noneIsNull delta.attributes
+        operation = (@_get "selections").select
       else
-        operation = selections.unselect
+        operation = (@_get "selections").unselect
 
       if delta.insert?
         @insertHelper position, delta.insert
-        from = @val position
-        to = @val (position + delta.insert.length)
-        operation.call selections, from, to, delta.attributes
+        from = ref position
+        to = ref (position + delta.insert.length)
+        operation.call (@_get "selections"), from, to, delta.attributes
         return position + delta.insert.length
 
       else if delta.delete?
@@ -166,18 +184,18 @@ class RichText extends BaseClass
 
       else if delta.retain?
         retain = parseInt delta.retain
-        from = @val position
-        to = @val (position + retain)
+        from = ref position
+        to = ref (position + retain)
 
-        operation.call selections, from, to, delta.attributes
+        operation.call (@_get "selections"), from, to, delta.attributes
         return position + retain
 
-  insertHelper = (position, content) ->
+  insertHelper: (position, content) ->
     pusher = (position, char) =>
       if @_model?
         (@_get "characters").insert position, char
       else
-        @_chars.splice position, 0, char
+        @_characters.splice position, 0, char
       position + 1
 
     if content != null
@@ -185,16 +203,29 @@ class RichText extends BaseClass
         charObj = @createChar char
         pusher (position + offset), charObj
 
-  deleteHelper = (position, length = 1) ->
+  deleteHelper: (position, length = 1) ->
     (@_get "characters").delete position, length
 
-  createChar = (char, left=[], right=[]) ->
-    return new Y.Object char: char
+  createChar: (char, left=[], right=[]) ->
+    return new @_model.custom_types.Object {
+      char: char
       left: left
       right: right
+    }
 
   # return the index of a character
   # @param character [Y.Object] the character to look for
   #TODO: check that it works
-  indexOf = (character) ->
+  indexOf: (character) ->
     (@_get "characters").val().indexOf(character)
+
+  # pass deltas to the character instance
+  # @param deltas [Array<Object>] an array of deltas (see ot-types for more info)
+  passDeltas: (deltas) ->
+    if deltas
+      position = 0
+      for delta in deltas
+        position = (@deltaHelper delta, position)
+
+if module?
+  module.exports = RichText
