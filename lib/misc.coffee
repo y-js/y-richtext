@@ -1,3 +1,15 @@
+class Locker
+  constructor: () ->
+    @is_locked = false
+
+  try: (args..., fun) ->
+    if @is_locked
+      return
+
+    @is_locked = true
+    ret = fun args...
+    @is_locked = false
+    return ret
 
 # a basic class with generic getter / setter function
 class BaseClass
@@ -34,3 +46,4 @@ class BaseClass
 
 if module?
   exports.BaseClass = BaseClass
+  exports.Locker = Locker
