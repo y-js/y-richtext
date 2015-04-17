@@ -155,7 +155,7 @@ class YRichText extends BaseClass
   # @param position [Integer] start position for the delta, default: 0
   #
   # @return [Integer] the position of the cursor after parsing the delta
-  deltaHelper : (delta, position = 0) ->
+  deltaHelper= (delta, position = 0) =>
     if delta?
       selections = (@_get "selections")
       delta_unselections = []
@@ -190,7 +190,7 @@ class YRichText extends BaseClass
         return position + retain
       throw new Error "This part of code must not be reached!"
 
-  insertHelper : (position, content) ->
+  insertHelper= (position, content) =>
     as_array =
       if typeof content == "string"
         content.split("")
@@ -199,7 +199,7 @@ class YRichText extends BaseClass
     if as_array?
       @_get("characters").insertContents position, as_array
 
-  deleteHelper : (position, length = 1) ->
+  deleteHelper= (position, length = 1) =>
     console.log "deleteHelper"
     (@_get "characters").delete position, length
 
