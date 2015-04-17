@@ -240,8 +240,8 @@ class YRichText extends BaseClass
         content.split("")
       else if typeof content == "number"
         [content]
-    if content?
-      @_get("characters").insertContents position, as_array # convert content to an array
+    if as_array?
+      @_get("characters").insertContents position, as_array
 
   deleteHelper : (position, length = 1) ->
     console.log "deleteHelper"
