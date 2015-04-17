@@ -59,11 +59,6 @@ class QuillJs extends Editor
 
   observeLocalCursor: (backend) -> locker @, backend, (backend) =>
     @editor.on "selection-change", (range, source) ->
-      if source == 'api'
-        # only when there's a cursor (range start === range end)
-        console.log "changed by backend"
-      else
-        console.log "changed by user"
       if range and range.start == range.end
         backend range.start
         console.log range.start
