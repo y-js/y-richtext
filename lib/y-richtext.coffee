@@ -104,7 +104,7 @@ class YRichText extends BaseClass
       # break, if lock is on
       return
     this.lock_editor_propagation = true
-    if typeof obj == "number"
+    if typeof obj is "number"
       @selfCursor = (@_get "characters").ref(obj)
     else
       @selfCursor = obj
@@ -141,10 +141,10 @@ class YRichText extends BaseClass
         delta =
           ops: [{retain: event.position}]
 
-        if event.type == "insert"
+        if event.type is "insert"
           delta.ops.push {insert: event.value}
 
-        else if event.type == "delete"
+        else if event.type is "delete"
           delta.ops.push {delete: 1}
 
         @editor.updateContents delta
@@ -236,9 +236,9 @@ class YRichText extends BaseClass
 
   insertHelper= (position, content) =>
     as_array =
-      if typeof content == "string"
+      if typeof content is "string"
         content.split("")
-      else if typeof content == "number"
+      else if typeof content is "number"
         [content]
     if as_array?
       @_get("characters").insertContents position, as_array
