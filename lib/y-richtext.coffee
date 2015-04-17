@@ -12,7 +12,7 @@ class YRichText extends BaseClass
   # @param editor [Editor] an editor instance
   # @param author [String] the name of the local author
   constructor: () ->
-    this.lock_editor_propagation = false
+    @lock_editor_propagation = false
     # TODO: generate a UID (you can get a unique id by calling
     # `@_model.getUid()` - is this what you mean?)
     # @author = author
@@ -29,15 +29,16 @@ class YRichText extends BaseClass
       @editor = new Editor editor_instance
 
       # TODO: parse the following directly from $characters+$selections (in O(n))
-      this.editor.editor.deleteText(0, this.editor.editor.getText().length)
+      @editor.editor.deleteText(0, @editor.editor.getText().length)
       @editor.updateContents
         ops: [{insert: @_get("characters").val().join("")}]
       # transform Y.Selections.getSelections() to a delta
       expected_pos = 0
-      selections = []
+      selections = [] # we will apply these selections on quill (therefore they have to be transformed)
       for sel in @_get("selections").getSelections(@_get("characters"))
         selection_length = sel.to - sel.from
         if expected_pos isnt sel.from
+          # There is unselected text. $retain to the next selection
           selections.push
             retain: sel.from-expected_pos
         selections.push
@@ -84,14 +85,14 @@ class YRichText extends BaseClass
   # pass deltas to the character instance
   # @param deltas [Array<Object>] an array of deltas (see ot-types for more info)
   passDeltas : (deltas) => # TODO: don't bind to $this
-    if this.lock_editor_propagation
+    if @lock_editor_propagation
       # break, if lock is on
       return
-    this.lock_editor_propagation = true
+    @lock_editor_propagation = true
     position = 0
     for delta in deltas.ops
       position = @deltaHelper delta, position
-    this.lock_editor_propagation = false
+    @lock_editor_propagation = false
 
   # @override updateCursorPosition(index)
   #   update the position of our cursor to the new one using an index
@@ -100,16 +101,16 @@ class YRichText extends BaseClass
   #   update the position of our cursor to the new one using a character
   #   @param character [Character] the new character
   updateCursorPosition : (obj) =>
-    if this.lock_editor_propagation
+    if @lock_editor_propagation
       # break, if lock is on
       return
-    this.lock_editor_propagation = true
+    @lock_editor_propagation = true
     if typeof obj == "number"
       @selfCursor = (@_get "characters").ref(obj)
     else
       @selfCursor = obj
     (@_get "cursors").val(@_model.HB.getUserId(), @selfCursor)
-    this.lock_editor_propagation = false
+    @lock_editor_propagation = false
 
   # describe how to propagate yjs events to the editor
   # TODO: should be private!
@@ -117,10 +118,10 @@ class YRichText extends BaseClass
     # update the editor when something on the $cursors happens
     ###
     @_get("cursors").observe (events)=>
-      if this.lock_editor_propagation
+      if @lock_editor_propagation
         # break, if lock is on
         return
-      this.lock_editor_propagation = true
+      @lock_editor_propagation = true
       for event in events
         id = event.name
         index = event.object.val(event.name).getPosition()
@@ -129,14 +130,15 @@ class YRichText extends BaseClass
 
         @editor.setCursor id, index, text, color
       this.lock_editor_propagation = false
+      @lock_editor_propagation = false
     ###
 
     # update the editor when something on the $characters happens
     @_get("characters").observe (events)=>
-      if this.lock_editor_propagation
+      if @lock_editor_propagation
         # break, if lock is on
         return
-      this.lock_editor_propagation = true
+      @lock_editor_propagation = true
       for event in events
         delta =
           ops: [{retain: event.position}]
@@ -148,14 +150,14 @@ class YRichText extends BaseClass
           delta.ops.push {delete: 1}
 
         @editor.updateContents delta
-      this.lock_editor_propagation = false
+      @lock_editor_propagation = false
 
     # update the editor when something on the $selections happens
     @_get("selections").observe (event)=>
-      if this.lock_editor_propagation
+      if @lock_editor_propagation
         # break, if lock is on
         return
-      this.lock_editor_propagation = true
+      @lock_editor_propagation = true
 
       attrs = {}
       if event.type is "select"
@@ -172,7 +174,7 @@ class YRichText extends BaseClass
           {retain: selection_length, attributes: attrs}
         ]
 
-      this.lock_editor_propagation = false
+      @lock_editor_propagation = false
 
   # Apply a delta and return the new position
   # @param delta [Object] a *single* delta (see ot-types for more info)

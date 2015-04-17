@@ -7,13 +7,18 @@ var quill = new Quill('#editor', {
 });
 quill.addModule('toolbar', { container: '#toolbar' });
 
-window.connector = new Y.XMPP().join('myprivatequill');
+window.connector = new Y.WebRTC('quilllll');
+
 connector.debug = true;
 window.y = new Y(connector);
 
 y.observe(function(events){
     for(i in events){
         if(events[i].name === 'editor'){
+            // TODO delete!
+            if(y.val('editor')._model.val("selections") == null){
+              return
+            }
             y.val('editor').bind('QuillJs', quill);
         }
     }
