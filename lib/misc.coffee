@@ -2,7 +2,7 @@ class Locker
   constructor: () ->
     @is_locked = false
 
-  try: (fun, args...) ->
+  try: (args..., fun) ->
     if @is_locked
       return
 
