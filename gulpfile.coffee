@@ -26,7 +26,7 @@ gulp.task 'default', ['build_browser']
 
 files =
   lib : ['./lib/**/*.coffee']
-  browser : ['./lib/y-richtext.coffee']
+  browser : ['./lib/y-rte.coffee']
   test : ['./test/**/*-test.coffee']
   gulp : ['./gulpfile.coffee']
   examples : ['./examples/**/*.js']
@@ -119,8 +119,13 @@ gulp.task 'phantom_test', ['build_browser'], ()->
     .pipe mochaPhantomJS()
 
 gulp.task 'clean', ->
-  gulp.src ['./build/{browser,test,node}/**/*.{js,map}','./doc/'], { read: false }
+  gulp.src ['./build/{browser,test,node}/**/*.{js,map}','./doc/','./lib/*.js'], { read: false }
     .pipe rimraf()
+
+gulp.task 'mocha', [], ->
+  gulp.src files.test, { read: true }
+    .pipe mocha {reporter : 'spec'}
+    #.pipe exit()
 
 gulp.task 'test', ['mocha'], ->
   gulp.watch files.all, ['mocha']
