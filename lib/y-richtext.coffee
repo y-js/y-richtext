@@ -1,5 +1,5 @@
 BaseClass = (require "./misc.coffee").BaseClass
-locker = (require "./misc.coffee").locker
+Locker = (require "./misc.coffee").Locker
 Editors = (require "./editors.coffee")
 # All dependencies (like Y.Selections) to other types (that have its own
 # repository) should  be included by the user (in order to reduce the amount of
@@ -83,11 +83,10 @@ class YRichText extends BaseClass
 
   # pass deltas to the character instance
   # @param deltas [Array<Object>] an array of deltas (see ot-types for more info)
-  passDeltas : (deltas) => # TODO: don't bind to $this
-    locker @, deltas, (deltas) =>
-      position = 0
-      for delta in deltas.ops
-        position = @deltaHelper delta, position
+  passDeltas : (deltas) => @locker.try deltas, (deltas) =>
+    position = 0
+    for delta in deltas.ops
+      position = @deltaHelper delta, position
 
   # @override updateCursorPosition(index)
   #   update the position of our cursor to the new one using an index
@@ -95,19 +94,18 @@ class YRichText extends BaseClass
   # @override updateCursorPosition(character)
   #   update the position of our cursor to the new one using a character
   #   @param character [Character] the new character
-  updateCursorPosition : (obj) =>
-    locker @, obj, (obj) =>
-      if typeof obj == "number"
-        @selfCursor = (@_get "characters").ref(obj)
-      else
-        @selfCursor = obj
-      (@_get "cursors").val(@_model.HB.getUserId(), @selfCursor)
+  updateCursorPosition : (obj) => @locker.try obj, (obj) =>
+    if typeof obj == "number"
+      @selfCursor = (@_get "characters").ref(obj)
+    else
+      @selfCursor = obj
+    (@_get "cursors").val(@_model.HB.getUserId(), @selfCursor)
 
   # describe how to propagate yjs events to the editor
   # TODO: should be private!
   bindEventsToEditor : (editor) ->
     # update the editor when something on the $characters happens
-    @_get("characters").observe (events) => locker @, events, (events) =>
+    @_get("characters").observe (events) => @locker.try events, (events) =>
       for event in events
         delta =
           ops: [{retain: event.position}]
@@ -121,7 +119,7 @@ class YRichText extends BaseClass
         @editor.updateContents delta
 
     # update the editor when something on the $selections happens
-    @_get("selections").observe (event)=> locker @, event, (event) =>
+    @_get("selections").observe (event)=> @locker.try event, (event) =>
       attrs = {}
       if event.type is "select"
         for attr,val of event.attrs
@@ -138,7 +136,7 @@ class YRichText extends BaseClass
         ]
 
     # update the editor when the cursor is moved
-    @_get("cursors").observe (events) => locker @, events, (events) =>
+    @_get("cursors").observe (events) => @locker.try events, (events) =>
       for event in events
         author = event.changedBy
         position = event.object.val(author)

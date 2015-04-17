@@ -1,9 +1,10 @@
-locker = (require "./misc.coffee").locker
+Locker = (require "./misc.coffee").Locker
 # a generic editor class
 class Editor
   # create an editor instance
   # @param instance [Editor] the editor object
   constructor: (@editor) ->
+    @locker = new Locker()
 
   # get the current content as a ot-delta
   getContents: ()-> throw new Error "Implement me"
@@ -48,16 +49,16 @@ class QuillJs extends Editor
   getContents: ()->
     @editor.getContents()
 
-  setCursor: (param) -> locker @, param, (param) =>
+  setCursor: (param) -> @locker.try param, (param) =>
     @_cursors.setCursor param.id, param.index, param.text, param.color
 
-  observeLocalText: (backend) -> locker @, backend, (backend) =>
+  observeLocalText: (backend) -> @locker.try backend, (backend) =>
     @editor.on "text-change", (deltas, source) ->
       # call the backend with deltas
       backend deltas
       console.log deltas
 
-  observeLocalCursor: (backend) -> locker @, backend, (backend) =>
+  observeLocalCursor: (backend) -> @locker.try backend, (backend) =>
     @editor.on "selection-change", (range, source) ->
       if range and range.start == range.end
         backend range.start
