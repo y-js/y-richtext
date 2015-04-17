@@ -1,3 +1,4 @@
+locker = (require "./misc.coffee").locker
 # a generic editor class
 class Editor
   # create an editor instance
@@ -47,16 +48,16 @@ class QuillJs extends Editor
   getContents: ()->
     @editor.getContents()
 
-  setCursor: (param) ->
+  setCursor: (param) -> locker @, param, (param) =>
     @_cursors.setCursor param.id, param.index, param.text, param.color
 
-  observeLocalText: (backend) ->
+  observeLocalText: (backend) -> locker @, backend, (backend) =>
     @editor.on "text-change", (deltas, source) ->
       # call the backend with deltas
       backend deltas
       console.log deltas
 
-  observeLocalCursor: (backend) ->
+  observeLocalCursor: (backend) -> locker @, backend, (backend) =>
     @editor.on "selection-change", (range, source) ->
       if source == 'api'
         # only when there's a cursor (range start === range end)
@@ -67,7 +68,7 @@ class QuillJs extends Editor
         backend range.start
         console.log range.start
 
-  updateContents: (delta) ->
+  updateContents: (delta) -> locker @, delta, (delta) =>
     @editor.updateContents delta
 
 exports.QuillJs = QuillJs
