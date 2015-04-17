@@ -12,13 +12,12 @@ chai.config.includeStack = true
 Y = require '../../yjs/lib/y.coffee'
 Connector = require '../../y-test/lib/y-test.coffee'
 Y.RichText = require '../lib/y-richtext.coffee'
-TestEditor = (require '../lib/editor-abstraction.coffee').TestEditor
+Y.Selections = require '../../y-selections/lib/y-selections.coffee'
+Y.List = require '../../y-list/lib/y-list.coffee'
+TestEditor = (require '../lib/editors.coffee').TestEditor
 
 print = (richText) ->
-  value = ""
-  for el in richText._get("characters").val()
-    value += el.val('char')
-  return value
+  return richText._get("characters").val().join("")
 
 describe 'deltas', ->
   richText = null
@@ -27,7 +26,7 @@ describe 'deltas', ->
       con = new Connector "abc"
       y = new Y con
       editor = new TestEditor()
-      y.val("test", new Y.RichText(editor))
+      y.val("test", new Y.RichText("TestEditor", null))
       y.val("test"))()
 
   it 'insertion', ->

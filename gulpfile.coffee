@@ -1,9 +1,9 @@
-gulp = require('gulp')
-coffee = require('gulp-coffee')
-concat = require('gulp-concat')
+gulp = require 'gulp'
+coffee = require 'gulp-coffee'
+concat = require 'gulp-concat'
 uglify = require 'gulp-uglify'
-sourcemaps = require('gulp-sourcemaps')
-browserify = require('gulp-browserify')
+sourcemaps = require 'gulp-sourcemaps'
+browserify = require 'gulp-browserify'
 rename = require 'gulp-rename'
 rimraf = require 'gulp-rimraf'
 gulpif = require 'gulp-if'
@@ -19,12 +19,14 @@ mochaPhantomJS = require 'gulp-mocha-phantomjs'
 cache = require 'gulp-cached'
 coffeeify = require 'gulp-coffeeify'
 exit = require 'gulp-exit'
+notify = require 'gulp-notify'
+coveralls = require 'gulp-coveralls'
 
 gulp.task 'default', ['build_browser']
 
 files =
   lib : ['./lib/**/*.coffee']
-  browser : ['./lib/y-richtext.coffee']
+  browser : ['./lib/y-rte.coffee']
   test : ['./test/**/*-test.coffee']
   gulp : ['./gulpfile.coffee']
   examples : ['./examples/**/*.js']
@@ -81,7 +83,10 @@ gulp.task 'watch', ['build'], ->
 
 gulp.task 'mocha', ->
   gulp.src files.test, { read: false }
-    .pipe mocha {reporter : 'list'}
+    .pipe mocha
+      reporter : 'list'
+      compilers:
+        coffee: 'coffee-script/register'
     .pipe exit()
 
 gulp.task 'lint', ->
@@ -114,7 +119,7 @@ gulp.task 'phantom_test', ['build_browser'], ()->
     .pipe mochaPhantomJS()
 
 gulp.task 'clean', ->
-  gulp.src ['./build/{browser,test,node}/**/*.{js,map}','./doc/'], { read: false }
+  gulp.src ['./build/{browser,test,node}/**/*.{js,map}','./doc/','./lib/*.js'], { read: false }
     .pipe rimraf()
 
 gulp.task 'mocha', [], ->
@@ -124,6 +129,19 @@ gulp.task 'mocha', [], ->
 
 gulp.task 'test', ['mocha'], ->
   gulp.watch files.all, ['mocha']
+
+gulp.task 'generate_report', ->
+  command = './node_modules/mocha/bin/mocha -r blanket
+    --compilers coffee:coffee-script/register
+    --reporter mocha-lcov-reporter > lcov.report'
+  run(command).exec()
+
+gulp.task 'coveralls', ['generate_report'], ->
+  gulp.src 'lcov.report'
+    .pipe coveralls()
+    .pipe exit()
+
+gulp.task 'travis', ['mocha', 'coveralls'], ->
 
 
 gulp.task 'default', ['clean','build'], ->

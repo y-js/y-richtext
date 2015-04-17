@@ -1,3 +1,5 @@
+(require "blanket")({})
+
 BaseClass = (require "./misc.coffee").BaseClass
 Editors = (require "./editors.coffee")
 # All dependencies (like Y.Selections) to other types (that have its own
@@ -28,7 +30,7 @@ class YRichText extends BaseClass
     if Editor?
       @editor = new Editor editor_instance
 
-      # TODO: parse the following directly from $characters+$selections (in O(n))
+      # TODO: parse the following directly from $characters+$selections(in O(n))
       this.editor.editor.deleteText(0, this.editor.editor.getText().length)
       @editor.updateContents
         ops: [{insert: @_get("characters").val().join("")}]
@@ -89,7 +91,7 @@ class YRichText extends BaseClass
       return
     this.lock_editor_propagation = true
     position = 0
-    for delta in deltas.ops
+    for delta in deltas
       position = @deltaHelper delta, position
     this.lock_editor_propagation = false
 
