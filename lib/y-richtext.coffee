@@ -87,7 +87,7 @@ class YRichText extends BaseClass
   passDeltas : (deltas) => @locker.try deltas, (deltas) =>
     position = 0
     for delta in deltas.ops
-      position = @deltaHelper delta, position
+      position = deltaHelper @, delta, position
 
   # @override updateCursorPosition(index)
   #   update the position of our cursor to the new one using an index
@@ -154,9 +154,10 @@ class YRichText extends BaseClass
   # @param position [Integer] start position for the delta, default: 0
   #
   # @return [Integer] the position of the cursor after parsing the delta
-  deltaHelper= (delta, position = 0) =>
+  deltaHelper = (thisObj, delta, position = 0) ->
     if delta?
-      selections = (@_get "selections")
+      console.log thisObj._get
+      selections = (thisObj._get "selections")
       delta_unselections = []
       delta_selections = {}
       for n,v of delta.attributes
@@ -166,41 +167,41 @@ class YRichText extends BaseClass
           delta_unselections.push n
 
       if delta.insert?
-        @insertHelper position, delta.insert
-        from = @_get("characters").ref(position)
-        to = @_get("characters").ref(position+delta.insert.length)
-        @_get("selections").select from, to, delta_selections
-        @_get("selections").unselect from, to, delta_unselections
+        insertHelper thisObj, position, delta.insert
+        from = thisObj._get("characters").ref(position)
+        to = thisObj._get("characters").ref(position+delta.insert.length)
+        thisObj._get("selections").select from, to, delta_selections
+        thisObj._get("selections").unselect from, to, delta_unselections
 
         return position + delta.insert.length
 
       else if delta.delete?
-        @deleteHelper position, delta.delete
+        deleteHelper thisObj, position, delta.delete
         return position
 
       else if delta.retain?
         retain = parseInt delta.retain
-        from = @_get("characters").ref(position)
-        to = @_get("characters").ref(position + retain)
+        from = thisObj._get("characters").ref(position)
+        to = thisObj._get("characters").ref(position + retain)
 
-        @_get("selections").select from, to, delta_selections
-        @_get("selections").unselect from, to, delta_unselections
+        thisObj._get("selections").select from, to, delta_selections
+        thisObj._get("selections").unselect from, to, delta_unselections
 
         return position + retain
       throw new Error "This part of code must not be reached!"
 
-  insertHelper= (position, content) =>
+  insertHelper = (thisObj, position, content) ->
     as_array =
       if typeof content == "string"
         content.split("")
       else if typeof content == "number"
         [content]
     if as_array?
-      @_get("characters").insertContents position, as_array
+      thisObj._get("characters").insertContents position, as_array
 
-  deleteHelper= (position, length = 1) =>
+  deleteHelper = (thisObj, position, length = 1) ->
     console.log "deleteHelper"
-    (@_get "characters").delete position, length
+    (thisObj._get "characters").delete position, length
 
 if window?
   if window.Y?
