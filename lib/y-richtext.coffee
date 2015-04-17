@@ -13,6 +13,7 @@ class YRichText extends BaseClass
   # @param editor [Editor] an editor instance
   # @param author [String] the name of the local author
   constructor: () ->
+    @locker = new Locker()
     # TODO: generate a UID (you can get a unique id by calling
     # `@_model.getUid()` - is this what you mean?)
     # @author = author

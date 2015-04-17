@@ -64,7 +64,7 @@ class QuillJs extends Editor
         backend range.start
         console.log range.start
 
-  updateContents: (delta) -> locker @, delta, (delta) =>
+  updateContents: (delta) -> @locker.try delta, (delta) =>
     @editor.updateContents delta
 
 exports.QuillJs = QuillJs
