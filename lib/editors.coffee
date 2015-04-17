@@ -49,21 +49,21 @@ class QuillJs extends Editor
   getContents: ()->
     @editor.getContents()
 
-  setCursor: (param) -> @locker.try param, (param) =>
+  setCursor: (param) -> @locker.try ()=>
     @_cursors.setCursor param.id, param.index, param.text, param.color
 
-  observeLocalText: (backend) -> @locker.try backend, (backend) =>
-    @editor.on "text-change", (deltas, source) ->
+  observeLocalText: (backend)->
+    @editor.on "text-change", (deltas, source)->
       # call the backend with deltas
-      backend deltas
+      backend deltas.ops
 
-  observeLocalCursor: (backend) -> @locker.try backend, (backend) =>
-    @editor.on "selection-change", (range, source) ->
+  observeLocalCursor: (backend) ->
+    @editor.on "selection-change", (range, source)->
       if range and range.start == range.end
         backend range.start
         console.log range.start
 
-  updateContents: (delta) -> @locker.try delta, (delta) =>
+  updateContents: (delta)->
     @editor.updateContents delta
 
 class TestEditor extends Editor

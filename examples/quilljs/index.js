@@ -6,7 +6,7 @@ var quill = new Quill('#editor', {
     theme: 'snow'
 });
 quill.addModule('toolbar', { container: '#toolbar' });
-window.connector = new Y.XMPP().join('sqfjqsmdlkjrhguemslkfjmlsdkjf');
+window.connector = new Y.WebRTC('sqfjqsmdlkjrhguemslkfjmlsdkjf');
 /* window.connector = new Y.WebRTC('sqfjqsmdlkjrhguemslkfjmlsdkjf',
     {url: 'http://localhost:8888'}); */
 // connector.debug = true;
@@ -17,7 +17,7 @@ y.observe (function (events) {
         if(events[i].name === 'editor'){
             // TODO delete!
             if(y.val('editor')._model.val("selections") == null){
-              return
+              throw new Error("don't get here!");
             }
             y.val('editor').bind('QuillJs', quill);
         }

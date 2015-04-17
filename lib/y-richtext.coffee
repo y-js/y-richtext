@@ -85,7 +85,7 @@ class YRichText extends BaseClass
 
   # pass deltas to the character instance
   # @param deltas [Array<Object>] an array of deltas (see ot-types for more info)
-  passDeltas : (deltas) => @locker.try deltas, (deltas) =>
+  passDeltas : (deltas) => @locker.try ()=>
     position = 0
     for delta in deltas
       position = deltaHelper @, delta, position
@@ -96,7 +96,7 @@ class YRichText extends BaseClass
   # @override updateCursorPosition(character)
   #   update the position of our cursor to the new one using a character
   #   @param character [Character] the new character
-  updateCursorPosition : (obj) => @locker.try obj, (obj) =>
+  updateCursorPosition : (obj) => @locker.try ()=>
     if typeof obj is "number"
       @selfCursor = (@_get "characters").ref(obj)
     else
@@ -107,7 +107,7 @@ class YRichText extends BaseClass
   # TODO: should be private!
   bindEventsToEditor : (editor) ->
     # update the editor when something on the $characters happens
-    @_get("characters").observe (events) => @locker.try events, (events) =>
+    @_get("characters").observe (events) => @locker.try ()=>
       for event in events
         delta =
           ops: [{retain: event.position}]
@@ -121,7 +121,7 @@ class YRichText extends BaseClass
         @editor.updateContents delta
 
     # update the editor when something on the $selections happens
-    @_get("selections").observe (event)=> @locker.try event, (event) =>
+    @_get("selections").observe (event)=> @locker.try ()=>
       attrs = {}
       if event.type is "select"
         for attr,val of event.attrs
@@ -138,7 +138,7 @@ class YRichText extends BaseClass
         ]
 
     # update the editor when the cursor is moved
-    @_get("cursors").observe (events) => @locker.try events, (events) =>
+    @_get("cursors").observe (events)=> @locker.try ()=>
       for event in events
         author = event.changedBy
         position = event.object.val(author)
