@@ -1,3 +1,11 @@
+locker = (_this, params..., fun) ->
+  if _this.locker
+    return
+  else
+    _this.locker = true
+    ret = fun params...
+    _this.locker = false
+    return ret
 
 # a basic class with generic getter / setter function
 class BaseClass
@@ -33,3 +41,4 @@ class BaseClass
 
 if module?
   exports.BaseClass = BaseClass
+  exports.locker = locker
