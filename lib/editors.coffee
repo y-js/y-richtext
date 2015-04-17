@@ -54,11 +54,18 @@ class QuillJs extends Editor
     @editor.on "text-change", (deltas, source) ->
       # call the backend with deltas
       backend deltas
+      console.log deltas
 
   observeLocalCursor: (backend) ->
-    @editor.on "selection-change", (range) ->
-      # only when there's a cursor (range start === range end)
-      if range and range.start == range.end then backend range.start
+    @editor.on "selection-change", (range, source) ->
+      if source == 'api'
+        # only when there's a cursor (range start === range end)
+        console.log "changed by backend"
+      else
+        console.log "changed by user"
+      if range and range.start == range.end
+        backend range.start
+        console.log range.start
 
   updateContents: (delta) ->
     @editor.updateContents delta

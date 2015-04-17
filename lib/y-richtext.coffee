@@ -105,7 +105,7 @@ class YRichText extends BaseClass
       # break, if lock is on
       return
     @lock_editor_propagation = true
-    if typeof obj == "number"
+    if typeof obj is "number"
       @selfCursor = (@_get "characters").ref(obj)
     else
       @selfCursor = obj
@@ -143,10 +143,10 @@ class YRichText extends BaseClass
         delta =
           ops: [{retain: event.position}]
 
-        if event.type == "insert"
+        if event.type is "insert"
           delta.ops.push {insert: event.value}
 
-        else if event.type == "delete"
+        else if event.type is "delete"
           delta.ops.push {delete: 1}
 
         @editor.updateContents delta
@@ -176,12 +176,32 @@ class YRichText extends BaseClass
 
       @lock_editor_propagation = false
 
+    # update the editor when the cursor is moved
+    @_get("cursors").observe (events)=>
+      if this.lock_editor_propagation
+        # break, if lock is on
+        return
+      this.lock_editor_propagation = true
+
+      for event in events
+        author = event.changedBy
+        position = event.object.val(author)
+        if position != null
+          params =
+            id: author
+            index: event.object.val(author).getPosition()
+            text: author
+            color: "grey"
+          @editor.setCursor params
+
+      this.lock_editor_propagation = false
+
   # Apply a delta and return the new position
   # @param delta [Object] a *single* delta (see ot-types for more info)
   # @param position [Integer] start position for the delta, default: 0
   #
   # @return [Integer] the position of the cursor after parsing the delta
-  deltaHelper : (delta, position = 0) ->
+  deltaHelper= (delta, position = 0) =>
     if delta?
       selections = (@_get "selections")
       delta_unselections = []
@@ -216,11 +236,17 @@ class YRichText extends BaseClass
         return position + retain
       throw new Error "This part of code must not be reached!"
 
-  insertHelper : (position, content) ->
-    if content?
-      @_get("characters").insertContents position, content.split("") # convert content to an array
+  insertHelper= (position, content) =>
+    as_array =
+      if typeof content is "string"
+        content.split("")
+      else if typeof content is "number"
+        [content]
+    if as_array?
+      @_get("characters").insertContents position, as_array
 
-  deleteHelper : (position, length = 1) ->
+  deleteHelper= (position, length = 1) =>
+    console.log "deleteHelper"
     (@_get "characters").delete position, length
 
 if window?
