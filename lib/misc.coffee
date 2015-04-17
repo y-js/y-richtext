@@ -39,6 +39,7 @@ class BaseClass
       @_model = new Operation.MapManager(@).execute()
       for key, value of @_tmp_model
         @_model.val(key, value)
+    @_model
 
   _setModel: (@_model)->
     delete @_tmp_model

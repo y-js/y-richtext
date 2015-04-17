@@ -30,15 +30,16 @@ class YRichText extends BaseClass
       @editor = new Editor editor_instance
 
       # TODO: parse the following directly from $characters+$selections (in O(n))
-      this.editor.editor.deleteText(0, this.editor.editor.getText().length)
+      @editor.editor.deleteText(0, @editor.editor.getText().length)
       @editor.updateContents
         ops: [{insert: @_get("characters").val().join("")}]
       # transform Y.Selections.getSelections() to a delta
       expected_pos = 0
-      selections = []
+      selections = [] # we will apply these selections on quill (therefore they have to be transformed)
       for sel in @_get("selections").getSelections(@_get("characters"))
         selection_length = sel.to - sel.from
         if expected_pos isnt sel.from
+          # There is unselected text. $retain to the next selection
           selections.push
             retain: sel.from-expected_pos
         selections.push
@@ -86,7 +87,7 @@ class YRichText extends BaseClass
   # @param deltas [Array<Object>] an array of deltas (see ot-types for more info)
   passDeltas : (deltas) => @locker.try deltas, (deltas) =>
     position = 0
-    for delta in deltas.ops
+    for delta in deltas
       position = deltaHelper @, delta, position
 
   # @override updateCursorPosition(index)
@@ -96,7 +97,7 @@ class YRichText extends BaseClass
   #   update the position of our cursor to the new one using a character
   #   @param character [Character] the new character
   updateCursorPosition : (obj) => @locker.try obj, (obj) =>
-    if typeof obj == "number"
+    if typeof obj is "number"
       @selfCursor = (@_get "characters").ref(obj)
     else
       @selfCursor = obj
@@ -111,10 +112,10 @@ class YRichText extends BaseClass
         delta =
           ops: [{retain: event.position}]
 
-        if event.type == "insert"
+        if event.type is "insert"
           delta.ops.push {insert: event.value}
 
-        else if event.type == "delete"
+        else if event.type is "delete"
           delta.ops.push {delete: 1}
 
         @editor.updateContents delta
@@ -156,7 +157,6 @@ class YRichText extends BaseClass
   # @return [Integer] the position of the cursor after parsing the delta
   deltaHelper = (thisObj, delta, position = 0) ->
     if delta?
-      console.log thisObj._get
       selections = (thisObj._get "selections")
       delta_unselections = []
       delta_selections = {}
@@ -192,15 +192,14 @@ class YRichText extends BaseClass
 
   insertHelper = (thisObj, position, content) ->
     as_array =
-      if typeof content == "string"
+      if typeof content is "string"
         content.split("")
-      else if typeof content == "number"
+      else if typeof content is "number"
         [content]
     if as_array?
       thisObj._get("characters").insertContents position, as_array
 
   deleteHelper = (thisObj, position, length = 1) ->
-    console.log "deleteHelper"
     (thisObj._get "characters").delete position, length
 
 if window?
