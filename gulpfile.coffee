@@ -1,10 +1,9 @@
-gulp = require('gulp')
-coffee = require('gulp-coffee')
-require 'coffee-script/register'
-concat = require('gulp-concat')
+gulp = require 'gulp'
+coffee = require 'gulp-coffee'
+concat = require 'gulp-concat'
 uglify = require 'gulp-uglify'
-sourcemaps = require('gulp-sourcemaps')
-browserify = require('gulp-browserify')
+sourcemaps = require 'gulp-sourcemaps'
+browserify = require 'gulp-browserify'
 rename = require 'gulp-rename'
 rimraf = require 'gulp-rimraf'
 gulpif = require 'gulp-if'
