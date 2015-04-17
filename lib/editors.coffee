@@ -63,4 +63,24 @@ class QuillJs extends Editor
   updateContents: (delta) ->
     @editor.updateContents delta
 
+class TestEditor extends Editor
+  constructor: (@editor) ->
+    super
+
+  getCursorPosition: ->
+    0
+  getContents: () ->
+    ops: [{insert: "Well, this is a test!"}
+      {insert: "And I'm bold…", attributes: {bold:true}}]
+  setCursor: () ->
+    ""
+  observeLocalText:(backend) ->
+    ""
+  observeLocalCursor: (backend) ->
+    ""
+
+  updateContents: (delta) ->
+    ""
+
 exports.QuillJs = QuillJs
+exports.TestEditor = TestEditor

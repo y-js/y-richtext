@@ -1,3 +1,5 @@
+(require "blanket")({})
+
 BaseClass = (require "./misc.coffee").BaseClass
 Editors = (require "./editors.coffee")
 # All dependencies (like Y.Selections) to other types (that have its own
@@ -90,7 +92,7 @@ class YRichText extends BaseClass
       return
     @lock_editor_propagation = true
     position = 0
-    for delta in deltas.ops
+    for delta in deltas
       position = @deltaHelper delta, position
     @lock_editor_propagation = false
 
