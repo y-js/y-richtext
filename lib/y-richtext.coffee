@@ -32,11 +32,11 @@ class YRichText extends BaseClass
       # TODO: parse the following directly from $characters+$selections (in O(n))
       @editor.editor.deleteText(0, @editor.editor.getText().length)
       @editor.updateContents
-        ops: [{insert: @_get("characters").val().join("")}]
+        ops: [{insert: @_model.getContent("characters").val().join("")}]
       # transform Y.Selections.getSelections() to a delta
       expected_pos = 0
       selections = [] # we will apply these selections on quill (therefore they have to be transformed)
-      for sel in @_get("selections").getSelections(@_get("characters"))
+      for sel in @_model.getContent("selections").getSelections(@_model.getContent("characters"))
         selection_length = sel.to - sel.from
         if expected_pos isnt sel.from
           # There is unselected text. $retain to the next selection
@@ -59,11 +59,14 @@ class YRichText extends BaseClass
 
   _getModel: (Y, Operation) ->
     if not @_model?
-      super
-
-      @_set "selections", new Y.Selections()
-      @_set "characters", new Y.List()
-      @_set "cursors", new Y.Object()
+      # we save this stuff as _static_ content now.
+      # Therefore, you can't overwrite it, after you once saved it.
+      # But on the upside, we can always make sure, that they are defined!
+      content_operations =
+        selections: new Y.Selections()
+        characters: new Y.List()
+        cursors: new Y.Object()
+      @_model = new Operation.MapManager(@, null, {}, content_operations ).execute()
 
       @_setModel @_model
 
@@ -79,8 +82,8 @@ class YRichText extends BaseClass
   # insert our own cursor in the cursors object
   # @param position [Integer] the position where to insert it
   setCursor : (position) ->
-    @selfCursor = (@_get "characters").ref(position)
-    (@_get "cursors").val(@_model.HB.getUserId(), @selfCursor)
+    @selfCursor = @_model.getContent("characters").ref(position)
+    @_model.getContent("cursors").val(@_model.HB.getUserId(), @selfCursor)
 
 
   # pass deltas to the character instance
@@ -98,16 +101,16 @@ class YRichText extends BaseClass
   #   @param character [Character] the new character
   updateCursorPosition : (obj) => @locker.try ()=>
     if typeof obj is "number"
-      @selfCursor = (@_get "characters").ref(obj)
+      @selfCursor = @_model.getContent("characters").ref(obj)
     else
       @selfCursor = obj
-    (@_get "cursors").val(@_model.HB.getUserId(), @selfCursor)
+    @_model.getContent("cursors").val(@_model.HB.getUserId(), @selfCursor)
 
   # describe how to propagate yjs events to the editor
   # TODO: should be private!
   bindEventsToEditor : (editor) ->
     # update the editor when something on the $characters happens
-    @_get("characters").observe (events) => @locker.try ()=>
+    @_model.getContent("characters").observe (events) => @locker.try ()=>
       for event in events
         delta =
           ops: [{retain: event.position}]
@@ -121,7 +124,7 @@ class YRichText extends BaseClass
         @editor.updateContents delta
 
     # update the editor when something on the $selections happens
-    @_get("selections").observe (event)=> @locker.try ()=>
+    @_model.getContent("selections").observe (event)=> @locker.try ()=>
       attrs = {}
       if event.type is "select"
         for attr,val of event.attrs
@@ -138,7 +141,7 @@ class YRichText extends BaseClass
         ]
 
     # update the editor when the cursor is moved
-    @_get("cursors").observe (events)=> @locker.try ()=>
+    @_model.getContent("cursors").observe (events)=> @locker.try ()=>
       for event in events
         author = event.changedBy
         position = event.object.val(author)
@@ -157,7 +160,7 @@ class YRichText extends BaseClass
   # @return [Integer] the position of the cursor after parsing the delta
   deltaHelper = (thisObj, delta, position = 0) ->
     if delta?
-      selections = (thisObj._get "selections")
+      selections = thisObj._model.getContent("selections")
       delta_unselections = []
       delta_selections = {}
       for n,v of delta.attributes
@@ -168,10 +171,10 @@ class YRichText extends BaseClass
 
       if delta.insert?
         insertHelper thisObj, position, delta.insert
-        from = thisObj._get("characters").ref(position)
-        to = thisObj._get("characters").ref(position+delta.insert.length)
-        thisObj._get("selections").select from, to, delta_selections
-        thisObj._get("selections").unselect from, to, delta_unselections
+        from = thisObj._model.getContent("characters").ref(position)
+        to = thisObj._model.getContent("characters").ref(position+delta.insert.length)
+        thisObj._model.getContent("selections").select from, to, delta_selections
+        thisObj._model.getContent("selections").unselect from, to, delta_unselections
 
         return position + delta.insert.length
 
@@ -181,11 +184,11 @@ class YRichText extends BaseClass
 
       else if delta.retain?
         retain = parseInt delta.retain
-        from = thisObj._get("characters").ref(position)
-        to = thisObj._get("characters").ref(position + retain)
+        from = thisObj._model.getContent("characters").ref(position)
+        to = thisObj._model.getContent("characters").ref(position + retain)
 
-        thisObj._get("selections").select from, to, delta_selections
-        thisObj._get("selections").unselect from, to, delta_unselections
+        thisObj._model.getContent("selections").select from, to, delta_selections
+        thisObj._model.getContent("selections").unselect from, to, delta_unselections
 
         return position + retain
       throw new Error "This part of code must not be reached!"
@@ -197,10 +200,10 @@ class YRichText extends BaseClass
       else if typeof content is "number"
         [content]
     if as_array?
-      thisObj._get("characters").insertContents position, as_array
+      thisObj._model.getContent("characters").insertContents position, as_array
 
   deleteHelper = (thisObj, position, length = 1) ->
-    (thisObj._get "characters").delete position, length
+    thisObj._model.getContent("characters").delete position, length
 
 if window?
   if window.Y?

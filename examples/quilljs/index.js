@@ -15,10 +15,6 @@ window.y = new Y(connector);
 y.observe (function (events) {
     for (i in events){
         if(events[i].name === 'editor'){
-            // TODO delete!
-            if(y.val('editor')._model.val("selections") == null){
-              throw new Error("don't get here!");
-            }
             y.val('editor').bind('QuillJs', quill);
         }
     }
