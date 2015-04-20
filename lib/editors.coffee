@@ -35,6 +35,9 @@ class Editor
   # @see https://github.com/ottypes/rich-text
   updateContents: (delta) -> throw new Error "Implement me"
 
+  # Return the length of the text
+  getLength:() -> throw new Error "Implement me"
+
 class QuillJs extends Editor
   constructor: (@editor) ->
     super @editor
@@ -79,6 +82,9 @@ class QuillJs extends Editor
 
   updateContents: (delta)->
     @editor.updateContents delta
+
+  getLength:() ->
+    @editor.getLength()
 
 class TestEditor extends Editor
   constructor: (@editor) ->
