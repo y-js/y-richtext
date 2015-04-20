@@ -21,7 +21,7 @@ TestEditor = (require '../lib/editors.coffee').TestEditor
 
 
 print = (richText) ->
-  return richText._get("characters").val().join("")
+  return richText._model.getContent("characters").val().join("")
 
 describe 'deltas', ->
   richText = null

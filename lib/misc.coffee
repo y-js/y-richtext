@@ -2,12 +2,12 @@ class Locker
   constructor: () ->
     @is_locked = false
 
-  try: (args..., fun) ->
+  try: (fun) ->
     if @is_locked
       return
 
     @is_locked = true
-    ret = fun args...
+    ret = do fun
     @is_locked = false
     return ret
 

@@ -40,7 +40,7 @@
   "bugs": {
     "url": "https://github.com/y-js/y-richtext/issues"
   },
-  "homepage": "y-js.org",
+  "homepage": "http://y-js.org",
   "devDependencies": {
     "codo": "^2.0.9",
     "coffee-errors": "~0.8.6",
