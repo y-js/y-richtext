@@ -145,10 +145,10 @@ class YRichText extends BaseClass
       for event in events
         author = event.changedBy
         position = event.object.val(author)
-        if position != null
+        if position?
           params =
             id: author
-            index: event.object.val(author).getPosition()
+            index: position
             text: author
             color: "grey"
           @editor.setCursor params
