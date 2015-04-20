@@ -55,7 +55,7 @@ class QuillJs extends Editor
   observeLocalText: (backend) -> @locker.try backend, (backend) =>
     @editor.on "text-change", (deltas, source) ->
       # call the backend with deltas
-      backend deltas
+      backend deltas.ops
 
   observeLocalCursor: (backend) -> @locker.try backend, (backend) =>
     @editor.on "selection-change", (range, source) ->
