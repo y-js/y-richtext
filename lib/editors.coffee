@@ -1,10 +1,11 @@
-Locker = (require "./misc.coffee").Locker
+misc = (require "./misc.coffee")
+
 # a generic editor class
 class Editor
   # create an editor instance
   # @param instance [Editor] the editor object
   constructor: (@editor) ->
-    @locker = new Locker()
+    @locker = new misc.Locker()
 
   # get the current content as a ot-delta
   getContents: ()-> throw new Error "Implement me"

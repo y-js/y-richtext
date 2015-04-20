@@ -1,5 +1,6 @@
-BaseClass = (require "./misc.coffee").BaseClass
-Locker = (require "./misc.coffee").Locker
+misc = (require "./misc.coffee")
+BaseClass = misc.BaseClass
+Locker = misc.Locker
 Editors = (require "./editors.coffee")
 # All dependencies (like Y.Selections) to other types (that have its own
 # repository) should  be included by the user (in order to reduce the amount of
