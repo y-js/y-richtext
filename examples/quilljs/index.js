@@ -22,6 +22,6 @@ y.observe (function (events) {
 
 connector.whenSynced(function(){
     if(y.val('editor') == null){
-        y.val('editor', new Y.RichText());
+        y.val('editor', new Y.RichText("QuillJs", quill));
     }
 });

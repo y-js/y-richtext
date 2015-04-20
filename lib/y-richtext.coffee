@@ -12,8 +12,14 @@ class YRichText extends BaseClass
   # @param content [String] an initial string
   # @param editor [Editor] an editor instance
   # @param author [String] the name of the local author
-  constructor: () ->
+  constructor: (editor_name, editor_instance) ->
     @locker = new Locker()
+
+    if editor_name? and editor_instance?
+      @_bind_later =
+        name: editor_name
+        instance: editor_instance
+
     # TODO: generate a UID (you can get a unique id by calling
     # `@_model.getUid()` - is this what you mean?)
     # @author = author
@@ -22,40 +28,47 @@ class YRichText extends BaseClass
   #
   # Bind the RichText type to a rich text editor (e.g. quilljs)
   #
-  bind: (editor_name, editor_instance)->
+  bind: ()->
     # TODO: bind to multiple editors
-    # TODO: accept instance of quill, not an editor abstraction
-    Editor = Editors[editor_name]
-    if Editor?
-      @editor = new Editor editor_instance
-
-      # TODO: parse the following directly from $characters+$selections (in O(n))
-      @editor.editor.deleteText(0, @editor.editor.getText().length)
-      @editor.updateContents
-        ops: [{insert: @_model.getContent("characters").val().join("")}]
-      # transform Y.Selections.getSelections() to a delta
-      expected_pos = 0
-      selections = [] # we will apply these selections on quill (therefore they have to be transformed)
-      for sel in @_model.getContent("selections").getSelections(@_model.getContent("characters"))
-        selection_length = sel.to - sel.from
-        if expected_pos isnt sel.from
-          # There is unselected text. $retain to the next selection
-          selections.push
-            retain: sel.from-expected_pos
-        selections.push
-          retain: selection_length
-          attributes: sel.attrs
-        expected_pos += selection_length
-      # update the selections of the editor accordingly
-      @editor.updateContents
-        ops: selections
-
-      # bind the rest..
-      @editor.observeLocalText @passDeltas
-      @bindEventsToEditor @editor
-      @editor.observeLocalCursor @updateCursorPosition
+    if arguments[0] instanceof Editors.AbstractEditor
+      # is already an editor!
+      @editor = arguments[0]
     else
-      throw new Error "This type of editor is not supported!"
+      [editor_name, editor_instance] = arguments
+      if @editor? and @editor.getEditor() is editor_instance
+        # return, if @editor is already bound! (never bind twice!)
+        return
+      Editor = Editors[editor_name]
+      if Editor?
+        @editor = new Editor editor_instance
+      else
+        throw new Error "This type of editor is not supported! ("+editor_name+")"
+
+    # TODO: parse the following directly from $characters+$selections (in O(n))
+    @editor.editor.deleteText(0, @editor.editor.getText().length)
+    @editor.updateContents
+      ops: [{insert: @_model.getContent("characters").val().join("")}]
+    # transform Y.Selections.getSelections() to a delta
+    expected_pos = 0
+    selections = [] # we will apply these selections on quill (therefore they have to be transformed)
+    for sel in @_model.getContent("selections").getSelections(@_model.getContent("characters"))
+      selection_length = sel.to - sel.from
+      if expected_pos isnt sel.from
+        # There is unselected text. $retain to the next selection
+        selections.push
+          retain: sel.from-expected_pos
+      selections.push
+        retain: selection_length
+        attributes: sel.attrs
+      expected_pos += selection_length
+    # update the selections of the editor accordingly
+    @editor.updateContents
+      ops: selections
+
+    # bind the rest..
+    @editor.observeLocalText @passDeltas
+    @bindEventsToEditor @editor
+    @editor.observeLocalCursor @updateCursorPosition
 
   _getModel: (Y, Operation) ->
     if not @_model?
@@ -69,6 +82,16 @@ class YRichText extends BaseClass
       @_model = new Operation.MapManager(@, null, {}, content_operations ).execute()
 
       @_setModel @_model
+
+      if @_bind_later?
+        Editor = Editors[@_bind_later.name]
+        if Editor?
+          editor = new Editor @_bind_later.instance
+        else
+          throw new Error "This type of editor is not supported! ("+editor_name+") -- fatal error!"
+        @passDeltas editor.getContents()
+        @bind editor
+        delete @_bind_later
 
       # listen to events on the model using the function propagateToEditor
       @_model.observe @propagateToEditor

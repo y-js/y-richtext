@@ -1,6 +1,6 @@
 Locker = (require "./misc.coffee").Locker
 # a generic editor class
-class Editor
+class AbstractEditor
   # create an editor instance
   # @param instance [Editor] the editor object
   constructor: (@editor) ->
@@ -34,7 +34,10 @@ class Editor
   # @see https://github.com/ottypes/rich-text
   updateContents: (delta) -> throw new Error "Implement me"
 
-class QuillJs extends Editor
+  # Return the editor instance
+  getEditor: ()-> throw new Error "Implement me"
+
+class QuillJs extends AbstractEditor
   constructor: (@editor) ->
     super @editor
     @_cursors = @editor.getModule("multi-cursor")
@@ -47,7 +50,7 @@ class QuillJs extends Editor
       0
 
   getContents: ()->
-    @editor.getContents()
+    @editor.getContents().ops
 
   setCursor: (param) -> @locker.try ()=>
     @_cursors.setCursor param.id, param.index, param.text, param.color
@@ -66,7 +69,10 @@ class QuillJs extends Editor
   updateContents: (delta)->
     @editor.updateContents delta
 
-class TestEditor extends Editor
+  getEditor: ()->
+    @editor
+
+class TestEditor extends AbstractEditor
   constructor: (@editor) ->
     super
 
@@ -85,5 +91,9 @@ class TestEditor extends Editor
   updateContents: (delta) ->
     ""
 
+  getEditor: ()->
+    @editor
+
 exports.QuillJs = QuillJs
 exports.TestEditor = TestEditor
+exports.AbstractEditor = AbstractEditor
