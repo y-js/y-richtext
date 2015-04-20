@@ -52,7 +52,7 @@ class YRichText extends BaseClass
     expected_pos = 0
     selections = [] # we will apply these selections on quill (therefore they have to be transformed)
     for sel in @_model.getContent("selections").getSelections(@_model.getContent("characters"))
-      selection_length = sel.to - sel.from
+      selection_length = sel.to - sel.from + 1 # (+1), because if we select from 1 to 1, then the length is 1
       if expected_pos isnt sel.from
         # There is unselected text. $retain to the next selection
         selections.push
@@ -113,6 +113,7 @@ class YRichText extends BaseClass
   # @param deltas [Array<Object>] an array of deltas (see ot-types for more info)
   passDeltas : (deltas) => @locker.try ()=>
     position = 0
+    console.log deltas
     for delta in deltas
       position = deltaHelper @, delta, position
 
