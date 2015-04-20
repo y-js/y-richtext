@@ -1,3 +1,7 @@
+if(Quill == null){
+  alert("You must download quilljs! It needs to be in the same directory as y-richtext!");
+}
+
 var quill = new Quill('#editor', {
     modules: {
         'multi-cursor': true,
