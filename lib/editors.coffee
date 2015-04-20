@@ -51,10 +51,12 @@ class QuillJs extends Editor
     @editor.getContents()
 
   setCursor: (param) -> @locker.try ()=>
+    if param.index == misc.LAST_CHAR
+      param.index = @editor.quill.getLength()
     @_cursors.setCursor param.id, param.index, param.text, param.color
 
   observeLocalText: (backend)->
-    @editor.on "text-change", (deltas, source)->
+    @editor.on "text-change", (deltas, source) ->
       # call the backend with deltas
       position = backend deltas.ops
       # trigger an extra event to move cursor to position of inserted text
@@ -68,6 +70,12 @@ class QuillJs extends Editor
       if range and range.start == range.end
         backend range.start
         console.log range.start
+        if range.start == @editor.quill.getLength() - 1
+          console.log "Last pos, sending -1"
+          backend misc.LAST_CHAR
+        else
+          console.log "Not last pos"
+          backend range.start
 
   updateContents: (delta)->
     @editor.updateContents delta

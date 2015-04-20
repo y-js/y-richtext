@@ -102,7 +102,10 @@ class YRichText extends BaseClass
   #   @param character [Character] the new character
   updateCursorPosition : (obj) => @locker.try ()=>
     if typeof obj is "number"
-      @selfCursor = @_model.getContent("characters").ref(obj)
+      if obj == misc.LAST_CHAR
+        @selfCursor = misc.LAST_CHAR
+      else
+        @selfCursor = @_model.getContent("characters").ref(obj)
     else
       @selfCursor = obj
     @_model.getContent("cursors").val(@_model.HB.getUserId(), @selfCursor)
@@ -147,7 +150,10 @@ class YRichText extends BaseClass
         author = event.changedBy
         word = event.object.val(author)
         if word?
-          position = word.getPosition()
+          if word == misc.LAST_CHAR
+            position = @editor.getLength()
+          else
+            position = word.getPosition()
           params =
             id: author
             index: position
