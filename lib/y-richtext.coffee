@@ -210,15 +210,20 @@ class YRichText extends BaseClass
 
       if delta.insert?
         insertHelper thisObj, position, delta.insert
+        length =
+          if typeof delta.insert == "string"
+            delta.insert.length
+          else if typeof delta.insert == "number"
+            1
         from = thisObj._model.getContent("characters").ref position
         to = thisObj._model.getContent("characters").ref(
-          position+delta.insert.length)
+          position+length)
         thisObj._model.getContent("selections").select(
           from, to, delta_selections)
         thisObj._model.getContent("selections").unselect(
           from, to, delta_unselections)
 
-        return position + delta.insert.length
+        return position + length
 
       else if delta.delete?
         deleteHelper thisObj, position, delta.delete
