@@ -144,8 +144,9 @@ class YRichText extends BaseClass
     @_model.getContent("cursors").observe (events)=> @locker.try ()=>
       for event in events
         author = event.changedBy
-        position = event.object.val(author)
-        if position?
+        word = event.object.val(author)
+        if word?
+          position = word.getPosition()
           params =
             id: author
             index: position
