@@ -1,7 +1,9 @@
 var quill = new Quill('#editor', {
     modules: {
         'multi-cursor': true,
-        'link-tooltip': true
+        'link-tooltip': true,
+        'image-tooltip': true
+
     },
     theme: 'snow'
 });
@@ -25,3 +27,5 @@ connector.whenSynced(function(){
         y.val('editor', new Y.RichText());
     }
 });
+
+$('#editor').select();
