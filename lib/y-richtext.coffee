@@ -101,11 +101,10 @@ class YRichText extends BaseClass
   #   update the position of our cursor to the new one using a character
   #   @param character [Character] the new character
   updateCursorPosition : (obj) => @locker.try ()=>
-    if typeof obj is "number"
-      if obj == misc.LAST_CHAR
-        @selfCursor = misc.LAST_CHAR
-      else
-        @selfCursor = @_model.getContent("characters").ref(obj)
+    if obj is misc.LAST_CHAR
+      @selfCursor = misc.LAST_CHAR
+    else if typeof obj is "number"
+      @selfCursor = @_model.getContent("characters").ref(obj)
     else
       @selfCursor = obj
     @_model.getContent("cursors").val(@_model.HB.getUserId(), @selfCursor)
