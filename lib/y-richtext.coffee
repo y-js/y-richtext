@@ -45,30 +45,34 @@ class YRichText extends BaseClass
         throw new Error "This type of editor is not supported! ("+editor_name+")"
 
     # TODO: parse the following directly from $characters+$selections (in O(n))
-    @editor.editor.deleteText(0, @editor.editor.getText().length)
-    @editor.updateContents
-      ops: [{insert: @_model.getContent("characters").val().join("")}]
-    # transform Y.Selections.getSelections() to a delta
-    expected_pos = 0
-    selections = [] # we will apply these selections on quill (therefore they have to be transformed)
-    for sel in @_model.getContent("selections").getSelections(@_model.getContent("characters"))
-      selection_length = sel.to - sel.from + 1 # (+1), because if we select from 1 to 1, then the length is 1
-      if expected_pos isnt sel.from
-        # There is unselected text. $retain to the next selection
-        selections.push
-          retain: sel.from-expected_pos
-      selections.push
-        retain: selection_length
-        attributes: sel.attrs
-      expected_pos += selection_length
-    # update the selections of the editor accordingly
-    @editor.updateContents
-      ops: selections
+    # @editor.editor.deleteText(0, @editor.editor.getText().length)
+    @editor.setContents
+      ops: @getDelta()
 
     # bind the rest..
     @editor.observeLocalText @passDeltas
     @bindEventsToEditor @editor
     @editor.observeLocalCursor @updateCursorPosition
+
+  getDelta: ()->
+    text_content = @_model.getContent('characters').val()
+    # transform Y.Selections.getSelections() to a delta
+    expected_pos = 0
+    deltas = []
+    for sel in @_model.getContent("selections").getSelections(@_model.getContent("characters"))
+      selection_length = sel.to - sel.from + 1 # (+1), because if we select from 1 to 1, then the length is 1
+      if expected_pos isnt sel.from
+        # There is unselected text. $retain to the next selection
+        deltas.push
+          insert: text_content.splice(0, sel.from-expected_pos).join('')
+      deltas.push
+        insert: text_content.splice(0, selection_length).join('')
+        attributes: sel.attrs
+      expected_pos += selection_length
+    if text_content.length > 0
+      deltas.push
+        insert: text_content.join('')
+    deltas
 
   _getModel: (Y, Operation) ->
     if not @_model?
@@ -101,6 +105,9 @@ class YRichText extends BaseClass
     super
 
   _name: "RichText"
+
+  getText: ()->
+    @_model.getContent('characters').val().join('')
 
   # insert our own cursor in the cursors object
   # @param position [Integer] the position where to insert it

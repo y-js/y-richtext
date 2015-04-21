@@ -20,6 +20,7 @@ y.observe (function (events) {
     for (i in events){
         if(events[i].name === 'editor'){
             y.val('editor').bind('QuillJs', quill);
+            window.editor = y.val('editor')
         }
     }
 });

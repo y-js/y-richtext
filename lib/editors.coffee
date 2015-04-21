@@ -29,10 +29,15 @@ class AbstractEditor
   # @note the backend function takes a position as argument
   observeLocalCursor: (backend) -> throw new Error "Implement me"
 
-  # Get a delta and apply it to the editor
+  # Apply delta on the editor
   # @param delta [Delta] the delta to propagate to the editor
   # @see https://github.com/ottypes/rich-text
   updateContents: (delta) -> throw new Error "Implement me"
+
+  # Remove old content and apply delta on the editor
+  # @param delta [Delta] the delta to propagate to the editor
+  # @see https://github.com/ottypes/rich-text
+  setContents: (delta) -> throw new Error "Implement me"
 
   # Return the editor instance
   getEditor: ()-> throw new Error "Implement me"
@@ -69,6 +74,9 @@ class QuillJs extends AbstractEditor
   updateContents: (delta)->
     @editor.updateContents delta
 
+  setContents: (delta)->
+    @editor.setContents(delta)
+
   getEditor: ()->
     @editor
 
@@ -81,6 +89,7 @@ class TestEditor extends AbstractEditor
   getContents: () ->
     ops: [{insert: "Well, this is a test!"}
       {insert: "And I'm bold…", attributes: {bold:true}}]
+
   setCursor: () ->
     ""
   observeLocalText:(backend) ->
@@ -89,6 +98,9 @@ class TestEditor extends AbstractEditor
     ""
 
   updateContents: (delta) ->
+    ""
+
+  setContents: (delta)->
     ""
 
   getEditor: ()->
