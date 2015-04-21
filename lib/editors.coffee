@@ -54,6 +54,7 @@ class QuillJs extends Editor
 
   observeLocalText: (backend)->
     @editor.on "text-change", (deltas, source)->
+      console.log deltas
       # call the backend with deltas
       position = backend deltas.ops
       # trigger an extra event to move cursor to position of inserted text
@@ -68,8 +69,14 @@ class QuillJs extends Editor
         backend range.start
         console.log range.start
 
-  updateContents: (delta)->
-    @editor.updateContents delta
+  updateContents: (deltas)->
+    console.log "attributes", deltas
+    for delta in deltas.ops
+      if delta.insert? and delta.insert == 1
+        if not delta.attributes?
+          delta.attributes =
+            image: "http://"
+    @editor.updateContents deltas
 
 class TestEditor extends Editor
   constructor: (@editor) ->
