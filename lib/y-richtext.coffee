@@ -171,10 +171,13 @@ class YRichText extends BaseClass
 
       if delta.insert?
         insertHelper thisObj, position, delta.insert
-        from = thisObj._model.getContent("characters").ref(position)
-        to = thisObj._model.getContent("characters").ref(position+delta.insert.length)
-        thisObj._model.getContent("selections").select from, to, delta_selections
-        thisObj._model.getContent("selections").unselect from, to, delta_unselections
+        from = thisObj._model.getContent("characters").ref position
+        to = thisObj._model.getContent("characters").ref
+          (position+delta.insert.length)
+        thisObj._model.getContent("selections").select
+          (from, to, delta_selections)
+        thisObj._model.getContent("selections").unselect
+          (from, to, delta_unselections)
 
         return position + delta.insert.length
 
@@ -187,8 +190,10 @@ class YRichText extends BaseClass
         from = thisObj._model.getContent("characters").ref(position)
         to = thisObj._model.getContent("characters").ref(position + retain)
 
-        thisObj._model.getContent("selections").select from, to, delta_selections
-        thisObj._model.getContent("selections").unselect from, to, delta_unselections
+        thisObj._model.getContent("selections").select
+          (from, to, delta_selections)
+        thisObj._model.getContent("selections").unselect
+          (from, to, delta_unselections)
 
         return position + retain
       throw new Error "This part of code must not be reached!"
