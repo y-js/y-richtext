@@ -72,12 +72,9 @@ class QuillJs extends Editor
     @editor.on "selection-change", (range, source)->
       if range and range.start == range.end
         backend range.start
-        console.log range.start
         if range.start == @editor.quill.getLength() - 1
-          console.log "Last pos, sending -1"
           backend misc.LAST_CHAR
         else
-          console.log "Not last pos"
           backend range.start
 
   updateContents: (delta)->
