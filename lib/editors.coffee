@@ -68,16 +68,14 @@ class QuillJs extends AbstractEditor
       @_cursors.setCursor param.id, param.index, param.text, param.color
 
   observeLocalText: (backend)->
-    @editor.on "text-change", (deltas, source) =>
+    @editor.on "text-change", (deltas, source) ->
       # call the backend with deltas
       position = backend deltas.ops
-      ### TODO: The following code throws errors when inserting text..
       # trigger an extra event to move cursor to position of inserted text
       @editor.selection.emitter.emit(
         @editor.selection.emitter.constructor.events.SELECTION_CHANGE,
         @editor.quill.getSelection(),
         "user")
-      ###
 
   observeLocalCursor: (backend) ->
     @editor.on "selection-change", (range, source)->
