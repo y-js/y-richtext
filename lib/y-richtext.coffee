@@ -215,6 +215,10 @@ class YRichText extends BaseClass
             delta.insert.length
           else if typeof delta.insert == "number"
             1
+          else
+            console.warn "Got an unexpected value in delta.insert:",delta.insert
+            return
+
         from = thisObj._model.getContent("characters").ref position
         to = thisObj._model.getContent("characters").ref(
           position+length)
