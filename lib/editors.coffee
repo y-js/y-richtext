@@ -1,10 +1,11 @@
-Locker = (require "./misc.coffee").Locker
+misc = (require "./misc.coffee")
+
 # a generic editor class
 class Editor
   # create an editor instance
   # @param instance [Editor] the editor object
   constructor: (@editor) ->
-    @locker = new Locker()
+    @locker = new misc.Locker()
 
   # get the current content as a ot-delta
   getContents: ()-> throw new Error "Implement me"
@@ -34,6 +35,9 @@ class Editor
   # @see https://github.com/ottypes/rich-text
   updateContents: (delta) -> throw new Error "Implement me"
 
+  # Return the length of the text
+  getLength:() -> throw new Error "Implement me"
+
 class QuillJs extends Editor
   constructor: (@editor) ->
     super @editor
@@ -50,10 +54,11 @@ class QuillJs extends Editor
     @editor.getContents()
 
   setCursor: (param) -> @locker.try ()=>
-    @_cursors.setCursor param.id, param.index, param.text, param.color
+    if param.index?
+      @_cursors.setCursor param.id, param.index, param.text, param.color
 
   observeLocalText: (backend)->
-    @editor.on "text-change", (deltas, source)->
+    @editor.on "text-change", (deltas, source) ->
       # call the backend with deltas
       position = backend deltas.ops
       # trigger an extra event to move cursor to position of inserted text
@@ -66,10 +71,12 @@ class QuillJs extends Editor
     @editor.on "selection-change", (range, source)->
       if range and range.start == range.end
         backend range.start
-        console.log range.start
 
   updateContents: (delta)->
     @editor.updateContents delta
+
+  getLength:() ->
+    @editor.getLength()
 
 class TestEditor extends Editor
   constructor: (@editor) ->
