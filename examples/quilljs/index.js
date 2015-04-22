@@ -5,7 +5,8 @@ if(Quill == null){
 var quill = new Quill('#editor', {
     modules: {
         'multi-cursor': true,
-        'link-tooltip': true
+        'link-tooltip': true,
+        'image-tooltip': true
     },
     theme: 'snow'
 });
