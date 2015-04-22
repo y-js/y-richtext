@@ -16,6 +16,8 @@ window.connector = new Y.WebRTC('sqfjqsmdlkjrhguemslkfjmlsdkjf');
 // connector.debug = true;
 window.y = new Y(connector);
 
+// TODO: only for debugging
+// y.HB.setGarbageCollectTimeout(2000)
 y.observe (function (events) {
     for (i in events){
         if(events[i].name === 'editor'){

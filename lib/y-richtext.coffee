@@ -1,5 +1,6 @@
-BaseClass = (require "./misc.coffee").BaseClass
-Locker = (require "./misc.coffee").Locker
+misc = (require "./misc.coffee")
+BaseClass = misc.BaseClass
+Locker = misc.Locker
 Editors = (require "./editors.coffee")
 # All dependencies (like Y.Selections) to other types (that have its own
 # repository) should  be included by the user (in order to reduce the amount of
@@ -175,14 +176,21 @@ class YRichText extends BaseClass
     @_model.getContent("cursors").observe (events)=> @locker.try ()=>
       for event in events
         author = event.changedBy
-        position = event.object.val(author)
-        if position != null
-          params =
-            id: author
-            index: event.object.val(author).getPosition()
-            text: author
-            color: "grey"
-          @editor.setCursor params
+        ref_to_char = event.object.val(author)
+        if ref_to_char is null
+          position = @editor.getLength()
+        else if ref_to_char?
+          position = ref_to_char.getPosition()
+        else
+          console.warn "ref_to_char is undefined"
+          return
+
+        params =
+          id: author
+          index: position
+          text: author
+          color: "grey"
+        @editor.setCursor params
 
   # Apply a delta and return the new position
   # @param delta [Object] a *single* delta (see ot-types for more info)
@@ -202,10 +210,13 @@ class YRichText extends BaseClass
 
       if delta.insert?
         insertHelper thisObj, position, delta.insert
-        from = thisObj._model.getContent("characters").ref(position)
-        to = thisObj._model.getContent("characters").ref(position+delta.insert.length)
-        thisObj._model.getContent("selections").select from, to, delta_selections
-        thisObj._model.getContent("selections").unselect from, to, delta_unselections
+        from = thisObj._model.getContent("characters").ref position
+        to = thisObj._model.getContent("characters").ref(
+          position+delta.insert.length)
+        thisObj._model.getContent("selections").select(
+          from, to, delta_selections)
+        thisObj._model.getContent("selections").unselect(
+          from, to, delta_unselections)
 
         return position + delta.insert.length
 
@@ -218,8 +229,10 @@ class YRichText extends BaseClass
         from = thisObj._model.getContent("characters").ref(position)
         to = thisObj._model.getContent("characters").ref(position + retain)
 
-        thisObj._model.getContent("selections").select from, to, delta_selections
-        thisObj._model.getContent("selections").unselect from, to, delta_unselections
+        thisObj._model.getContent("selections").select(
+          from, to, delta_selections)
+        thisObj._model.getContent("selections").unselect(
+          from, to, delta_unselections)
 
         return position + retain
       throw new Error "This part of code must not be reached!"
