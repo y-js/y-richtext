@@ -47,4 +47,3 @@ class BaseClass
 if module?
   exports.BaseClass = BaseClass
   exports.Locker = Locker
-  exports.LAST_CHAR = -1

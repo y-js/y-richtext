@@ -54,9 +54,8 @@ class QuillJs extends Editor
     @editor.getContents()
 
   setCursor: (param) -> @locker.try ()=>
-    if param.index == misc.LAST_CHAR
-      param.index = @editor.quill.getLength()
-    @_cursors.setCursor param.id, param.index, param.text, param.color
+    if param.index?
+      @_cursors.setCursor param.id, param.index, param.text, param.color
 
   observeLocalText: (backend)->
     @editor.on "text-change", (deltas, source) ->
@@ -72,10 +71,6 @@ class QuillJs extends Editor
     @editor.on "selection-change", (range, source)->
       if range and range.start == range.end
         backend range.start
-        if range.start == @editor.quill.getLength() - 1
-          backend misc.LAST_CHAR
-        else
-          backend range.start
 
   updateContents: (delta)->
     @editor.updateContents delta
