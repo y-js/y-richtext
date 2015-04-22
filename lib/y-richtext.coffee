@@ -145,11 +145,14 @@ class YRichText extends BaseClass
     @_model.getContent("cursors").observe (events)=> @locker.try ()=>
       for event in events
         author = event.changedBy
-        refOfWord = event.object.val(author)
-        if refOfWord is null
+        ref_to_char = event.object.val(author)
+        if ref_to_char is null
           position = @editor.getLength()
-        else if refOfWord?
-          position = refOfWord.getPosition()
+        else if ref_to_char?
+          position = ref_to_char.getPosition()
+        else
+          console.warn "ref_to_char is undefined"
+          return
 
         params =
           id: author
