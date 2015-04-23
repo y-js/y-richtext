@@ -5,7 +5,8 @@ if(Quill == null){
 var quill = new Quill('#editor', {
     modules: {
         'multi-cursor': true,
-        'link-tooltip': true
+        'link-tooltip': true,
+        'image-tooltip': true
     },
     theme: 'snow'
 });
@@ -16,6 +17,8 @@ window.connector = new Y.WebRTC('sqfjqsmdlkjrhguemslkfjmlsdkjf');
 // connector.debug = true;
 window.y = new Y(connector);
 
+// TODO: only for debugging
+// y.HB.setGarbageCollectTimeout(2000)
 y.observe (function (events) {
     for (i in events){
         if(events[i].name === 'editor'){

@@ -1,10 +1,11 @@
-Locker = (require "./misc.coffee").Locker
+misc = require("./misc.coffee")
+
 # a generic editor class
 class AbstractEditor
   # create an editor instance
   # @param instance [Editor] the editor object
   constructor: (@editor) ->
-    @locker = new Locker()
+    @locker = new misc.Locker()
 
   # get the current content as a ot-delta
   getContents: ()-> throw new Error "Implement me"
@@ -43,9 +44,14 @@ class AbstractEditor
   getEditor: ()-> throw new Error "Implement me"
 
 class QuillJs extends AbstractEditor
+
   constructor: (@editor) ->
     super @editor
     @_cursors = @editor.getModule("multi-cursor")
+
+  # Return the length of the text
+  getLength: ()->
+    @editor.getLength()
 
   getCursorPosition: ->
     selection = @editor.getSelection()
@@ -58,18 +64,23 @@ class QuillJs extends AbstractEditor
     @editor.getContents().ops
 
   setCursor: (param) -> @locker.try ()=>
-    @_cursors.setCursor param.id, param.index, param.text, param.color
+    if param.index?
+      @_cursors.setCursor param.id, param.index, param.text, param.color
 
   observeLocalText: (backend)->
-    @editor.on "text-change", (deltas, source)->
+    @editor.on "text-change", (deltas, source) ->
       # call the backend with deltas
-      backend deltas.ops
+      position = backend deltas.ops
+      # trigger an extra event to move cursor to position of inserted text
+      @editor.selection.emitter.emit(
+        @editor.selection.emitter.constructor.events.SELECTION_CHANGE,
+        @editor.quill.getSelection(),
+        "user")
 
   observeLocalCursor: (backend) ->
     @editor.on "selection-change", (range, source)->
       if range and range.start == range.end
         backend range.start
-        console.log range.start
 
   updateContents: (delta)->
     @editor.updateContents delta
@@ -81,19 +92,26 @@ class QuillJs extends AbstractEditor
     @editor
 
 class TestEditor extends AbstractEditor
+
   constructor: (@editor) ->
     super
 
+  getLength:() ->
+    0
+
   getCursorPosition: ->
     0
+
   getContents: () ->
     ops: [{insert: "Well, this is a test!"}
       {insert: "And I'm bold…", attributes: {bold:true}}]
 
   setCursor: () ->
     ""
+
   observeLocalText:(backend) ->
     ""
+
   observeLocalCursor: (backend) ->
     ""
 
