@@ -60,11 +60,15 @@ class YRichText extends BaseClass
     expected_pos = 0
     deltas = []
     for sel in @_model.getContent("selections").getSelections(@_model.getContent("characters"))
-      selection_length = sel.to - sel.from + 1 # (+1), because if we select from 1 to 1, then the length is 1
+      selection_length = sel.to - sel.from + 1 # (+1), because if we select from 1 to 1 (with y-selections), then the length is 1
       if expected_pos isnt sel.from
         # There is unselected text. $retain to the next selection
+        unselected_insert_content = text_content.splice(0, sel.from-expected_pos).join('')
         deltas.push
-          insert: text_content.splice(0, sel.from-expected_pos).join('')
+          insert: unselected_insert_content
+        expected_pos += unselected_insert_content.length
+      if expected_pos isnt sel.from
+        throw new Error "This portion of code must not be reached in getDelta!"
       deltas.push
         insert: text_content.splice(0, selection_length).join('')
         attributes: sel.attrs
@@ -164,7 +168,7 @@ class YRichText extends BaseClass
         for attr in event.attrs
           attrs[attr] = null
       retain = event.from.getPosition()
-      selection_length = event.to.getPosition()-event.from.getPosition()
+      selection_length = event.to.getPosition()-event.from.getPosition()+1
       @editor.updateContents
         ops: [
           {retain: retain},
@@ -203,7 +207,9 @@ class YRichText extends BaseClass
       if delta.insert?
         insertHelper thisObj, position, delta.insert
         from = thisObj._model.getContent("characters").ref(position)
-        to = thisObj._model.getContent("characters").ref(position+delta.insert.length)
+        # we set `position+length-1`, -1 because when selecting one char,
+        # Y-selections will only mark this one char (as beginning and end)
+        to = thisObj._model.getContent("characters").ref(position+delta.insert.length-1)
         thisObj._model.getContent("selections").select from, to, delta_selections
         thisObj._model.getContent("selections").unselect from, to, delta_unselections
 
@@ -216,7 +222,9 @@ class YRichText extends BaseClass
       else if delta.retain?
         retain = parseInt delta.retain
         from = thisObj._model.getContent("characters").ref(position)
-        to = thisObj._model.getContent("characters").ref(position + retain)
+        # we set `position+retain-1`, -1 because when selecting one char,
+        # Y-selections will only mark this one char (as beginning and end)
+        to = thisObj._model.getContent("characters").ref(position + retain - 1)
 
         thisObj._model.getContent("selections").select from, to, delta_selections
         thisObj._model.getContent("selections").unselect from, to, delta_unselections
