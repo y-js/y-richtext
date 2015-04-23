@@ -12,13 +12,43 @@ var quill = new Quill('#editor', {
 });
 quill.addModule('toolbar', { container: '#toolbar' });
 window.connector = new Y.WebRTC('sqfjqsmdlkjrhguemslkfjmlsdkjf');
-/* window.connector = new Y.WebRTC('sqfjqsmdlkjrhguemslkfjmlsdkjf',
-    {url: 'http://localhost:8888'}); */
+
 // connector.debug = true;
 window.y = new Y(connector);
 
+checkConsistency = function(){
+  deltas = editor.getDelta()
+  quill_deltas = quill.getContents().ops
+  for(d in deltas){
+    delta = deltas[d]
+    for(name in delta){
+      value = delta[name]
+      quill_value = quill_deltas[d][name]
+      if(value.constructor === Object){
+        for(n in value){
+          if(value[n] !== quill_value[n]){
+            return false
+          }
+        }
+      } else if(value !== quill_value){
+        return false
+      }
+    }
+  }
+  return true
+}
+
+quill.on("text-change", function(){
+  window.setTimeout(function(){
+    if(editor != null && editor.getDelta != null){
+      console.log("Quill & y-richtext are equal: "+checkConsistency())
+    }
+  },0)
+})
+
+
 // TODO: only for debugging
-// y.HB.setGarbageCollectTimeout(2000)
+y._model.HB.stopGarbageCollection()
 y.observe (function (events) {
     for (i in events){
         if(events[i].name === 'editor'){
