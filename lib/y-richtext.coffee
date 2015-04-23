@@ -216,7 +216,7 @@ class YRichText extends BaseClass
         insertHelper thisObj, position, delta.insert
         from = thisObj._model.getContent("characters").ref position
         to = thisObj._model.getContent("characters").ref(
-          position+delta.insert.length)
+          position+delta.insert.length-1)
         thisObj._model.getContent("selections").select(
           from, to, delta_selections)
         thisObj._model.getContent("selections").unselect(
