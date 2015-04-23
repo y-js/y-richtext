@@ -19,7 +19,6 @@ Y.List = require '../../y-list/lib/y-list.coffee'
 TestEditor = (require '../lib/editors.coffee').TestEditor
 
 
-
 print = (richText) ->
   return richText._model.getContent("characters").val().join("")
 
