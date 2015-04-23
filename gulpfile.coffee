@@ -15,7 +15,6 @@ mocha = require 'gulp-mocha'
 run = require 'gulp-run'
 ljs = require 'gulp-ljs'
 plumber = require 'gulp-plumber'
-mochaPhantomJS = require 'gulp-mocha-phantomjs'
 cache = require 'gulp-cached'
 coffeeify = require 'gulp-coffeeify'
 exit = require 'gulp-exit'
@@ -45,7 +44,7 @@ gulp.task 'deploy_nodejs', ->
     .pipe gulp.dest 'build/node/'
     .pipe gulpif '!**/', git.add({args : "-A"})
 
-gulp.task 'deploy', ['mocha', 'build_browser', 'deploy_nodejs', 'lint', 'phantom_test', 'codo']
+gulp.task 'deploy', ['mocha', 'build_browser', 'deploy_nodejs', 'lint', 'codo']
 
 gulp.task 'build_browser', ->
   gulp.src files.browser, { read: false }
@@ -98,9 +97,6 @@ gulp.task 'lint', ->
       }
     .pipe coffeelint.reporter()
 
-gulp.task 'phantom_watch', ['phantom_test'], ->
-  gulp.watch files.all, ['phantom_test']
-
 gulp.task 'literate', ->
   gulp.src files.examples
     .pipe ljs { code : true }
@@ -113,10 +109,6 @@ gulp.task 'literate', ->
 gulp.task 'codo', [], ()->
   command = './node_modules/codo/bin/codo -o "./doc" --name "yjs" --readme "README.md" --undocumented false --private true --title "yjs API" ./lib - LICENSE.txt '
   run(command).exec()
-
-gulp.task 'phantom_test', ['build_browser'], ()->
-  gulp.src 'build/test/index.html'
-    .pipe mochaPhantomJS()
 
 gulp.task 'clean', ->
   gulp.src ['./build/{browser,test,node}/**/*.{js,map}','./doc/'], { read: false }
@@ -137,6 +129,5 @@ gulp.task 'coveralls', ['generate_report'], ->
     .pipe exit()
 
 gulp.task 'travis', ['mocha', 'coveralls'], ->
-
 
 gulp.task 'default', ['clean','build'], ->

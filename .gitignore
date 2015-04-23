@@ -6,9 +6,9 @@ bower_components
 .settings
 */*.js
 TAGS
-build/
-doc/
-.idea/
+build
+doc
+.idea
 *.map
 .idea
-./y-richtext.js
+y-richtext.js
