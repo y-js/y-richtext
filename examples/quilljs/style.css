@@ -10,5 +10,5 @@
     border-bottom: 1px solid #CCC;
 }
 #editor {
-    min-height: inherit;
+    min-height: 30em;
 }
