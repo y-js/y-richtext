@@ -11,11 +11,13 @@ var quill = new Quill('#editor', {
     theme: 'snow'
 });
 quill.addModule('toolbar', { container: '#toolbar' });
-window.connector = new Y.WebRTC('sqfjqsmdlkjrhguemslkfjmlsdkjf');
+window.connector = new Y.WebRTC('thisisMYroom2');
 
 // connector.debug = true;
 window.y = new Y(connector);
 
+// will perform a check if quill & y-richtext are equal.
+// We do weak comparison only, therefore (1 == "1").
 checkConsistency = function(){
   deltas = editor.getDelta()
   quill_deltas = quill.getContents().ops
@@ -26,11 +28,11 @@ checkConsistency = function(){
       quill_value = quill_deltas[d][name]
       if(value.constructor === Object){
         for(n in value){
-          if(value[n] !== quill_value[n]){
+          if(value[n] != quill_value[n]){
             return false
           }
         }
-      } else if(value !== quill_value){
+      } else if(value != quill_value){
         return false
       }
     }
@@ -48,7 +50,9 @@ quill.on("text-change", function(){
 
 
 // TODO: only for debugging
-y._model.HB.stopGarbageCollection()
+// y._model.HB.stopGarbageCollection()
+// y._model.HB.setGarbageCollectTimeout(1500)
+
 y.observe (function (events) {
     for (i in events){
         if(events[i].name === 'editor'){

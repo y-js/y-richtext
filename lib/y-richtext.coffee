@@ -213,24 +213,25 @@ class YRichText extends BaseClass
           delta_unselections.push n
 
       if delta.insert?
-        insertHelper thisObj, position, delta.insert
-        if typeof delta.insert == "string"
-          length = delta.insert.length
-        else if typeof delta.insert == "number"
-          length = 1
-        else
-          console.warn "Got an unexpected value in delta.insert:",delta.insert
-          return position
-
+        insert_content = delta.insert
+        content_array =
+          if typeof insert_content is "string"
+            insert_content.split("")
+          else if typeof insert_content is "number"
+            [insert_content]
+          else
+            throw new Error "Got an unexpected value in delta.insert! ("+(typeof content)+")"
+        insertHelper thisObj, position, content_array
         from = thisObj._model.getContent("characters").ref position
         to = thisObj._model.getContent("characters").ref(
-          position+length)
-        thisObj._model.getContent("selections").select(
-          from, to, delta_selections)
-        thisObj._model.getContent("selections").unselect(
-          from, to, delta_unselections)
+          position+content_array.length-1)
+        if delta.attributes?
+          thisObj._model.getContent("selections").select(
+            from, to, delta_selections, true)
+          thisObj._model.getContent("selections").unselect(
+            from, to, delta_unselections)
 
-        return position + length
+        return position + content_array.length
 
       else if delta.delete?
         deleteHelper thisObj, position, delta.delete
@@ -251,14 +252,8 @@ class YRichText extends BaseClass
         return position + retain
       throw new Error "This part of code must not be reached!"
 
-  insertHelper = (thisObj, position, content) ->
-    as_array =
-      if typeof content is "string"
-        content.split("")
-      else if typeof content is "number"
-        [content]
-    if as_array?
-      thisObj._model.getContent("characters").insertContents position, as_array
+  insertHelper = (thisObj, position, content_array) ->
+    thisObj._model.getContent("characters").insertContents position, content_array
 
   deleteHelper = (thisObj, position, length = 1) ->
     thisObj._model.getContent("characters").delete position, length
