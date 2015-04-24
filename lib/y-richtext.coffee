@@ -15,6 +15,8 @@ class YRichText extends BaseClass
   # @param author [String] the name of the local author
   constructor: (editor_name, editor_instance) ->
     @locker = new Locker()
+    @_colors = {length: 0}
+    @_graphicsPalette = ['#837DFA', '#FA7D7D','#7DFA87', '#DCE874']
 
     if editor_name? and editor_instance?
       @_bind_later =
@@ -207,11 +209,21 @@ class YRichText extends BaseClass
           console.warn "ref_to_char is undefined"
           return
 
+        # never knows…
+        if authorId == "length"
+          authorId = "_length"
+        if authorId in @_colors
+          color = @_colors[authorId]
+        else
+          @_colors.length++
+          color = @_graphicsPalette[@_colors.length%@_graphicsPalette.length]
+          @_colors[authorId]
+
         params =
           id: authorId
           index: position
           author: author(authorId)
-          color: "grey"
+          color: color
         @editor.setCursor params
 
     @_model.getContent('authors').observe (events) => @locker.try ()=>
