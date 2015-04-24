@@ -2,7 +2,6 @@ misc = (require "./misc.coffee")
 BaseClass = misc.BaseClass
 Locker = misc.Locker
 Editors = (require "./editors.coffee")
-
 # All dependencies (like Y.Selections) to other types (that have its own
 # repository) should  be included by the user (in order to reduce the amount of
 # downloaded content).
@@ -44,7 +43,8 @@ class YRichText extends BaseClass
       if Editor?
         @editor = new Editor editor_instance
       else
-        throw new Error "This type of editor is not supported! ("+editor_name+")"
+        throw new Error "This type of editor is not supported! (" +
+          editor_name + ")"
 
     # TODO: parse the following directly from $characters+$selections (in O(n))
     # @editor.editor.deleteText(0, @editor.editor.getText().length)
@@ -61,11 +61,16 @@ class YRichText extends BaseClass
     # transform Y.Selections.getSelections() to a delta
     expected_pos = 0
     deltas = []
-    for sel in @_model.getContent("selections").getSelections(@_model.getContent("characters"))
-      selection_length = sel.to - sel.from + 1 # (+1), because if we select from 1 to 1 (with y-selections), then the length is 1
+    selections = @_model.getContent("selections")
+    for sel in selections.getSelections(@_model.getContent("characters"))
+      # (+1), because if we select from 1 to 1 (with y-selections), then the
+      # length is 1
+      selection_length = sel.to - sel.from + 1
       if expected_pos isnt sel.from
         # There is unselected text. $retain to the next selection
-        unselected_insert_content = text_content.splice(0, sel.from-expected_pos).join('')
+        unselected_insert_content = text_content.splice(
+          0, sel.from-expected_pos)
+          .join('')
         deltas.push
           insert: unselected_insert_content
         expected_pos += unselected_insert_content.length
@@ -89,7 +94,8 @@ class YRichText extends BaseClass
         selections: new Y.Selections()
         characters: new Y.List()
         cursors: new Y.Object()
-      @_model = new Operation.MapManager(@, null, {}, content_operations ).execute()
+      @_model = new Operation.MapManager(@, null, {}, content_operations )
+        .execute()
 
       @_setModel @_model
 
@@ -98,7 +104,8 @@ class YRichText extends BaseClass
         if Editor?
           editor = new Editor @_bind_later.instance
         else
-          throw new Error "This type of editor is not supported! ("+editor_name+") -- fatal error!"
+          throw new Error "This type of editor is not supported! (" +
+          editor_name + ") -- fatal error!"
         @passDeltas editor.getContents()
         @bind editor
         delete @_bind_later
@@ -123,7 +130,8 @@ class YRichText extends BaseClass
 
 
   # pass deltas to the character instance
-  # @param deltas [Array<Object>] an array of deltas (see ot-types for more info)
+  # @param deltas [Array<Object>] an array of deltas
+  # @see ot-types for more info
   passDeltas : (deltas) => @locker.try ()=>
     position = 0
     console.log deltas
@@ -247,7 +255,8 @@ class YRichText extends BaseClass
           else if typeof insert_content is "number"
             [insert_content]
           else
-            throw new Error "Got an unexpected value in delta.insert! ("+(typeof content)+")"
+            throw new Error "Got an unexpected value in delta.insert! (" +
+            (typeof content) + ")"
         insertHelper thisObj, position, content_array
         from = thisObj._model.getContent("characters").ref position
         to = thisObj._model.getContent("characters").ref(
@@ -279,7 +288,8 @@ class YRichText extends BaseClass
       throw new Error "This part of code must not be reached!"
 
   insertHelper = (thisObj, position, content_array) ->
-    thisObj._model.getContent("characters").insertContents position, content_array
+    thisObj._model.getContent("characters").insertContents(
+      position, content_array)
 
   deleteHelper = (thisObj, position, length = 1) ->
     thisObj._model.getContent("characters").delete position, length
