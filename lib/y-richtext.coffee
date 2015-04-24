@@ -69,7 +69,7 @@ class YRichText extends BaseClass
       if expected_pos isnt sel.from
         # There is unselected text. $retain to the next selection
         unselected_insert_content = text_content.splice(
-          0, sel.from-expected_pos)
+          0, sel.from-expected_pos )
           .join('')
         deltas.push
           insert: unselected_insert_content
@@ -175,7 +175,7 @@ class YRichText extends BaseClass
         @editor.updateContents delta
 
     # update the editor when something on the $selections happens
-    @_model.getContent("selections").observe (event)=> @locker.try ()=>
+    @_model.getContent("selections").observe (event) => @locker.try ()=>
       attrs = {}
       if event.type is "select"
         for attr,val of event.attrs
@@ -192,22 +192,27 @@ class YRichText extends BaseClass
         ]
 
     # update the editor when the cursor is moved
-    @_model.getContent("cursors").observe (events)=> @locker.try ()=>
+    @_model.getContent("cursors").observe (events) => @locker.try ()=>
       for event in events
-        author = @author or event.changedBy
-        ref_to_char = event.object.val(author)
+        authorId = event.changedBy
+        ref_to_char = event.object.val(authorId)
+        author = (authorId) =>
+          mod = @_model.getContent('authors').val()
+          console.log mod, authorId, mod[authorId]
+          mod[authorId] or "Default user"
+
         if ref_to_char is null
           position = @editor.getLength()
         else if ref_to_char?
           position = ref_to_char.getPosition()
         else
-          console.warn "ref_to_char is undefined"
+          console.log "ref_to_char is undefined"
           return
 
         params =
-          id: author
+          id: authorId
           index: position
-          text: author
+          author: author(authorId)
           color: "grey"
         @editor.setCursor params
 
