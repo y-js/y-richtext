@@ -69,7 +69,7 @@ class YRichText extends BaseClass
       if expected_pos isnt sel.from
         # There is unselected text. $retain to the next selection
         unselected_insert_content = text_content.splice(
-          0, sel.from-expected_pos)
+          0, sel.from-expected_pos )
           .join('')
         deltas.push
           insert: unselected_insert_content
