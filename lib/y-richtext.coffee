@@ -138,7 +138,6 @@ class YRichText extends BaseClass
   # @see ot-types for more info
   passDeltas : (deltas) => @locker.try ()=>
     position = 0
-    console.log deltas
     for delta in deltas
       position = deltaHelper @, delta, position
 
@@ -183,7 +182,7 @@ class YRichText extends BaseClass
         @editor.updateContents delta
 
     # update the editor when something on the $selections happens
-    @_model.getContent("selections").observe (event)=> @locker.try ()=>
+    @_model.getContent("selections").observe (event) => @locker.try ()=>
       attrs = {}
       if event.type is "select"
         for attr,val of event.attrs
@@ -200,7 +199,7 @@ class YRichText extends BaseClass
         ]
 
     # update the editor when the cursor is moved
-    @_model.getContent("cursors").observe (events)=> @locker.try ()=>
+    @_model.getContent("cursors").observe (events) => @locker.try ()=>
       for event in events
         if event.type is "update" or event.type is "add"
           author = event.changedBy
