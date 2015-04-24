@@ -220,7 +220,7 @@ class YRichText extends BaseClass
           else if typeof insert_content is "number"
             [insert_content]
           else
-            throw new Error "ottypes delta.insert is of an unexpected type! ("+(typeof content)+")"
+            throw new Error "Got an unexpected value in delta.insert! ("+(typeof content)+")"
         insertHelper thisObj, position, content_array
         from = thisObj._model.getContent("characters").ref position
         to = thisObj._model.getContent("characters").ref(
