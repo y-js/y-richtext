@@ -67,3 +67,13 @@ connector.whenSynced(function(){
         y.val('editor', new Y.RichText("QuillJs", quill));
     }
 });
+
+$('#name')
+    .click(function() {
+        $(this).select();
+    });
+$('#name')
+    .change(function() {
+        console.log($(this).val());
+        window.editor.setAuthor($(this).val());
+    });
