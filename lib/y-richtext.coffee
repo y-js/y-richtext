@@ -138,7 +138,6 @@ class YRichText extends BaseClass
   # @see ot-types for more info
   passDeltas : (deltas) => @locker.try ()=>
     position = 0
-    console.log deltas
     for delta in deltas
       position = deltaHelper @, delta, position
 
@@ -198,7 +197,6 @@ class YRichText extends BaseClass
         ref_to_char = event.object.val(authorId)
         author = (authorId) =>
           mod = @_model.getContent('authors').val()
-          console.log mod, authorId, mod[authorId]
           mod[authorId] or "Default user"
 
         if ref_to_char is null
@@ -206,7 +204,7 @@ class YRichText extends BaseClass
         else if ref_to_char?
           position = ref_to_char.getPosition()
         else
-          console.log "ref_to_char is undefined"
+          console.warn "ref_to_char is undefined"
           return
 
         params =
