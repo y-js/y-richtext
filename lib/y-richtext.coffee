@@ -94,6 +94,7 @@ class YRichText extends BaseClass
         selections: new Y.Selections()
         characters: new Y.List()
         cursors: new Y.Object()
+        authors: new Y.Object()
       @_model = new Operation.MapManager(@, null, {}, content_operations )
         .execute()
 
@@ -126,8 +127,11 @@ class YRichText extends BaseClass
   # @param position [Integer] the position where to insert it
   setCursor : (position) ->
     @selfCursor = @_model.getContent("characters").ref(position)
+
     @_model.getContent("cursors").val(@_model.HB.getUserId(), @selfCursor)
 
+  setAuthor : (@author) ->
+    @_model.getContent('authors').val(@_model.HB.getUserId(), @author)
 
   # pass deltas to the character instance
   # @param deltas [Array<Object>] an array of deltas
@@ -149,7 +153,9 @@ class YRichText extends BaseClass
       @selfCursor = @_model.getContent("characters").ref(obj)
     else
       @selfCursor = obj
+
     @_model.getContent("cursors").val(@_model.HB.getUserId(), @selfCursor)
+
 
   # describe how to propagate yjs events to the editor
   # TODO: should be private!
@@ -230,6 +236,13 @@ class YRichText extends BaseClass
     @_model.connector.onUserEvent (event)=>
       if event.action is "userLeft"
         @_model.getContent("cursors").delete(event.user)
+
+    @_model.getContent('authors').observe (events) => @locker.try ()=>
+      for event in events
+        @editor.removeCursor event.changedBy
+
+
+
 
   # Apply a delta and return the new position
   # @param delta [Object] a *single* delta (see ot-types for more info)
