@@ -225,10 +225,11 @@ class YRichText extends BaseClass
         from = thisObj._model.getContent("characters").ref position
         to = thisObj._model.getContent("characters").ref(
           position+content_array.length-1)
-        thisObj._model.getContent("selections").select(
-          from, to, delta_selections, true)
-        thisObj._model.getContent("selections").unselect(
-          from, to, delta_unselections)
+        if delta.attributes?
+          thisObj._model.getContent("selections").select(
+            from, to, delta_selections, true)
+          thisObj._model.getContent("selections").unselect(
+            from, to, delta_unselections)
 
         return position + content_array.length
 

@@ -51,7 +51,7 @@ quill.on("text-change", function(){
 
 // TODO: only for debugging
 // y._model.HB.stopGarbageCollection()
-y._model.HB.setGarbageCollectTimeout(1500)
+// y._model.HB.setGarbageCollectTimeout(1500)
 
 y.observe (function (events) {
     for (i in events){
