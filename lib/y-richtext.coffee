@@ -213,16 +213,24 @@ class YRichText extends BaseClass
           delta_unselections.push n
 
       if delta.insert?
-        insertHelper thisObj, position, delta.insert
+        insert_content = delta.insert
+        content_array =
+          if typeof insert_content is "string"
+            insert_content.split("")
+          else if typeof insert_content is "number"
+            [insert_content]
+          else
+            throw new Error "ottypes delta.insert is of an unexpected type! ("+(typeof content)+")"
+        insertHelper thisObj, position, content_array
         from = thisObj._model.getContent("characters").ref position
         to = thisObj._model.getContent("characters").ref(
-          position+delta.insert.length-1)
+          position+content_array.length-1)
         thisObj._model.getContent("selections").select(
           from, to, delta_selections)
         thisObj._model.getContent("selections").unselect(
           from, to, delta_unselections)
 
-        return position + delta.insert.length
+        return position + content_array.length
 
       else if delta.delete?
         deleteHelper thisObj, position, delta.delete
@@ -243,14 +251,8 @@ class YRichText extends BaseClass
         return position + retain
       throw new Error "This part of code must not be reached!"
 
-  insertHelper = (thisObj, position, content) ->
-    as_array =
-      if typeof content is "string"
-        content.split("")
-      else if typeof content is "number"
-        [content]
-    if as_array?
-      thisObj._model.getContent("characters").insertContents position, as_array
+  insertHelper = (thisObj, position, content_array) ->
+    thisObj._model.getContent("characters").insertContents position, content_array
 
   deleteHelper = (thisObj, position, length = 1) ->
     thisObj._model.getContent("characters").delete position, length
