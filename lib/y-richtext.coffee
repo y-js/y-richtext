@@ -132,7 +132,30 @@ class YRichText extends BaseClass
 
     @_model.getContent("cursors").val(@_model.HB.getUserId(), @selfCursor)
 
-  setAuthor : (@author) ->
+  setAuthor : (option) ->
+    if option? and option.name?
+      name = option.name
+    else
+      name = if @author? and @author.name then @author.name else 'Default user'
+
+    if option? and option.color?
+      color = option.color
+    else
+      # if already a color set
+      if @author? and @author.color
+        color = @author.color
+      else # if no color, pick the next one from the palette
+        n_authors = 0
+        for auth of @_model.getContent('authors').val()
+          n_authors++
+        color = @_graphicsPalette[n_authors % @_graphicsPalette.length]
+
+
+    @author =
+       name: name
+       color: color
+
+    console.log option, @author
     @_model.getContent('authors').val(@_model.HB.getUserId(), @author)
 
   # pass deltas to the character instance
@@ -206,9 +229,12 @@ class YRichText extends BaseClass
         if event.type is "update" or event.type is "add"
           authorId = event.changedBy
           ref_to_char = event.object.val(authorId)
-          author = (authorId) =>
+          info = (authorId) =>
             mod = @_model.getContent('authors').val()
-            mod[authorId] or "Default user"
+            return {
+              name: mod[authorId].name or "Default user"
+              color: mod[authorId].color or "grey"
+            }
 
           if ref_to_char is null
             position = @editor.getLength()
@@ -242,8 +268,8 @@ class YRichText extends BaseClass
           params =
             id: author
             index: position
-            text: author(authorId)
-            color: "grey"
+            text: author(authorId).name
+            color: info(authorId).color
           @editor.setCursor params
         else
           @editor.removeCursor event.name
