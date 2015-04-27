@@ -71,8 +71,19 @@ class QuillJs extends AbstractEditor
 
   setCursor: (param) -> @locker.try ()=>
     console.log
-    if param.index?
-      @_cursors.setCursor param.id, param.index, param.author, param.color
+    cursor = @_cursors.cursors[param.id]
+    if cursor? and cursor.color == param.color
+      fun = (index) -> @_cursors.moveCursor param.id, index
+    else
+      if cursor.color != param.color
+        @removeCursor param.id
+
+      fun = (index) ->  @_cursors.setCursor( param.id, index,
+        param.author, param.color)
+
+    if param.index
+      fun param.index
+
   removeCursor: (id) ->
     @_cursors.removeCursor(id)
 
