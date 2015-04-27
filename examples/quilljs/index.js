@@ -4,13 +4,13 @@ if(Quill == null){
 
 var quill = new Quill('#editor', {
     modules: {
-        'multi-cursor': true,
         'link-tooltip': true,
         'image-tooltip': true
     },
     theme: 'snow'
 });
 quill.addModule('toolbar', { container: '#toolbar' });
+quill.addModule('multi-cursor', { timeout: 2500});
 window.connector = new Y.WebRTC('sqfjqsmdlkjrhguemslkfjmlsdkjf',
                                 {url: 'http://localhost:8888'});
 
@@ -101,7 +101,6 @@ y.observe (function (events) {
         if (events[i].name === 'editor') {
             y.val('editor').bind('QuillJs', quill);
             window.editor = y.val('editor');
-            window.editor.setAuthor($('#name').val());
         }
     }
 });
@@ -109,8 +108,8 @@ y.observe (function (events) {
 connector.whenSynced(function(){
     if (y.val('editor') == null) {
         y.val('editor', new Y.RichText('QuillJs', quill));
-        y.val('editor').setAuthor($('#name').val());
     }
+    y.val('editor').setAuthor($('#name').val());
 });
 
 
@@ -121,5 +120,11 @@ $('#name')
     })
     .change(function() {
         console.log($(this).val());
-        window.editor.setAuthor($(this).val());
+        window.editor.setAuthor({name: $(this).val()});
     });
+$('#toolbar .author-color')
+    .change(function(ev) {
+        window.editor.setAuthor({color: ev.target.value});
+        $('#name').css('color', ev.target.value);
+    });
+cp = new ColorPicker($('#toolbar .author-color')[0]);
