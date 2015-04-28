@@ -19,6 +19,8 @@ class AbstractEditor
   # @option param [String] text the text of the cursor
   # @option param [String] color the color of the cursor
   setCursor: (param) -> throw new Error "Implement me"
+  removeCursor: ()-> throw new Error "Implement me"
+
 
   # describe how to pass local modifications of the text to the backend.
   # @param backend [Function] the function to pass the delta to
@@ -66,6 +68,9 @@ class QuillJs extends AbstractEditor
   setCursor: (param) -> @locker.try ()=>
     if param.index?
       @_cursors.setCursor param.id, param.index, param.text, param.color
+
+  removeCursor: (id)->
+      @_cursors.removeCursor id
 
   observeLocalText: (backend)->
     @editor.on "text-change", (deltas, source) ->
