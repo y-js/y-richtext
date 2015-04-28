@@ -75,16 +75,20 @@ var checkCursor = function () {
   return cursor === quill_cursor;
 };
 
-// quill.on("text-change", function(){
-//     if(editor != null && editor.getDelta != null){
-//         console.log("Quill & y-richtext are equal: "+checkConsistency())
-//     }
-// });
-// quill.on("selection-change", function() {
-//     if (editor != null && editor.selfCursor != null) {
-//         console.log("Quill & y-richtext cursor are equal: "+checkCursor());
-//     }
-// });
+quill.on("text-change", function () {
+  window.setTimeout(function () {
+    if (window.editor !== null && window.editor.getDelta !== null) {
+      console.log("Quill & y-richtext are equal: " + checkConsistency());
+    }
+  }, 0);
+});
+quill.on("selection-change", function () {
+  window.setTimeout(function () {
+    if (window.editor !== null && window.editor.selfCursor !== null) {
+      console.log("Quill & y-richtext are equal: " + checkCursor());
+    }
+  }, 0);
+});
 
 function fuzzy_cursor(n) {
   var i, m;
