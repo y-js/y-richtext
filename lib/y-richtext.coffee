@@ -2,6 +2,7 @@ misc = (require "./misc.coffee")
 BaseClass = misc.BaseClass
 Locker = misc.Locker
 Editors = (require "./editors.coffee")
+
 # All dependencies (like Y.Selections) to other types (that have its own
 # repository) should  be included by the user (in order to reduce the amount of
 # downloaded content).
@@ -156,6 +157,14 @@ class YRichText extends BaseClass
 
         else if event.type is "delete"
           delta.ops.push {delete: 1}
+          # delete cursor, if it references to this position
+          for cursor_name, cursor_ref in @_model.getContent("cursors").val()
+            if cursor_ref is event.reference
+              window.setTimeout(()->
+                  @_model.getContent("cursors").delete(cursor_name)
+                , 0)
+        else
+          return
 
         @editor.updateContents delta
 
@@ -179,22 +188,40 @@ class YRichText extends BaseClass
     # update the editor when the cursor is moved
     @_model.getContent("cursors").observe (events)=> @locker.try ()=>
       for event in events
-        author = event.changedBy
-        ref_to_char = event.object.val(author)
-        if ref_to_char is null
-          position = @editor.getLength()
-        else if ref_to_char?
-          position = ref_to_char.getPosition()
-        else
-          console.warn "ref_to_char is undefined"
-          return
+        if event.type is "update" or event.type is "add"
+          author = event.changedBy
+          ref_to_char = event.object.val(author)
+          if ref_to_char is null
+            position = @editor.getLength()
+          else if ref_to_char?
+            if ref_to_char.isDeleted()
+              #
+              # we have to delete the cursor if the reference does not exist anymore
+              # the downside of this approach is that everyone will send this delete event!
+              # in the future, we could replace the cursors, with a y-selections
+              #
+              window.setTimeout(()->
+                  event.object.delete(author)
+                , 0)
+              return
+            else
+              position = ref_to_char.getPosition()
+          else
+            console.warn "ref_to_char is undefined"
+            return
 
-        params =
-          id: author
-          index: position
-          text: author
-          color: "grey"
-        @editor.setCursor params
+          params =
+            id: author
+            index: position
+            text: author
+            color: "grey"
+          @editor.setCursor params
+        else
+          @editor.removeCursor event.name
+
+    @_model.connector.onUserEvent (event)=>
+      if event.action is "userLeft"
+        @_model.getContent("cursors").delete(event.user)
 
   # Apply a delta and return the new position
   # @param delta [Object] a *single* delta (see ot-types for more info)
@@ -225,11 +252,10 @@ class YRichText extends BaseClass
         from = thisObj._model.getContent("characters").ref position
         to = thisObj._model.getContent("characters").ref(
           position+content_array.length-1)
-        if delta.attributes?
-          thisObj._model.getContent("selections").select(
-            from, to, delta_selections, true)
-          thisObj._model.getContent("selections").unselect(
-            from, to, delta_unselections)
+        thisObj._model.getContent("selections").select(
+          from, to, delta_selections, true)
+        thisObj._model.getContent("selections").unselect(
+          from, to, delta_unselections)
 
         return position + content_array.length
 
