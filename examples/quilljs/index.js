@@ -1,8 +1,10 @@
-if(Quill == null){
-  alert("You must download quilljs! It needs to be in the same directory as y-richtext!");
+'use strict';
+
+if (window.Quill === null) {
+  window.alert("You must download quilljs! It needs to be in the same directory as y-richtext!");
 }
 
-colors = ['rgb(0, 0, 0)', 'rgb(230, 0, 0)', 'rgb(255, 153, 0)',
+var colors = ['rgb(0, 0, 0)', 'rgb(230, 0, 0)', 'rgb(255, 153, 0)',
   'rgb(255, 255, 0)', 'rgb(0, 138, 0)', 'rgb(0, 102, 204)',
   'rgb(153, 51, 255)', 'rgb(255, 255, 255)', 'rgb(250, 204, 204)',
   'rgb(255, 235, 204)', 'rgb(255, 255, 204)', 'rgb(204, 232, 204)',
@@ -16,11 +18,12 @@ colors = ['rgb(0, 0, 0)', 'rgb(230, 0, 0)', 'rgb(255, 153, 0)',
   'rgb(0, 41, 102)', 'rgb(61, 20, 102)'];
 
 // Fill the palette
-$('.ql-color, .ql-background').each(function() {
-  generate = function(what) {
+$('.ql-color, .ql-background').each(function () {
+  var i, generate;
+  generate = function (what) {
     return '<option value="' + what + '" label="' + what + '"></option>';
   };
-  for (var i = 0; i < colors.length; i++) {
+  for (i = 0; i < colors.length; i++) {
     $(this).append(generate(colors[i]));
   }
 });
@@ -35,15 +38,17 @@ var quill = new Quill('#editor', {
 });
 quill.addModule('toolbar', { container: '#toolbar' });
 quill.addModule('multi-cursor', { timeout: 2500});
-window.connector = new Y.WebRTC('thisIsMyRoom2');,
+window.connector = new Y.WebRTC('thisIsMyRoom2');
 //{url: 'http://localhost:8888'});
 
 // connector.debug = true;
-window.y = new Y(connector);
+window.y = new Y(window.connector);
 
-checkConsistency = function() {
-  deltas = editor.getDelta();
-  quill_deltas = quill.getContents().ops;
+var checkConsistency = function () {
+  var deltas = window.editor.getDelta(),
+    quill_deltas = quill.getContents().ops,
+    d,
+    delta, name, quill_value, value, n;
   for (d in deltas) {
     delta = deltas[d];
     for (name in delta) {
@@ -63,11 +68,12 @@ checkConsistency = function() {
   return true;
 };
 
-checkCursor = function() {
-  cursor = editor.selfCursor.getPosition();
+var checkCursor = function () {
+  var cursor, quill_cursor;
+  cursor = window.editor.selfCursor.getPosition();
   quill_cursor = quill.getSelection().start;
   return cursor === quill_cursor;
-}
+};
 
 // quill.on("text-change", function(){
 //     if(editor != null && editor.getDelta != null){
@@ -81,30 +87,26 @@ checkCursor = function() {
 // });
 
 function fuzzy_cursor(n) {
-  for (var i = 0; i < n; i++) {
-    var m = Math.floor(Math.random() * quill.getLength());
+  var i, m;
+  for (i = 0; i < n; i++) {
+    m = Math.floor(Math.random() * quill.getLength());
     quill.setSelection(m, m);
   }
 }
 function fuzzy_insert(n) {
-  N = 5;
+  var N = 5, i, m, j, delta={}, some;
   for (var i = 0; i < n; i++) {
-    var m = Math.floor(Math.random() * quill.getLength());
-    var j = Math.floor(Math.random() * 2);
+    m = Math.floor(Math.random() * quill.getLength());
+    j = Math.floor(Math.random() * 2);
     delta = {};
     delta.ops = [{retain: m}];
-    var some = Math.min(
+    some = Math.min(
       Math.floor(Math.random() * (quill.getLength() - m)) +
       quill.getLength() - m,
       N);
-    if (true) {//}j == 0 || quill.getLength() <= N) {
-      var randLetter = (Math.random().toString(36) + '00000000000000000')
-        .slice(2, 2 + some);
-      delta.ops.push({insert: randLetter});
-    }
-    else if (j == 1) {
-      delta.ops.push({delete: some});
-    }
+    var randLetter = (Math.random().toString(36) + '00000000000000000')
+      .slice(2, 2 + some);
+    delta.ops.push({insert: randLetter});
     quill.setContents(delta);
   }
 }
@@ -152,7 +154,7 @@ $('#toolbar .author-color')
     $('#name').css('color', ev.target.value);
     $(this).css('background', $(this).val());
   });
-cp = new ColorPicker($('#toolbar .author-color')[0]);
+var cp = new ColorPicker($('#toolbar .author-color')[0]);
 
 
 // Some CSS
