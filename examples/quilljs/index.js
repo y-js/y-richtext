@@ -69,10 +69,16 @@ var checkConsistency = function () {
 };
 
 var checkCursor = function () {
-  var cursor, quill_cursor;
+  var cursor, quill_cursor, sel;
   cursor = window.editor.selfCursor.getPosition();
-  quill_cursor = quill.getSelection().start;
-  return cursor === quill_cursor;
+  sel = quill.getSelection();
+  if (sel !== null && sel.start !== undefined) {
+    quill_cursor = sel.start;
+    return cursor === quill_cursor;
+  }
+  else {
+    return true;
+  }
 };
 
 quill.on("text-change", function () {
@@ -127,6 +133,7 @@ function fuzzy_all(n) {
 // y._model.HB.setGarbageCollectTimeout(1500);
 
 y.observe (function (events) {
+  var i;
   for (i in events) {
     if (events[i].name === 'editor') {
       y.val('editor').bind('QuillJs', quill);
