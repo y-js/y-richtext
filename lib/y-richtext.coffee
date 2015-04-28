@@ -15,8 +15,7 @@ class YRichText extends BaseClass
   # @param author [String] the name of the local author
   constructor: (editor_name, editor_instance) ->
     @locker = new Locker()
-    @_colors = {length: 0}
-    @_graphicsPalette = ['#837DFA', '#FA7D7D','#7DFA87', '#DCE874']
+    @_graphicsPalette = ['#837DFA', '#FA7D7D','#34DA43', '#D1BC30']
 
     if editor_name? and editor_instance?
       @_bind_later =
