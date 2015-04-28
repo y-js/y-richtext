@@ -70,7 +70,13 @@ var checkConsistency = function () {
 
 var checkCursor = function () {
   var cursor, quill_cursor, sel;
-  cursor = window.editor.selfCursor.getPosition();
+  if (window.editor !== undefined && window.editor.selfCursor !== undefined) {
+    cursor = window.editor.selfCursor.getPosition();
+  }
+  else {
+    return true;
+  }
+
   sel = quill.getSelection();
   if (sel !== null && sel.start !== undefined) {
     quill_cursor = sel.start;
@@ -142,14 +148,12 @@ y.observe (function (events) {
   }
 });
 
-connector.whenSynced(function(){
+window.connector.whenSynced(function(){
   if (y.val('editor') == null) {
     y.val('editor', new Y.RichText('QuillJs', quill));
   }
   y.val('editor').setAuthor($('#name').val());
-});
-
-
+})
 
 $('#name')
   .click(function() {
