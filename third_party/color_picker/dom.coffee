@@ -2,7 +2,6 @@ _ = require('lodash')
 
 lastKeyEvent = null    # Workaround for fact we can't dispatch keyboard event via javascript
 
-
 class Wrapper
   constructor: (@node) ->
 
