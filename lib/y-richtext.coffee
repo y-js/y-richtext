@@ -253,21 +253,10 @@ class YRichText extends BaseClass
           else
             console.warn "ref_to_char is undefined"
             return
-
-          # never knows…
-          if authorId == "length"
-            authorId = "_length"
-          if authorId in @_colors
-            color = @_colors[authorId]
-          else
-            @_colors.length++
-            color = @_graphicsPalette[@_colors.length%@_graphicsPalette.length]
-            @_colors[authorId]
-
           params =
-            id: author
+            id: authorId
             index: position
-            text: author(authorId).name
+            name: info(authorId).name
             color: info(authorId).color
           @editor.setCursor params
         else
