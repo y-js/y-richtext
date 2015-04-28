@@ -194,7 +194,10 @@ class YRichText extends BaseClass
     @_model.getContent("characters").observe (events) => @locker.try ()=>
       for event in events
         delta =
-          ops: [{retain: event.position}]
+          ops: []
+
+        if event.position > 0
+          delta.ops.push {retain: event.position}
 
         if event.type is "insert"
           delta.ops.push {insert: event.value}
