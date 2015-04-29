@@ -93,6 +93,7 @@ class QuillJs extends AbstractEditor
 
   observeLocalText: (backend)->
     @editor.on "text-change", (deltas, source) ->
+      console.warn "observeLocalText"
       # call the backend with deltas
       position = backend deltas.ops
       # trigger an extra event to move cursor to position of inserted text

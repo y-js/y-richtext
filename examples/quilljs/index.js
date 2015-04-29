@@ -57,10 +57,16 @@ var checkConsistency = function () {
       if (value.constructor === Object) {
         for (n in value) {
           if (value[n] !== quill_value[n]) {
+            console.warn("Difference found: delta '" + value[n] +
+              "' (" + typeof value[n] + ")" +
+              "quill '" + quill_value[n] +
+              "' (" + typeof quill_value[n] + ")");
             return false;
           }
         }
       } else if (value !== quill_value) {
+        console.warn("delta", value,
+          "quill", quill_value);
         return false;
       }
     }
