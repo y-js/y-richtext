@@ -216,11 +216,12 @@ class YRichText extends BaseClass
           attrs[attr] = null
       retain = event.from.getPosition()
       selection_length = event.to.getPosition()-event.from.getPosition()+1
-      @editor.updateContents
-        ops: [
-          {retain: retain},
-          {retain: selection_length, attributes: attrs}
-        ]
+      operations = [
+        {retain: retain},
+        {retain: selection_length, attributes: attrs}
+      ]
+      @editor.updateContents {ops: operations}
+
 
     # update the editor when the cursor is moved
     @_model.getContent("cursors").observe (events) => @locker.try ()=>
