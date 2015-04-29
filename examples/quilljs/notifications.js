@@ -9,9 +9,9 @@ var notifyConnection = function (event, authors) {
     authorName = authors[event.user].name || authorName;
 
   if (event.action === 'userLeft') {
-    message = authorName + ' joined';
-  } else if (event.action === 'userJoined') {
     message = authorName + ' left';
+  } else if (event.action === 'userJoined') {
+    message = authorName + ' joined';
   } else {
     console.log("Something weird happened", event);
   }
