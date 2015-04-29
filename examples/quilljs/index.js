@@ -195,16 +195,3 @@ $('#name-wrapper')
   .focusout(function() {
     $(this).css('border-bottom', '1px solid rgba(0,0,0,0)');
   });
-// $('#name')
-//     .focus(function() {
-//         rgba = $(this).val();
-//         $(this).parent().css(
-//             {'border-bottom': '5px black'
-//             });
-//         $(this).siblings().find('.ql-picker-label').css(
-//             {'background': rgba});
-//     })
-//     .blur(function() {
-//         $(this).parent().css(
-//             {'border-bottom' : '0'});
-//     });
