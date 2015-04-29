@@ -157,7 +157,12 @@ window.connector.whenSynced(function(){
     y.val('editor', new Y.RichText('QuillJs', quill));
   }
   y.val('editor').setAuthor($('#name').val());
-})
+  window.connector.onUserEvent(
+    function(event) {
+      window.notify.connection(event,
+        window.editor._model.getContent('authors').val());
+    });
+});
 
 $('#name')
   .click(function() {
