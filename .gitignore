@@ -12,3 +12,4 @@ doc
 *.map
 .idea
 y-richtext.js
+third_party/**/*.js
