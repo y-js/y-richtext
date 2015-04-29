@@ -146,6 +146,10 @@ y.observe (function (events) {
       window.editor = y.val('editor');
     }
   }
+  // Set the name of the local user if set
+  if ($('#name').val()) {
+    window.editor.setAuthor({name: $('#name').val()});
+  }
 });
 
 window.connector.whenSynced(function(){
