@@ -7,8 +7,23 @@
   min-height: 8em;
 }
 .toolbar {
-    border-bottom: 1px solid #CCC;
+  border-bottom: 1px solid #CCC;
 }
 #editor {
-    min-height: 30em;
+  min-height: 30em;
+}
+#name ::-webkit-input-placeholder { font-style: italic; }
+#name::-ms-input-placeholder { font-style: italic; }
+#name::-moz-placeholder { font-style: italic; }
+
+#name {
+  outline: 0;
+  border: none;
+  height: 24px;
+  background-color: white;
+  color: black;
+}
+
+#name-wrapper {
+  border-bottom: 1px solid rgba(0,0,0,0);
 }
