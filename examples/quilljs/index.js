@@ -87,6 +87,8 @@ var checkCursor = function () {
   }
 };
 
+
+// Bind functions to quill event for debug purpose
 quill.on("text-change", function () {
   window.setTimeout(function () {
     if (window.editor !== null && window.editor.getDelta !== null) {
@@ -102,6 +104,8 @@ quill.on("selection-change", function () {
   }, 0);
 });
 
+
+// Functions to create random events in quill
 function fuzzy_cursor(n) {
   var i, m;
   for (i = 0; i < n; i++) {
@@ -138,6 +142,8 @@ function fuzzy_all(n) {
 // y._model.HB.stopGarbageCollection();
 // y._model.HB.setGarbageCollectTimeout(1500);
 
+
+// Hooks on yjs object
 y.observe (function (events) {
   var i;
   for (i in events) {
