@@ -1,10 +1,10 @@
-gulp = require('gulp')
-browserify = require('gulp-browserify')
-uglify = require('gulp-uglify')
-coffee = require('gulp-coffee')
-plumber = require('gulp-plumber')
-coffeeify = require('gulp-coffeeify')
-rename = require('gulp-rename')
+gulp = require 'gulp'
+browserify = require 'gulp-browserify'
+uglify = require 'gulp-uglify'
+coffee = require 'gulp-coffee'
+plumber = require 'gulp-plumber'
+coffeeify = require 'gulp-coffeeify'
+rename = require 'gulp-rename'
 
 files = ['export.coffee']
 
