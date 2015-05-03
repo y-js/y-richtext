@@ -73,10 +73,11 @@
     "gulp-uglify": "^1.1.0",
     "gulp-watch": "^3.0.0",
     "jquery": "^2.1.1",
+    "lodash": "^3.7.0",
     "mocha": "^2.1.0",
     "sinon": "^1.12.2",
     "sinon-chai": "^2.7.0",
-    "lodash": "^3.7.0"
+    "underscore": "^1.8.3"
   },
   "dependencies": {
     "blanket": "^1.1.6",
