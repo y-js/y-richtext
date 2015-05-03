@@ -48,15 +48,24 @@ function getDebug(eq){
   }
 }
 
+var checking_consistency = false;
 quill.on("text-change", function(){
-  window.setTimeout(function(){
-    if(editor != null && editor.getDelta != null){
-      var eq = checkConsistency()
-      if(!eq[0]){
-        quill.setContents(editor.getDelta())
+  if(!checking_consistency){
+    window.setTimeout(function(){
+      if(editor != null && editor.getDelta != null){
+        var eq = checkConsistency()
+        if(!eq[0]){
+          editor.locker.try(function(){
+            quill.setContents(editor.getDelta())
+            console.log("replaced contents..")
+          })
+        }
       }
-    }
-  },0)
+      checking_consistency = false;
+    },500)
+    checking_consistency = true;
+  }
+
 })
 
 
