@@ -48,14 +48,21 @@ class YRichText extends BaseClass
           editor_name + ")"
 
     # TODO: parse the following directly from $characters+$selections (in O(n))
-    # @editor.editor.deleteText(0, @editor.editor.getText().length)
     @editor.setContents
       ops: @getDelta()
 
     # bind the rest..
+    # TODO: remove observers, when editor is overwritten
     @editor.observeLocalText @passDeltas
     @bindEventsToEditor @editor
     @editor.observeLocalCursor @updateCursorPosition
+
+    # pull changes from quill, before message is received
+    # as suggested https://discuss.quilljs.com/t/problems-in-collaborative-implementation/258
+    # TODO: move this to Editors.coffee
+    @_model.connector.receive_handlers.unshift ()=>
+      @editor.checkUpdate()
+
 
   getDelta: ()->
     text_content = @_model.getContent('characters').val()
