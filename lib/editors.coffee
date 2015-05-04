@@ -83,7 +83,7 @@ class QuillJs extends AbstractEditor
 
       fun = (index) =>
         @_cursors.setCursor(param.id, index,
-          param.name, param.color)
+          param.text, param.color)
 
     if param.index?
       fun param.index
