@@ -49,6 +49,9 @@ class AbstractEditor
   # Return the editor instance
   getEditor: ()-> throw new Error "Implement me"
 
+  # Check if the editor tries to accumulate messages. This is executed every time before Yjs executes a messages
+  checkUpdate: ()-> throw new Error "Implement me"
+
 class QuillJs extends AbstractEditor
 
   constructor: (@editor) ->
@@ -114,6 +117,9 @@ class QuillJs extends AbstractEditor
 
   getEditor: ()->
     @editor
+
+  checkUpdate: ()->
+    @editor.editor.checkUpdate()
 
 class TestEditor extends AbstractEditor
 
