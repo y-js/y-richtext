@@ -228,12 +228,6 @@ class YRichText extends BaseClass
         if event.type is "update" or event.type is "add"
           authorId = event.changedBy
           ref_to_char = event.object.val(authorId)
-          info = (authorId) =>
-            mod = @_model.getContent('authors').val()
-            return {
-              name: mod[authorId].name or "Default user"
-              color: mod[authorId].color or "grey"
-            }
 
           if ref_to_char is null
             position = @editor.getLength()
@@ -253,11 +247,12 @@ class YRichText extends BaseClass
           else
             console.warn "ref_to_char is undefined"
             return
+          author_info = @_model.getContent('authors').val(authorId)
           params =
             id: authorId
             index: position
-            name: info(authorId).name
-            color: info(authorId).color
+            name: author_info?.name or "Default user"
+            color: author_info?.color or "grey"
           @editor.setCursor params
         else
           @editor.removeCursor event.name
