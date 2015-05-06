@@ -265,10 +265,12 @@ class YRichText extends BaseClass
         from = thisObj._model.getContent("characters").ref position
         to = thisObj._model.getContent("characters").ref(
           position+content_array.length-1)
-        thisObj._model.getContent("selections").select(
-          from, to, delta_selections, true)
+        # important, first unselect, then select!
         thisObj._model.getContent("selections").unselect(
           from, to, delta_unselections)
+        thisObj._model.getContent("selections").select(
+          from, to, delta_selections, true)
+
 
         return position + content_array.length
 
@@ -282,11 +284,12 @@ class YRichText extends BaseClass
         # we set `position+retain-1`, -1 because when selecting one char,
         # Y-selections will only mark this one char (as beginning and end)
         to = thisObj._model.getContent("characters").ref(position + retain - 1)
-
-        thisObj._model.getContent("selections").select(
-          from, to, delta_selections)
+        # important, first unselect, then select!
         thisObj._model.getContent("selections").unselect(
           from, to, delta_unselections)
+        thisObj._model.getContent("selections").select(
+          from, to, delta_selections)
+
 
         return position + retain
       throw new Error "This part of code must not be reached!"
