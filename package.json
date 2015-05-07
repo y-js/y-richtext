@@ -1,14 +1,15 @@
 {
   "name": "y-richtext",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "RichText Type for Yjs",
-  "main": "./lib/y-richtext.coffee",
+  "main": "./build/node/y-richtext.js",
   "directories": {
     "example": "examples",
     "test": "test"
   },
   "scripts": {
-    "test": "gulp mocha; gulp coveralls"
+    "test": "gulp mocha; gulp coveralls",
+    "prepublish": "gulp build_node"
   },
   "config": {
     "blanket": {
@@ -76,10 +77,10 @@
     "mocha": "^2.1.0",
     "sinon": "^1.12.2",
     "sinon-chai": "^2.7.0",
-    "underscore": "^1.8.3"
+    "underscore": "^1.8.3",
+    "coffee-script": "^1.7.1"
   },
   "dependencies": {
-    "coffee-script": "^1.7.1",
     "blanket": "^1.1.6",
     "coveralls": "^2.11.2",
     "gulp-notify": "^2.2.0",
