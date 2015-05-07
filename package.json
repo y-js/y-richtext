@@ -1,8 +1,8 @@
 {
   "name": "y-richtext",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "RichText Type for Yjs",
-  "main": "y-xml.js",
+  "main": "./lib/y-richtext.coffee",
   "directories": {
     "example": "examples",
     "test": "test"
@@ -44,7 +44,6 @@
   "devDependencies": {
     "codo": "^2.0.9",
     "coffee-errors": "~0.8.6",
-    "coffee-script": "^1.7.1",
     "coffeeify": "^0.6.0",
     "gulp": "^3.8.7",
     "gulp-browserify": "^0.5.0",
@@ -80,6 +79,7 @@
     "underscore": "^1.8.3"
   },
   "dependencies": {
+    "coffee-script": "^1.7.1",
     "blanket": "^1.1.6",
     "coveralls": "^2.11.2",
     "gulp-notify": "^2.2.0",
