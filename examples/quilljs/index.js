@@ -11,7 +11,7 @@ var quill = new Quill('#editor', {
     theme: 'snow'
 });
 quill.addModule('toolbar', { container: '#toolbar' });
-window.connector = new Y.WebRTC('thisisMYroom44');
+window.connector = new Y.WebRTC('devRoom24');
 
 // connector.debug = true;
 window.y = new Y(connector);
