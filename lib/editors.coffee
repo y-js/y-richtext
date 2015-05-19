@@ -112,6 +112,7 @@ class QuillJs extends AbstractEditor
   updateContents: (delta)->
     @editor.updateContents delta
 
+
   setContents: (delta)->
     @editor.setContents(delta)
 
