@@ -228,8 +228,8 @@ class YRichText extends BaseClass
           params =
             id: author
             index: position
-            text: @_providers? and @_providers.nameProvider(author) or "Default user"
-            color: @_providers? and @_providers.colorProvider(author) or "grey"
+            text: @_providers?.nameProvider?(author) or "Default user"
+            color: @_providers?.colorProvider?(author) or "grey"
           @editor.setCursor params
         else
           @editor.removeCursor event.name
