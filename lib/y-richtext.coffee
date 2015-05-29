@@ -63,6 +63,9 @@ class YRichText extends BaseClass
     @_model.connector.receive_handlers.unshift ()=>
       @editor.checkUpdate()
 
+  attachProvider: (kind, fun) ->
+    @_providers = @_providers or {}
+    @_providers[kind] = fun
 
   getDelta: ()->
     text_content = @_model.getContent('characters').val()
@@ -225,8 +228,8 @@ class YRichText extends BaseClass
           params =
             id: author
             index: position
-            text: author
-            color: "grey"
+            text: @_providers?.nameProvider?(author) or "Default user"
+            color: @_providers?.colorProvider?(author) or "grey"
           @editor.setCursor params
         else
           @editor.removeCursor event.name
