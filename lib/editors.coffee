@@ -110,6 +110,10 @@ class QuillJs extends AbstractEditor
         backend range.start
 
   updateContents: (delta)->
+    op = delta.ops[delta.ops.length-1]
+    # if we try to insert a number"
+    if op.insert? and typeof op.insert == "number" and not op.attributes?
+      op.attributes = {image:"http://"}
     @editor.updateContents delta
 
 
