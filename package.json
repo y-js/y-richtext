@@ -86,6 +86,7 @@
     "gulp-notify": "^2.2.0",
     "gulp-util": "^3.0.4",
     "mocha-lcov-reporter": "0.0.2",
-    "mocha-multi": "^0.6.0"
+    "mocha-multi": "^0.6.0",
+    "rich-text": "^2.0.0"
   }
 }

@@ -2,6 +2,8 @@ misc = (require "./misc.coffee")
 BaseClass = misc.BaseClass
 Locker = misc.Locker
 Editors = (require "./editors.coffee")
+Delta = require('rich-text/lib/delta')
+
 
 # All dependencies (like Y.Selections) to other types (that have its own
 # repository) should  be included by the user (in order to reduce the amount of
@@ -27,6 +29,16 @@ class YRichText extends BaseClass
     # @author = author
     # TODO: assign an id / author name to the rich text instance for authorship
 
+    # applies pending deltas frequently
+    @pendingDelta = new Delta()
+    window.setInterval @applyUpdateContents.bind(@), 200
+
+
+  applyUpdateContents: () ->
+    if @editor? and @pendingDelta.length() > 0
+      @locker.try ()=>
+        @editor.updateContents @pendingDelta
+        @pendingDelta = new Delta()
   #
   # Bind the RichText type to a rich text editor (e.g. quilljs)
   #
@@ -53,15 +65,25 @@ class YRichText extends BaseClass
 
     # bind the rest..
     # TODO: remove observers, when editor is overwritten
-    @editor.observeLocalText @passDeltas
+    @editor.observeLocalText ((delta) =>
+      transformedDelta = @pendingDelta.transform delta
+      @applyUpdateContents()
+      @passDeltas.call(@editor, transformedDelta)).bind @
+
     @bindEventsToEditor @editor
     @editor.observeLocalCursor @updateCursorPosition
 
-    # pull changes from quill, before message is received
+    # pull changes from quill, before message is received and eventually apply all non-applied modifications
     # as suggested https://discuss.quilljs.com/t/problems-in-collaborative-implementation/258
     # TODO: move this to Editors.coffee
     @_model.connector.receive_handlers.unshift ()=>
       @editor.checkUpdate()
+
+  observe: (fun) ->
+    if @_model?
+      @_model.observe(fun)
+    else
+      @_observeWhenModel = (@_observeWhenModel or []).push(fun)
 
   attachProvider: (kind, fun) ->
     @_providers = @_providers or {}
@@ -71,7 +93,7 @@ class YRichText extends BaseClass
     text_content = @_model.getContent('characters').val()
     # transform Y.Selections.getSelections() to a delta
     expected_pos = 0
-    deltas = []
+    deltas = new Delta()
     selections = @_model.getContent("selections")
     for sel in selections.getSelections(@_model.getContent("characters"))
       # (+1), because if we select from 1 to 1 (with y-selections), then the
@@ -82,18 +104,14 @@ class YRichText extends BaseClass
         unselected_insert_content = text_content.splice(
           0, sel.from-expected_pos )
           .join('')
-        deltas.push
-          insert: unselected_insert_content
+        deltas.insert unselected_insert_content
         expected_pos += unselected_insert_content.length
       if expected_pos isnt sel.from
         throw new Error "This portion of code must not be reached in getDelta!"
-      deltas.push
-        insert: text_content.splice(0, selection_length).join('')
-        attributes: sel.attrs
+      deltas.insert text_content.splice(0, selection_length).join(''), sel.attrs
       expected_pos += selection_length
     if text_content.length > 0
-      deltas.push
-        insert: text_content.join('')
+      deltas.insert text_content.join('')
     deltas
 
   _getModel: (Y, Operation) ->
@@ -115,16 +133,21 @@ class YRichText extends BaseClass
           editor = new Editor @_bind_later.instance
         else
           throw new Error "This type of editor is not supported! ("+editor_name+") -- fatal error!"
-        @passDeltas editor.getContents()
+        @passDeltas ops: editor.getContents()
         @bind editor
         delete @_bind_later
 
       # listen to events on the model using the function propagateToEditor
       @_model.observe @propagateToEditor
-    return @_model
+      (@_observeWhenModel or []).forEach (observer) ->
+        @_model.observe observer
+
+    @_model
 
   _setModel: (model) ->
     super
+    (@_observeWhenModel or []).forEach (observer) ->
+      @_model.observe observer
 
   _name: "RichText"
 
@@ -142,7 +165,7 @@ class YRichText extends BaseClass
   # @param deltas [Array<Object>] an array of deltas (see ot-types for more info)
   passDeltas : (deltas) => @locker.try ()=>
     position = 0
-    for delta in deltas
+    for delta in deltas.ops or []
       position = deltaHelper @, delta, position
 
   # @override updateCursorPosition(index)
@@ -163,18 +186,20 @@ class YRichText extends BaseClass
   bindEventsToEditor : (editor) ->
     # update the editor when something on the $characters happens
     @_model.getContent("characters").observe (events) => @locker.try ()=>
+
+
+      # create a delta out of the event
       for event in events
-        delta =
-          ops: []
+        delta = new Delta()
 
         if event.position > 0
-          delta.ops.push {retain: event.position}
+          delta.retain event.position
 
         if event.type is "insert"
-          delta.ops.push {insert: event.value}
+          delta.insert event.value
 
         else if event.type is "delete"
-          delta.ops.push {delete: 1}
+          delta.delete 1
           # delete cursor, if it references to this position
           for cursor_name, cursor_ref in @_model.getContent("cursors").val()
             if cursor_ref is event.reference
@@ -188,8 +213,10 @@ class YRichText extends BaseClass
                 , 0)
         else
           return
+          
+        @pendingDelta = @pendingDelta.compose delta
+        @applyUpdateContents()
 
-        @editor.updateContents delta
 
     # update the editor when something on the $selections happens
     @_model.getContent("selections").observe (event)=> @locker.try ()=>
@@ -202,11 +229,11 @@ class YRichText extends BaseClass
           attrs[attr] = null
       retain = event.from.getPosition()
       selection_length = event.to.getPosition()-event.from.getPosition()+1
-      @editor.updateContents
+      @editor.updateContents (new Delta(
         ops: [
           {retain: retain},
           {retain: selection_length, attributes: attrs}
-        ]
+        ]))
 
     # update the editor when the cursor is moved
     @_model.getContent("cursors").observe (events)=> @locker.try ()=>
@@ -230,7 +257,9 @@ class YRichText extends BaseClass
             index: position
             text: @_providers?.nameProvider?(author) or "Default user"
             color: @_providers?.colorProvider?(author) or "grey"
+
           @editor.setCursor params
+
         else
           @editor.removeCursor event.name
 
@@ -265,6 +294,8 @@ class YRichText extends BaseClass
             throw new Error "Got an unexpected value in delta.insert! (" +
             (typeof content) + ")"
         insertHelper thisObj, position, content_array
+        fromPosition = from
+        toPosition = position+content_array.length-1
         from = thisObj._model.getContent("characters").ref position
         to = thisObj._model.getContent("characters").ref(
           position+content_array.length-1)

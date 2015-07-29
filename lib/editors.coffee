@@ -85,6 +85,9 @@ class QuillJs extends AbstractEditor
         @_cursors.setCursor(param.id, index,
           param.text, param.color)
 
+    len = @editor.getLength()
+    if param.index > len
+      param.index = len
     if param.index?
       fun param.index
 
@@ -97,7 +100,7 @@ class QuillJs extends AbstractEditor
   observeLocalText: (backend)->
     @editor.on "text-change", (deltas, source) ->
       # call the backend with deltas
-      position = backend deltas.ops
+      position = backend deltas
       # trigger an extra event to move cursor to position of inserted text
       @editor.selection.emitter.emit(
         @editor.selection.emitter.constructor.events.SELECTION_CHANGE,
