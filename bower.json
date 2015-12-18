@@ -1,6 +1,6 @@
 {
   "name": "y-richtext",
-  "version": "0.0.0",
+  "version": "0.7.0",
   "authors": [
     "corentin.cadiou@linagora.com",
     "kevin.jahns@rwth-aachen.de"
@@ -22,9 +22,5 @@
     "tests"
   ],
   "dependencies": {
-    "y-list": "git://github.com/y-js/y-list.git",
-    "yjs": "0.5",
-    "y-test": "git://github.com/y-js/y-test.git#~0.4",
-    "y-selections": "git://github.com/y-js/y-selections.git"
   }
 }
