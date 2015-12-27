@@ -6,6 +6,29 @@ function extend (Y) {
     class YRichtext extends Y.Array['class'] {
       constructor (os, _model, idArray, valArray) {
         super(os, _model, idArray, valArray)
+        this._length = 0
+        for (var i = 0, v = valArray[i]; i < valArray.length; i++) {
+          if (typeof v === 'string') {
+            this._length++
+          }
+        }
+        var self = this
+        this.observe(function (events) {
+          for (var i = 0, event = events[i]; i < events.length; i++) {
+            if (event.type === 'insert') {
+              if (typeof event.value === 'string') {
+                self._length++
+              }
+            } else if (event.type === 'delete') {
+              if (typeof event.value === 'string') {
+                self._length--
+              }
+            }
+          }
+        })
+      }
+      get length () {
+        return this._length
       }
       toString () {
         return this.valArray.map(function (v) {
@@ -58,7 +81,7 @@ function extend (Y) {
       insert (pos, content) {
         var curPos = 0
         var selection = {}
-        for (var i = 0; i <= this.valArray.length; i++) {
+        for (var i = 0; i < this.valArray.length; i++) {
           if (curPos === pos) {
             break
           }
@@ -77,43 +100,65 @@ function extend (Y) {
         return selection
       }
       delete (pos, length) {
+        /*
+          let x = to be deleted string
+          let s = some string
+          let * = some selection
+          E.g.
+          sss*s***x*xxxxx***xx*x**ss*s
+               |---delete-range--|
+             delStart         delEnd
+          
+          We'll check the following
+          * is it possible to delete some of the selections?
+            1. a dominating selection to the right could be the same as the selection (curSel) to delStart
+            2. a selections could be overwritten by another selection to the right 
+        */
         var curPos = 0
+        var curSel = {}
         var endPos = pos + length
-        var deletes = []
-        for (var i = 0; i < this.valArray.length && curPos < endPos; i++) {
-          if (typeof this.valArray[i] === 'string') {
-            if (curPos >= pos)
-              deletes.push(i)
+        if (length <= 0) return
+        var delStart // relative to valArray 
+        var delEnd // ..
+        var v // helper variable for elements of valArray
+
+        for (delStart = 0, v = this.valArray[delStart];  curPos < pos && delStart < this.valArray.length; v = this.valArray[++delStart]) {
+          if (typeof v === 'string') {
+            curPos++
+          } else if (v.constructor === Array) {
+            curSel[v[0]] = v[1]
+          }
+        }
+        for (delEnd = delStart, v = this.valArray[delEnd]; curPos < endPos && delEnd < this.valArray.length; v = this.valArray[++delEnd]) {
+          if (typeof v === 'string') {
             curPos++
           }
         }
-        // we found all elements that need to be removed
-        // now we check if we can safely delete some selections
-        // e.g. if [{bold:null},*deleted op position* {bold:true}], we can delete the first op
-        // or if deleted op is the last element: [.., {..},{..}, *deleted op position*],
-        // we can delete the last to selections
-        for (var j = deletes.length - 1; j >= 0; j--) {
-          var d = deletes[j]
-          var rights = [], c
-          var v
-          if (this.valArray[d+1] != null) {
-            for (c = d + 1; v != null && v.constructor === Array; v = this.valArray[++c]) {
-              rights.push(v)
-            }
-            super.delete(d, 1)
-            for (c = d - 1, v = this.valArray[c]; v != null && v.constructor === Array; v = this.valArray[--c]) {
-              for (var rr = 0; rr < rights.length; rr++) {
-                if (v[0] === rights[rr][0]) {
-                  super.delete(c)
-                  break
+        if (delEnd === this.valArray.length) {
+          // yay, you can delete everything without checking
+          for (var i = delEnd - 1, v = this.valArray[i]; i >= delStart; v = this.valArray[--i]) {
+            super.delete(i, 1)
+          }
+        } else {
+          if (typeof v === 'string') {
+            delEnd--
+          }
+          var rightSel = {}
+          for (var i = delEnd, v = this.valArray[i]; i >= delStart; v = this.valArray[--i]) {
+            if (v.constructor === Array) {
+              if (rightSel[v[0]] === undefined) {
+                if (v[1] === curSel[v[0]]) {
+                  // case 1.
+                  super.delete(i, 1)
                 }
+                rightSel[v[0]] = v[1]
+              } else {
+                // case 2.
+                super.delete(i, 1)
               }
-            }
-          } else {
-            // element does not exist. we can delete all left selections
-            super.delete(d, 1)
-            for (c = d - 1, v = this.valArray[c]; v != null && v.constructor === Array; v = this.valArray[--c]) {
-              super.delete(c)
+            } else if (typeof v === 'string') {
+              // always delete the strings
+              super.delete(i, 1)
             }
           }
         }
@@ -208,6 +253,14 @@ function extend (Y) {
           }
           if (step2i != null) {
             super.insert(step2i, [step2sel])
+            // if there are some selections to the left of step2sel, delete them if possible
+            // * have same attribute name
+            // * no insert between step2sel and selection
+            for (j = step2i - 1, v = this.valArray[j]; j >= 0 && v.constructor === Array; v = this.valArray[--j] ) {
+              if (v[0] === attrName) {
+                super.delete(j, 1)
+              }
+            }
           }
         }
       }
@@ -215,7 +268,7 @@ function extend (Y) {
         var self = this
         
         // this function makes sure that either the
-        // quill event is executed, or the yjs is executed
+        // quill event is executed, or the yjs observer is executed
         var token = true
         function mutualExcluse (f) {
           if (token) {
@@ -258,10 +311,25 @@ function extend (Y) {
                 self.delete(pos, op.delete)
               }
               if (op.retain != null) {
+                var afterRetain = pos + op.retain
+                if (afterRetain > self.length) {
+                  var diff = afterRetain - self.length
+                  var enters = ''
+                  while (diff !== 0) {
+                    diff--
+                    enters += '\n'
+                  }
+                  for (var name in op.attributes) {
+                    quill.formatText(self.length, self.length + op.retain, name, null)
+                    // quill.deleteText(self.length, self.length + op.retain)
+                  }
+                  quill.insertText(self.length, enters, op.attributes)
+                  self.insert(self.length, enters)
+                }
                 for (var name in op.attributes) {
                   self.select(pos, pos + op.retain, name, op.attributes[name])
                 }
-                pos += op.retain
+                pos = afterRetain
               }
             }
           })
