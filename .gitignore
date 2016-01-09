@@ -4,11 +4,10 @@ bower_components
 .c9
 .codio
 .settings
-*/*.js
 TAGS
 build
 doc
 .idea
 *.map
 .idea
-y-richtext.js
+.vscode

@@ -1,10 +1,6 @@
 
 # Rich Text type for [Yjs](https://github.com/y-js/richtext)
 
-[![Build Status](https://travis-ci.org/y-js/y-richtext.svg)](https://travis-ci.org/y-js/y-richtext)
-[![Coverage Status](https://coveralls.io/repos/y-js/y-richtext/badge.svg)](https://coveralls.io/r/y-js/y-richtext)
-
-
 This type strongly resembles the [rich text](https://github.com/ottypes/rich-text) format for operational transformation. Under the hood, however, several mechanisms ensure that the intentions of your changes are preserved. Furthermore, you can transform the actions on the document in the rich text format back and forth, and, therefore, you can bind this type to any rich text editor that supports the widely used rich text format.
 
 
