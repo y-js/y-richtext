@@ -289,6 +289,7 @@ function extend (Y) {
         quill.setContents(this.toOTOps())
         
         quill.on('text-change', function (delta) {
+          console.log(delta.ops, delta.ops[0], delta.ops[1] ? delta.ops[1].insert : null)
           mutualExcluse(function () {
             var pos = 0
             for (var i = 0; i < delta.ops.length; i++) {
@@ -338,7 +339,6 @@ function extend (Y) {
           })
         })
         this.observe(function (events) {
-          console.log(delta.ops, delta.ops[0], delta.ops[1] ? delta.ops[1].insert : null)
           mutualExcluse(function () {
             for (var i=0; i < events.length; i++) {
               var event = events[i]
