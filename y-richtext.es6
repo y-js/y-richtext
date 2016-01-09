@@ -8,6 +8,7 @@ function extend (Y) {
       constructor (os, _model, idArray, valArray) {
         super(os, _model, idArray, valArray)
         this._length = 0
+        this.instances = []
         for (var i = 0, v = valArray[i]; i < valArray.length; i++) {
           if (typeof v === 'string') {
             this._length++
@@ -266,6 +267,7 @@ function extend (Y) {
         }
       }
       bind (quill) {
+        this.instances.push(quill)
         var self = this
         
         // this function makes sure that either the
@@ -464,6 +466,12 @@ function extend (Y) {
             }
           })
         })
+      }
+      * _changed () {
+        this.instances.forEach(function (quill) {
+          quill.editor.checkUpdate()
+        })
+        yield* Y.Array.class.prototype._changed.apply(this, arguments)
       }
     }
     Y.extend('Richtext', new Y.utils.CustomType({
