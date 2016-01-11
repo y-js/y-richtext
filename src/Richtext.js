@@ -463,6 +463,7 @@ function extend (Y) {
                 }
               }
             }
+            quill.editor.checkUpdate()
           })
         })
       }
