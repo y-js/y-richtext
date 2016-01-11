@@ -1,6 +1,6 @@
 {
   "name": "y-richtext",
-  "version": "0.7.0",
+  "version": "0.7.5",
   "description": "RichText Type for Yjs",
   "main": "./src/Richtext.js",
   "scripts": {
@@ -53,6 +53,5 @@
     "run-sequence": "^1.1.4",
     "standard": "^5.3.1"
   },
-  "dependencies": {
-  }
+  "dependencies": {}
 }

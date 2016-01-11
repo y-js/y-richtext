@@ -109,21 +109,21 @@ function extend (Y) {
           sss*s***x*xxxxx***xx*x**ss*s
                |---delete-range--|
              delStart         delEnd
-          
+
           We'll check the following
           * is it possible to delete some of the selections?
             1. a dominating selection to the right could be the same as the selection (curSel) to delStart
-            2. a selections could be overwritten by another selection to the right 
+            2. a selections could be overwritten by another selection to the right
         */
         var curPos = 0
         var curSel = {}
         var endPos = pos + length
         if (length <= 0) return
-        var delStart // relative to valArray 
+        var delStart // relative to valArray
         var delEnd // ..
-        var v // helper variable for elements of valArray
+        var v, i // helper variable for elements of valArray
 
-        for (delStart = 0, v = this.valArray[delStart];  curPos < pos && delStart < this.valArray.length; v = this.valArray[++delStart]) {
+        for (delStart = 0, v = this.valArray[delStart]; curPos < pos && delStart < this.valArray.length; v = this.valArray[++delStart]) {
           if (typeof v === 'string') {
             curPos++
           } else if (v.constructor === Array) {
@@ -137,7 +137,7 @@ function extend (Y) {
         }
         if (delEnd === this.valArray.length) {
           // yay, you can delete everything without checking
-          for (var i = delEnd - 1, v = this.valArray[i]; i >= delStart; v = this.valArray[--i]) {
+          for (i = delEnd - 1, v = this.valArray[i]; i >= delStart; v = this.valArray[--i]) {
             super.delete(i, 1)
           }
         } else {
@@ -145,7 +145,7 @@ function extend (Y) {
             delEnd--
           }
           var rightSel = {}
-          for (var i = delEnd, v = this.valArray[i]; i >= delStart; v = this.valArray[--i]) {
+          for (i = delEnd, v = this.valArray[i]; i >= delStart; v = this.valArray[--i]) {
             if (v.constructor === Array) {
               if (rightSel[v[0]] === undefined) {
                 if (v[1] === curSel[v[0]]) {
@@ -170,11 +170,11 @@ function extend (Y) {
       2. Insert selection $attr, if necessary
       3. Between from and to, we'll delete all selections that do not match $attr.
          Furthermore, we'll update antiAttrs, if necessary
-      4. In the end well insert a selection that makes sure that selection($to) ends in antiAttrs  
+      4. In the end well insert a selection that makes sure that selection($to) ends in antiAttrs
       */
       select (from, to, attrName, attrValue) {
-        if (from == null || to == null || attrName == null, attrValue === undefined) {
-          throw new Error("You must define four parameters")
+        if (from == null || to == null || attrName == null || attrValue === undefined) {
+          throw new Error('You must define four parameters')
         } else {
           var step2i
           var step2sel
@@ -201,7 +201,7 @@ function extend (Y) {
             step2i = i
             step2sel = [attrName, attrValue]
           }
-           
+
           // 3. update antiAttrs, modify selection
           var deletes = []
           for (; i < this.valArray.length; i++) {
@@ -223,7 +223,7 @@ function extend (Y) {
           for (var j = deletes.length - 1; j >= 0; j--) {
             var del = deletes[j]
             super.delete(del, 1)
-            // update i, rel. to 
+            // update i, rel. to
             if (del < i) {
               i--
             }
@@ -232,11 +232,11 @@ function extend (Y) {
             }
           }
           // 4. Update selection to match antiAttrs
-          // never insert, if not necessary 
+          // never insert, if not necessary
           //  1. when it is the last position ~ i < valArray.length)
           //  2. when a similar attrName already exists between i and the next character
           if (antiAttrs[1] !== attrValue && i < this.valArray.length) { // check 1.
-            var performStep4 = true 
+            var performStep4 = true
             var v
             for (j = i, v = this.valArray[j]; j < this.valArray.length && v.constructor === Array; v = this.valArray[++j]) {
               if (v[0] === attrName) {
@@ -257,7 +257,7 @@ function extend (Y) {
             // if there are some selections to the left of step2sel, delete them if possible
             // * have same attribute name
             // * no insert between step2sel and selection
-            for (j = step2i - 1, v = this.valArray[j]; j >= 0 && v.constructor === Array; v = this.valArray[--j] ) {
+            for (j = step2i - 1, v = this.valArray[j]; j >= 0 && v.constructor === Array; v = this.valArray[--j]) {
               if (v[0] === attrName) {
                 super.delete(j, 1)
               }
@@ -268,7 +268,7 @@ function extend (Y) {
       bind (quill) {
         this.instances.push(quill)
         var self = this
-        
+
         // this function makes sure that either the
         // quill event is executed, or the yjs observer is executed
         var token = true
@@ -284,28 +284,29 @@ function extend (Y) {
             token = true
           }
         }
-        
+
         quill.setContents(this.toOTOps())
-        
+
         quill.on('text-change', function (delta) {
           mutualExcluse(function () {
             var pos = 0
+            var name // helper variable
             for (var i = 0; i < delta.ops.length; i++) {
               var op = delta.ops[i]
               if (op.insert != null) {
                 var attrs = self.insert(pos, op.insert)
                 // create new selection
-                for (var name in op.attributes) {
-                  if (op.attributes[name] != attrs[name]) {
+                for (name in op.attributes) {
+                  if (op.attributes[name] !== attrs[name]) {
                     self.select(pos, pos + op.insert.length, name, op.attributes[name])
                   }
                 }
                 // not-existence of an attribute in op.attributes denotes
                 // that we have to unselect (set to null)
-                for (var name in attrs) {
-                  if (op.attributes == null || attrs[name] != op.attributes[name]) {
+                for (name in attrs) {
+                  if (op.attributes == null || attrs[name] !== op.attributes[name]) {
                     self.select(pos, pos + op.insert.length, name, null)
-                  } 
+                  }
                 }
                 pos += op.insert.length
               }
@@ -321,14 +322,14 @@ function extend (Y) {
                     diff--
                     enters += '\n'
                   }
-                  for (var name in op.attributes) {
+                  for (name in op.attributes) {
                     quill.formatText(self.length, self.length + op.retain, name, null)
                     // quill.deleteText(self.length, self.length + op.retain)
                   }
                   quill.insertText(self.length, enters, op.attributes)
                   self.insert(self.length, enters)
                 }
-                for (var name in op.attributes) {
+                for (name in op.attributes) {
                   self.select(pos, pos + op.retain, name, op.attributes[name])
                 }
                 pos = afterRetain
@@ -338,14 +339,16 @@ function extend (Y) {
         })
         this.observe(function (events) {
           mutualExcluse(function () {
-            for (var i=0; i < events.length; i++) {
+            var v // helper variable
+            var curSel // helper variable (current selection)
+            for (var i = 0; i < events.length; i++) {
               var event = events[i]
               if (event.type === 'insert') {
                 if (typeof event.value === 'string') {
                   var position = 0
                   var insertSel = {}
                   for (var l = event.index - 1; l >= 0; l--) {
-                    var v = self.valArray[l]
+                    v = self.valArray[l]
                     if (typeof v === 'string') {
                       position++
                     } else if (v.constructor === Array && typeof insertSel[v[0]] === 'undefined') {
@@ -356,12 +359,11 @@ function extend (Y) {
                 } else if (event.value.constructor === Array) {
                   // a new selection is created
                   // find left selection that matches newSel[0]
-                  var curSel = null
+                  curSel = null
                   var newSel = event.value
                   // denotes the start position of the selection
                   // (without the selection objects)
                   var selectionStart = 0
-                  var v // helper variable
                   for (var j = event.index - 1; j >= 0; j--) {
                     v = self.valArray[j]
                     if (v.constructor === Array) {
@@ -413,7 +415,7 @@ function extend (Y) {
                   // delete till pos + (event.length - number of selections)
                   var pos = 0
                   for (var u = 0; u < event.index; u++) {
-                    var v = self.valArray[u]
+                    v = self.valArray[u]
                     if (typeof v === 'string') {
                       pos++
                     }
@@ -428,10 +430,11 @@ function extend (Y) {
                   }*/
                   quill.deleteText(pos, pos + delLength)
                 } else if (event.value.constructor === Array) {
-                  var curSel = null
+                  curSel = null
                   var from = 0
-                  for (var x = event.index - 1; x >= 0; x--) {
-                    var v = self.valArray[x]
+                  var x
+                  for (x = event.index - 1; x >= 0; x--) {
+                    v = self.valArray[x]
                     if (v.constructor === Array) {
                       if (v[0] === event.value[0]) {
                         curSel = v[1]
@@ -447,8 +450,8 @@ function extend (Y) {
                     }
                   }
                   var to = from
-                  for (var x = event.index; x < self.valArray.length; x++) {
-                    var v = self.valArray[x]
+                  for (x = event.index; x < self.valArray.length; x++) {
+                    v = self.valArray[x]
                     if (v.constructor === Array) {
                       if (v[0] === event.value[0]) {
                         break
