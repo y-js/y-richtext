@@ -1,6 +1,6 @@
 {
   "name": "y-richtext",
-  "version": "0.7.0",
+  "version": "0.7.5",
   "authors": [
     "corentin.cadiou@linagora.com",
     "kevin.jahns@rwth-aachen.de"
@@ -21,6 +21,5 @@
     "test",
     "tests"
   ],
-  "dependencies": {
-  }
+  "dependencies": {}
 }
