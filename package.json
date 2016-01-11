@@ -1,6 +1,6 @@
 {
   "name": "y-richtext",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "description": "RichText Type for Yjs",
   "main": "./src/Richtext.js",
   "scripts": {
@@ -41,6 +41,10 @@
     "url": "https://github.com/y-js/y-richtext/issues"
   },
   "homepage": "http://y-js.org",
+  "peerDependencies": {
+    "yjs": "~0.7.5",
+    "y-array": "~0.7.6"
+  },
   "devDependencies": {
     "babel-eslint": "^4.1.4",
     "babel-plugin-transform-runtime": "^6.1.18",
