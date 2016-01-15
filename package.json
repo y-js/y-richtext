@@ -54,6 +54,7 @@
     "gulp-load-plugins": "^1.1.0",
     "gulp-prompt": "^0.1.2",
     "pre-commit": "^1.1.2",
+    "quill": "^0.20.1",
     "run-sequence": "^1.1.4",
     "standard": "^5.3.1"
   },
