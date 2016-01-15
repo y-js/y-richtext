@@ -317,21 +317,19 @@ function extend (Y) {
               if (op.retain != null) {
                 var afterRetain = pos + op.retain
                 if (afterRetain > self.length) {
-                  var diff = afterRetain - self.length
-                  var enters = ''
-                  while (diff !== 0) {
-                    diff--
-                    enters += '\n'
-                  }
+                  let additionalContent = quill.getText(self.length)
+                  quill.insertText(self.length, additionalContent)
+                  // quill.deleteText(self.length + additionalContent.length, quill.getLength())
                   for (name in op.attributes) {
-                    quill.formatText(self.length, self.length + op.retain, name, null)
+                    quill.formatText(self.length + additionalContent.length, self.length + additionalContent.length * 2, name, null)
                     // quill.deleteText(self.length, self.length + op.retain)
                   }
-                  quill.insertText(self.length, enters, op.attributes)
-                  self.insert(self.length, enters)
+                  self.insert(self.length, additionalContent)
+                  // op.attributes = null
                 }
                 for (name in op.attributes) {
                   self.select(pos, pos + op.retain, name, op.attributes[name])
+                  quill.formatText(pos, pos + op.retain, name, op.attributes[name])
                 }
                 pos = afterRetain
               }
