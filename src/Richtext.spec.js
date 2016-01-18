@@ -6,7 +6,7 @@ var Y = require('../../yjs/src/SpecHelper.js')
 require('./Richtext.js')(Y)
 var Quill = require('quill')
 
-var numberOfYRichtextTests = 1000
+var numberOfYRichtextTests = 100
 var repeatRichtextTests = 10
 
 for (let database of databases) {
@@ -52,8 +52,8 @@ for (let database of databases) {
       function compareValues (vals) {
         var firstContent
         for (var l of vals) {
-          var content = l.instances[0].getContents(0, l.length)
-          console.log(l.instances[0].getText())
+          var content = l.instances[0].getContents(0, l.length - 1)
+          console.log(l.instances[0].getText(), l.length)
           if (firstContent == null) {
             firstContent = content
           } else {
