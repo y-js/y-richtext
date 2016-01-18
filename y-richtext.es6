@@ -7,30 +7,17 @@ function extend (Y) {
     class YRichtext extends Y.Array['class'] {
       constructor (os, _model, idArray, valArray) {
         super(os, _model, idArray, valArray)
-        this._length = 0
         this.instances = []
-        for (var i = 0, v = valArray[i]; i < valArray.length; i++) {
-          if (typeof v === 'string') {
-            this._length++
-          }
-        }
-        var self = this
-        this.observe(function (events) {
-          for (var i = 0, event = events[i]; i < events.length; i++) {
-            if (event.type === 'insert') {
-              if (typeof event.value === 'string') {
-                self._length++
-              }
-            } else if (event.type === 'delete') {
-              if (typeof event.value === 'string') {
-                self._length--
-              }
-            }
-          }
-        })
       }
       get length () {
-        return this._length
+        /*
+          TODO: I must not use observe to compute the length.
+          But since I inherit from Y.Array, I can't set observe
+          the changes at the right momet (for that I would require direct access to EventHandler).
+          This is the most elegant solution, for now.
+          But at some time you should re-write Y.Richtext more elegantly!!
+        */
+        return this.toString().length
       }
       toString () {
         return this.valArray.map(function (v) {
