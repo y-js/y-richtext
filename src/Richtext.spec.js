@@ -52,8 +52,8 @@ for (let database of databases) {
       function compareValues (vals) {
         var firstContent
         for (var l of vals) {
-          var content = l.instances[0].getContents(0, l.length)
-          console.log(l.instances[0].getText())
+          var content = l.instances[0].getContents(0, l.length - 1)
+          console.log(l.instances[0].getText(), l.length)
           if (firstContent == null) {
             firstContent = content
           } else {

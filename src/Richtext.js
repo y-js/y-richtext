@@ -30,7 +30,14 @@ function extend (Y) {
         })
       }
       get length () {
-        return this._length
+        /*
+          TODO: I must not use observe to compute the length.
+          But since I inherit from Y.Array, I can't set observe
+          the changes at the right momet (for that I would require direct access to EventHandler).
+          This is the most elegant solution, for now.
+          But at some time you should re-write Y.Richtext more elegantly!!
+        */
+        return this.toString().length
       }
       toString () {
         return this._content.map(function (v) {
