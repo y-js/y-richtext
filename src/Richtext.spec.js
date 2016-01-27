@@ -6,7 +6,7 @@ var Y = require('../../yjs/src/SpecHelper.js')
 require('./Richtext.js')(Y)
 var Quill = require('quill')
 
-var numberOfYRichtextTests = 1000
+var numberOfYRichtextTests = 100
 var repeatRichtextTests = 10
 
 for (let database of databases) {
