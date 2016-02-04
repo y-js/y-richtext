@@ -42,8 +42,6 @@
   },
   "homepage": "http://y-js.org",
   "peerDependencies": {
-    "yjs": "^0.7.5",
-    "y-array": "^0.7.6"
   },
   "devDependencies": {
     "babel-eslint": "^4.1.4",
