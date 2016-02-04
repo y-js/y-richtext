@@ -5,9 +5,30 @@
 function extend (Y) {
   Y.requestModules(['Array']).then(function () {
     class YRichtext extends Y.Array['class'] {
-      constructor (os, _model, idArray, valArray) {
-        super(os, _model, idArray, valArray)
+      constructor (os, _model, _content) {
+        super(os, _model, _content)
+        this._length = 0
         this.instances = []
+        for (var i = 0; i < _content.length; i++) {
+          var v = v = _content[i].val
+          if (typeof v === 'string') {
+            this._length++
+          }
+        }
+        var self = this
+        this.observe(function (events) {
+          for (var i = 0, event = events[i]; i < events.length; i++) {
+            if (event.type === 'insert') {
+              if (typeof event.value === 'string') {
+                self._length++
+              }
+            } else if (event.type === 'delete') {
+              if (typeof event.value === 'string') {
+                self._length--
+              }
+            }
+          }
+        })
       }
       get length () {
         /*
@@ -20,9 +41,9 @@ function extend (Y) {
         return this.toString().length
       }
       toString () {
-        return this.valArray.map(function (v) {
-          if (typeof v === 'string') {
-            return v
+        return this._content.map(function (v) {
+          if (typeof v.val === 'string') {
+            return v.val
           }
         }).join('')
       }
@@ -44,8 +65,8 @@ function extend (Y) {
           }
         }
         var i = 0
-        for (; i < this.valArray.length; i++) {
-          let v = this.valArray[i]
+        for (; i < this._content.length; i++) {
+          let v = this._content[i].val
           if (v.constructor === Array) {
             if (op.insert.length > 0) {
               op.insert = op.insert.join('')
@@ -70,11 +91,11 @@ function extend (Y) {
       insert (pos, content) {
         var curPos = 0
         var selection = {}
-        for (var i = 0; i < this.valArray.length; i++) {
+        for (var i = 0; i < this._content.length; i++) {
           if (curPos === pos) {
             break
           }
-          var v = this.valArray[i]
+          var v = this._content[i].val
           if (typeof v === 'string') {
             curPos++
           } else if (v.constructor === Array) {
@@ -107,25 +128,28 @@ function extend (Y) {
         var curSel = {}
         var endPos = pos + length
         if (length <= 0) return
-        var delStart // relative to valArray
+        var delStart // relative to _content
         var delEnd // ..
-        var v, i // helper variable for elements of valArray
+        var v, i // helper variable for elements of _content
 
-        for (delStart = 0, v = this.valArray[delStart]; curPos < pos && delStart < this.valArray.length; v = this.valArray[++delStart]) {
+        for (delStart = 0; curPos < pos && delStart < this._content.length; delStart++) {
+          v = this._content[delStart].val
           if (typeof v === 'string') {
             curPos++
           } else if (v.constructor === Array) {
             curSel[v[0]] = v[1]
           }
         }
-        for (delEnd = delStart, v = this.valArray[delEnd]; curPos < endPos && delEnd < this.valArray.length; v = this.valArray[++delEnd]) {
+        for (delEnd = delStart; curPos < endPos && delEnd < this._content.length; delEnd++) {
+          v = this._content[delEnd].val
           if (typeof v === 'string') {
             curPos++
           }
         }
-        if (delEnd === this.valArray.length) {
+        if (delEnd === this._content.length) {
           // yay, you can delete everything without checking
-          for (i = delEnd - 1, v = this.valArray[i]; i >= delStart; v = this.valArray[--i]) {
+          for (i = delEnd - 1; i >= delStart; i--) {
+            v = this._content[i].val
             super.delete(i, 1)
           }
         } else {
@@ -133,7 +157,8 @@ function extend (Y) {
             delEnd--
           }
           var rightSel = {}
-          for (i = delEnd, v = this.valArray[i]; i >= delStart; v = this.valArray[--i]) {
+          for (i = delEnd; i >= delStart; i--) {
+            v = this._content[i].val
             if (v.constructor === Array) {
               if (rightSel[v[0]] === undefined) {
                 if (v[1] === curSel[v[0]]) {
@@ -170,8 +195,8 @@ function extend (Y) {
           var curPos = 0
           var i = 0
           // 1. compute antiAttrs
-          for (; i < this.valArray.length; i++) {
-            let v = this.valArray[i]
+          for (; i < this._content.length; i++) {
+            let v = this._content[i].val
             if (curPos === from) {
               break
             }
@@ -192,8 +217,8 @@ function extend (Y) {
 
           // 3. update antiAttrs, modify selection
           var deletes = []
-          for (; i < this.valArray.length; i++) {
-            let v = this.valArray[i]
+          for (; i < this._content.length; i++) {
+            let v = this._content[i].val
             if (curPos === to) {
               break
             }
@@ -221,12 +246,16 @@ function extend (Y) {
           }
           // 4. Update selection to match antiAttrs
           // never insert, if not necessary
-          //  1. when it is the last position ~ i < valArray.length)
+          //  1. when it is the last position ~ i < _content.length)
           //  2. when a similar attrName already exists between i and the next character
-          if (antiAttrs[1] !== attrValue && i < this.valArray.length) { // check 1.
+          if (antiAttrs[1] !== attrValue && i < this._content.length) { // check 1.
             var performStep4 = true
             var v
-            for (j = i, v = this.valArray[j]; j < this.valArray.length && v.constructor === Array; v = this.valArray[++j]) {
+            for (j = i; j < this._content.length; j++) {
+              v = this._content[j].val
+              if (v.constructor !== Array) {
+                break
+              }
               if (v[0] === attrName) {
                 performStep4 = false // check 2.
                 if (v[1] === attrValue) {
@@ -245,7 +274,11 @@ function extend (Y) {
             // if there are some selections to the left of step2sel, delete them if possible
             // * have same attribute name
             // * no insert between step2sel and selection
-            for (j = step2i - 1, v = this.valArray[j]; j >= 0 && v.constructor === Array; v = this.valArray[--j]) {
+            for (j = step2i - 1; j >= 0; j--) {
+              v = this._content[j].val
+              if (v.constructor !== Array) {
+                break
+              }
               if (v[0] === attrName) {
                 super.delete(j, 1)
               }
@@ -334,7 +367,7 @@ function extend (Y) {
                   var position = 0
                   var insertSel = {}
                   for (var l = event.index - 1; l >= 0; l--) {
-                    v = self.valArray[l]
+                    v = self._content[l].val
                     if (typeof v === 'string') {
                       position++
                     } else if (v.constructor === Array && typeof insertSel[v[0]] === 'undefined') {
@@ -351,7 +384,7 @@ function extend (Y) {
                   // (without the selection objects)
                   var selectionStart = 0
                   for (var j = event.index - 1; j >= 0; j--) {
-                    v = self.valArray[j]
+                    v = self._content[j].val
                     if (v.constructor === Array) {
                       // check if v matches newSel
                       if (newSel[0] === v[0]) {
@@ -366,7 +399,7 @@ function extend (Y) {
                   }
                   // make sure to decrement j, so we correctly compute selectionStart
                   for (; j >= 0; j--) {
-                    v = self.valArray[j]
+                    v = self._content[j].val
                     if (typeof v === 'string') {
                       selectionStart++
                     }
@@ -378,8 +411,8 @@ function extend (Y) {
                   }
                   // now find out the range over which newSel has to be created
                   var selectionEnd = selectionStart
-                  for (var k = event.index + 1; k < self.valArray.length; k++) {
-                    v = self.valArray[k]
+                  for (var k = event.index + 1; k < self._content.length; k++) {
+                    v = self._content[k].val
                     if (v.constructor === Array) {
                       if (v[0] === newSel[0]) {
                         // found another selection with same attr name
@@ -401,7 +434,7 @@ function extend (Y) {
                   // delete till pos + (event.length - number of selections)
                   var pos = 0
                   for (var u = 0; u < event.index; u++) {
-                    v = self.valArray[u]
+                    v = self._content[u].val
                     if (typeof v === 'string') {
                       pos++
                     }
@@ -410,7 +443,7 @@ function extend (Y) {
                   /* TODO!!
                   they do not exist anymore.. so i can't query. you have to query over event.value(s) - but that not yet implemented
                   for (; i < event.index + event.length; i++) {
-                    if (self.valArray[i].constructor === Array) {
+                    if (self._content[i].val.constructor === Array) {
                       delLength--
                     }
                   }*/
@@ -420,7 +453,7 @@ function extend (Y) {
                   var from = 0
                   var x
                   for (x = event.index - 1; x >= 0; x--) {
-                    v = self.valArray[x]
+                    v = self._content[x].val
                     if (v.constructor === Array) {
                       if (v[0] === event.value[0]) {
                         curSel = v[1]
@@ -430,14 +463,15 @@ function extend (Y) {
                       from++
                     }
                   }
-                  for (; x >= 0; v = self.valArray[--x]) {
+                  for (; x >= 0; x--) {
+                    v = self._content[x].val
                     if (typeof v === 'string') {
                       from++
                     }
                   }
                   var to = from
-                  for (x = event.index; x < self.valArray.length; x++) {
-                    v = self.valArray[x]
+                  for (x = event.index; x < self._content.length; x++) {
+                    v = self._content[x].val
                     if (v.constructor === Array) {
                       if (v[0] === event.value[0]) {
                         break
@@ -468,12 +502,13 @@ function extend (Y) {
       class: YRichtext,
       struct: 'List',
       initType: function * YTextInitializer (os, model) {
-        var valArray = []
-        var idArray = yield* Y.Struct.List.map.call(this, model, function (c) {
-          valArray.push(c.content)
-          return JSON.stringify(c.id)
+        var _content = yield* Y.Struct.List.map.call(this, model, function (c) {
+          return {
+            id: JSON.stringify(c.id),
+            val: c.content
+          }
         })
-        return new YRichtext(os, model.id, idArray, valArray)
+        return new YRichtext(os, model.id, _content)
       }
     }))
   })
