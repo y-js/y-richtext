@@ -6,28 +6,13 @@ function extend (Y) {
     class YRichtext extends Y.Array['class'] {
       constructor (os, _model, _content) {
         super(os, _model, _content)
-        this._length = 0
         this.instances = []
-        for (var i = 0; i < _content.length; i++) {
-          var v = v = _content[i].val
-          if (typeof v === 'string') {
-            this._length++
-          }
+      }
+      _destroy () {
+        for (var i = this.instances.length - 1; i >= 0; i--) {
+          this.unbindQuill(this.instances[i].editor)
         }
-        var self = this
-        this.observe(function (events) {
-          for (var i = 0, event = events[i]; i < events.length; i++) {
-            if (event.type === 'insert') {
-              if (typeof event.value === 'string') {
-                self._length++
-              }
-            } else if (event.type === 'delete') {
-              if (typeof event.value === 'string') {
-                self._length--
-              }
-            }
-          }
-        })
+        super._destroy()
       }
       get length () {
         /*
@@ -285,8 +270,21 @@ function extend (Y) {
           }
         }
       }
-      bind (quill) {
-        this.instances.push(quill)
+      bind () {
+        this.bindQuill.apply(this, arguments)
+      }
+      unbindQuill (quill) {
+        var i = this.instances.findIndex(function (binding) {
+          return binding.editor === quill
+        })
+        if (i >= 0) {
+          var binding = this.instances[i]
+          this.unobserve(binding.yCallback)
+          binding.editor.off('text-change', binding.quillCallback)
+          this.instances.splice(i, 1)
+        }
+      }
+      bindQuill (quill) {
         var self = this
 
         // this function makes sure that either the
@@ -307,7 +305,7 @@ function extend (Y) {
 
         quill.setContents(this.toOTOps())
 
-        quill.on('text-change', function (delta) {
+        function quillCallback (delta) {
           mutualExcluse(function () {
             var pos = 0
             var name // helper variable
@@ -354,8 +352,10 @@ function extend (Y) {
               }
             }
           })
-        })
-        this.observe(function (events) {
+        }
+        quill.on('text-change', quillCallback)
+
+        function yCallback (events) {
           mutualExcluse(function () {
             var v // helper variable
             var curSel // helper variable (current selection)
@@ -487,11 +487,17 @@ function extend (Y) {
             }
             quill.editor.checkUpdate()
           })
+        }
+        this.observe(yCallback)
+        this.instances.push({
+          editor: quill,
+          yCallback: yCallback,
+          quillCallback: quillCallback
         })
       }
       * _changed () {
-        this.instances.forEach(function (quill) {
-          quill.editor.checkUpdate()
+        this.instances.forEach(function (instance) {
+          instance.editor.editor.checkUpdate()
         })
         yield* Y.Array.class.prototype._changed.apply(this, arguments)
       }

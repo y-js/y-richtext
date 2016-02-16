@@ -6,8 +6,8 @@ var Y = require('../../yjs/src/SpecHelper.js')
 require('./Richtext.js')(Y)
 var Quill = require('quill')
 
-var numberOfYRichtextTests = 100
-var repeatRichtextTests = 10
+var numberOfYRichtextTests = 5
+var repeatRichtextTests = 2
 
 for (let database of databases) {
   describe(`Richtext Type (DB: ${database})`, function () {
@@ -29,10 +29,11 @@ for (let database of databases) {
     describeManyTimes(repeatRichtextTests, `Random tests`, function () {
       var randomTextTransactions = [
         function insert (s) {
-          s.instances[0].insertText(getRandomNumber(s.instances[0].getText().length), getRandomString())
+          var e = s.instances[0].editor
+          e.insertText(getRandomNumber(e.getText().length), getRandomString())
         },
         function _delete (s) {
-          var q = s.instances[0]
+          var q = s.instances[0].editor
           var len = q.getText().length
           var from = getRandomNumber(len)
           var delLength = getRandomNumber(len - from)
@@ -40,20 +41,21 @@ for (let database of databases) {
           q.deleteText(from, to)
         },
         function select (s) {
-          var q = s.instances[0]
+          var q = s.instances[0].editor
           var len = q.getText().length
           var from = getRandomNumber(len)
           var to = from + getRandomNumber(len - from)
           var attr = getRandom(['bold', 'italic', 'strike'])
           var val = getRandom([true, false])
-          s.instances[0].formatText(from, to, attr, val)
+          q.formatText(from, to, attr, val)
         }
       ]
       function compareValues (vals) {
         var firstContent
         for (var l of vals) {
-          var content = l.instances[0].getContents(0, l.length - 1)
-          console.log(l.instances[0].getText(), l.length)
+          var e = l.instances[0].editor
+          var content = e.getContents(0, l.length - 1)
+          console.log(e.getText(), l.length)
           if (firstContent == null) {
             firstContent = content
           } else {
