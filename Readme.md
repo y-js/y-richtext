@@ -47,6 +47,7 @@ Y({
 ##### Reference
 * .bind(editor)
   * Bind this type to an rich text editor. (Currently, only QuillJs is supported)
+  * `.bind(editor) does not preserve the existing value of the bound editor
 
 ## Contribution
 We thank [Veeting](https://www.veeting.com/) and [Linagora](https://www.linagora.com/) who sponsored this work, and agreed to publish it as Open Source.
