@@ -11,3 +11,4 @@ doc
 *.map
 .idea
 .vscode
+jsconfig.json

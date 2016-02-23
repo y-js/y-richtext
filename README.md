@@ -1,5 +1,5 @@
 
-# Rich Text type for [Yjs](https://github.com/y-js/richtext)
+# Rich Text type for [Yjs](https://github.com/y-js/yjs)
 
 ## Use it!
 Retrieve y-richtext and [Quill](quilljs.com) Editor with bower
@@ -53,7 +53,7 @@ Y({
 We thank [Veeting](https://www.veeting.com/) and [Linagora](https://www.linagora.com/) who sponsored this work, and agreed to publish it as Open Source.
 
 ## License
-Yjs and the RichText type are licensed under the [MIT License](./LICENSE.txt).
+Yjs and the RichText type are licensed under the [MIT License](./LICENSE).
 
 - Corentin Cadiou <corentin.cadiou@linagora.com>
 - Kevin Jahns <kevin.jahns@rwth-aachen.de>

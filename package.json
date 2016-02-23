@@ -1,6 +1,6 @@
 {
   "name": "y-richtext",
-  "version": "0.7.13",
+  "version": "8.0.0",
   "description": "RichText Type for Yjs",
   "main": "./src/Richtext.js",
   "scripts": {
@@ -26,14 +26,12 @@
   },
   "keywords": [
     "Yjs",
-    "xml",
-    "ot",
-    "collaboration",
-    "synchronization",
-    "sharejs",
-    "coweb",
-    "concurrency",
-    "rich text"
+    "OT",
+    "Collaboration",
+    "Synchronization",
+    "ShareJS",
+    "Coweb",
+    "Concurrency"
   ],
   "author": "Kevin Jahns <kevin.jahns@rwth-aachen.de>",
   "license": "MIT",
@@ -41,7 +39,6 @@
     "url": "https://github.com/y-js/y-richtext/issues"
   },
   "homepage": "http://y-js.org",
-  "peerDependencies": {},
   "devDependencies": {
     "babel-eslint": "^4.1.4",
     "babel-plugin-transform-runtime": "^6.1.18",
@@ -55,5 +52,9 @@
     "run-sequence": "^1.1.4",
     "standard": "^5.3.1"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "peerDependencies": {
+    "yjs": "~9.0",
+    "y-array": "~8.0"
+  }
 }
