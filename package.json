@@ -1,6 +1,6 @@
 {
   "name": "y-richtext",
-  "version": "8.0.3",
+  "version": "8.0.4",
   "description": "RichText Type for Yjs",
   "main": "./src/Richtext.js",
   "scripts": {
@@ -55,6 +55,6 @@
   "dependencies": {},
   "peerDependencies": {
     "yjs": "^10.0.0",
-    "y-array": "~8.0"
+    "y-array": "^8.0.0"
   }
 }
