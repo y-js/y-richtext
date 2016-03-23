@@ -1,6 +1,6 @@
 {
   "name": "y-richtext",
-  "version": "8.0.1",
+  "version": "8.0.2",
   "homepage": "http://y-js.org",
   "authors": [
     "corentin.cadiou@linagora.com",
@@ -20,7 +20,7 @@
   "license": "MIT",
   "ignore": [],
   "dependencies": {
-    "yjs": "~9.0",
+    "yjs": "^10.0.0",
     "y-array": "~8.0"
   }
 }

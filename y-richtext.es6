@@ -4,7 +4,7 @@
 
 function extend (Y) {
   Y.requestModules(['Array']).then(function () {
-    class YRichtext extends Y.Array['class'] {
+    class YRichtext extends Y.Array.typeDefinition['class'] {
       constructor (os, _model, _content) {
         super(os, _model, _content)
         this.instances = []
@@ -500,7 +500,7 @@ function extend (Y) {
         this.instances.forEach(function (instance) {
           instance.editor.editor.checkUpdate()
         })
-        yield* Y.Array.class.prototype._changed.apply(this, arguments)
+        yield* Y.Array.typeDefinition['class'].prototype._changed.apply(this, arguments)
       }
     }
     Y.extend('Richtext', new Y.utils.CustomType({
