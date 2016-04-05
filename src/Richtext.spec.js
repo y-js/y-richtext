@@ -6,7 +6,7 @@ var Y = require('../../yjs/src/SpecHelper.js')
 require('./Richtext.js')(Y)
 var Quill = require('quill')
 
-var numberOfYRichtextTests = 5
+var numberOfYRichtextTests = 500
 var repeatRichtextTests = 2
 
 if (typeof window !== 'undefined') {
