@@ -1,4 +1,4 @@
-/* global createUsers, databases, wait, compareAllUsers, getRandom, getRandomString, getRandomNumber, applyRandomTransactionsAllRejoinNoGC, applyRandomTransactionsWithGC, async, describeManyTimes */
+/* global createUsers, databases, wait, compareAllUsers, getRandom, getRandomString, getRandomNumber, applyRandomTransactionsNoGCNoDisconnect, applyRandomTransactionsAllRejoinNoGC, applyRandomTransactionsWithGC, async, describeManyTimes */
 /* eslint-env browser,jasmine */
 'use strict'
 
@@ -7,7 +7,7 @@ require('./Richtext.js')(Y)
 var Quill = require('quill')
 
 var numberOfYRichtextTests = 500
-var repeatRichtextTests = 2
+var repeatRichtextTests = 100
 
 if (typeof window !== 'undefined') {
   for (let database of databases) {
@@ -38,7 +38,7 @@ if (typeof window !== 'undefined') {
             var len = q.getText().length
             var from = getRandomNumber(len)
             var delLength = getRandomNumber(len - from)
-            var to = from + Math.min(2, delLength)
+            var to = from + Math.min(7, delLength)
             q.deleteText(from, to)
           },
           function select (s) {
@@ -79,6 +79,13 @@ if (typeof window !== 'undefined') {
         }))
         it('arrays.length equals users.length', async(function * (done) {
           expect(this.texts.length).toEqual(this.users.length)
+          done()
+        }))
+        it(`succeed after ${numberOfYRichtextTests} actions, no GC, no disconnect`, async(function * (done) {
+          yield applyRandomTransactionsNoGCNoDisconnect(this.users, this.texts, randomTextTransactions, numberOfYRichtextTests)
+          yield flushAll()
+          yield compareValues(this.texts)
+          yield compareAllUsers(this.users)
           done()
         }))
         it(`succeed after ${numberOfYRichtextTests} actions, no GC, all users disconnecting/reconnecting`, async(function * (done) {

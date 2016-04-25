@@ -132,10 +132,7 @@ function extend (Y) {
         }
         if (delEnd === this._content.length) {
           // yay, you can delete everything without checking
-          for (i = delEnd - 1; i >= delStart; i--) {
-            v = this._content[i].val
-            super.delete(i, 1)
-          }
+          super.delete(delStart, delEnd - delStart)
         } else {
           if (typeof v === 'string') {
             delEnd--
@@ -155,8 +152,17 @@ function extend (Y) {
                 super.delete(i, 1)
               }
             } else if (typeof v === 'string') {
+              var end = i + 1
+              while (i > 0) {
+                v = this._content[i - 1].val
+                if (typeof v === 'string') {
+                  i--
+                } else {
+                  break
+                }
+              }
               // always delete the strings
-              super.delete(i, 1)
+              super.delete(i, end - i)
             }
           }
         }
@@ -355,91 +361,113 @@ function extend (Y) {
         }
         quill.on('text-change', quillCallback)
 
-        function yCallback (events) {
+        function yCallback (event) {
           mutualExcluse(function () {
             var v // helper variable
             var curSel // helper variable (current selection)
-            for (var i = 0; i < events.length; i++) {
-              var event = events[i]
-              if (event.type === 'insert') {
-                var _value_i = 0
-                while (_value_i < event.values.length) {
-                  var vals = []
-                  while (_value_i < event.values.length && typeof event.values[_value_i] === 'string') {
-                    vals.push(event.values[_value_i])
-                    _value_i++
+            if (event.type === 'insert') {
+              var _value_i = 0
+              while (_value_i < event.values.length) {
+                var vals = []
+                while (_value_i < event.values.length && typeof event.values[_value_i] === 'string') {
+                  vals.push(event.values[_value_i])
+                  _value_i++
+                }
+                if (vals.length > 0) {
+                  var position = 0
+                  var insertSel = {}
+                  for (var l = event.index - 1; l >= 0; l--) {
+                    v = self._content[l].val
+                    if (typeof v === 'string') {
+                      position++
+                    } else if (v.constructor === Array && typeof insertSel[v[0]] === 'undefined') {
+                      insertSel[v[0]] = v[1]
+                    }
                   }
-                  if (vals.length > 0) {
-                    var position = 0
-                    var insertSel = {}
-                    for (var l = event.index - 1; l >= 0; l--) {
-                      v = self._content[l].val
-                      if (typeof v === 'string') {
-                        position++
-                      } else if (v.constructor === Array && typeof insertSel[v[0]] === 'undefined') {
-                        insertSel[v[0]] = v[1]
+                  quill.insertText(position, vals.join(''), insertSel)
+                } else { // Array, that denotes a selection
+                  // a new selection is created
+                  // find left selection that matches newSel[0]
+                  curSel = null
+                  var newSel = event.values[_value_i++] // get selection, increment counter
+                  // denotes the start position of the selection
+                  // (without the selection objects)
+                  var selectionStart = 0
+                  for (var j = event.index + _value_i - 2/* -1 for index, -1 for incremented _value_i*/; j >= 0; j--) {
+                    v = self._content[j].val
+                    if (v.constructor === Array) {
+                      // check if v matches newSel
+                      if (newSel[0] === v[0]) {
+                        // found a selection
+                        // update curSel and go to next step
+                        curSel = v[1]
+                        break
                       }
+                    } else if (typeof v === 'string') {
+                      selectionStart++
                     }
-                    quill.insertText(position, vals.join(''), insertSel)
-                  } else { // Array, that denotes a selection
-                    // a new selection is created
-                    // find left selection that matches newSel[0]
-                    curSel = null
-                    var newSel = event.values[_value_i++] // get selection, increment counter
-                    // denotes the start position of the selection
-                    // (without the selection objects)
-                    var selectionStart = 0
-                    for (var j = event.index + _value_i - 2/* -1 for index, -1 for incremented _value_i*/; j >= 0; j--) {
-                      v = self._content[j].val
-                      if (v.constructor === Array) {
-                        // check if v matches newSel
-                        if (newSel[0] === v[0]) {
-                          // found a selection
-                          // update curSel and go to next step
-                          curSel = v[1]
-                          break
-                        }
-                      } else if (typeof v === 'string') {
-                        selectionStart++
+                  }
+                  // make sure to decrement j, so we correctly compute selectionStart
+                  for (; j >= 0; j--) {
+                    v = self._content[j].val
+                    if (typeof v === 'string') {
+                      selectionStart++
+                    }
+                  }
+                  // either a selection was found {then curSel was updated}, or not (then curSel = null)
+                  if (newSel[1] === curSel) {
+                    // both are the same. not necessary to do anything
+                    continue
+                  }
+                  // now find out the range over which newSel has to be created
+                  var selectionEnd = selectionStart
+                  for (var k = event.index + _value_i/* -1 for incremented _value_i, +1 for algorithm */; k < self._content.length; k++) {
+                    v = self._content[k].val
+                    if (v.constructor === Array) {
+                      if (v[0] === newSel[0]) {
+                        // found another selection with same attr name
+                        break
                       }
+                    } else if (typeof v === 'string') {
+                      selectionEnd++
                     }
-                    // make sure to decrement j, so we correctly compute selectionStart
-                    for (; j >= 0; j--) {
-                      v = self._content[j].val
-                      if (typeof v === 'string') {
-                        selectionStart++
-                      }
-                    }
-                    // either a selection was found {then curSel was updated}, or not (then curSel = null)
-                    if (newSel[1] === curSel) {
-                      // both are the same. not necessary to do anything
-                      return
-                    }
-                    // now find out the range over which newSel has to be created
-                    var selectionEnd = selectionStart
-                    for (var k = event.index + _value_i/* -1 for incremented _value_i, +1 for algorithm */; k < self._content.length; k++) {
-                      v = self._content[k].val
-                      if (v.constructor === Array) {
-                        if (v[0] === newSel[0]) {
-                          // found another selection with same attr name
-                          break
-                        }
-                      } else if (typeof v === 'string') {
-                        selectionEnd++
-                      }
-                    }
-                    // create a selection from selectionStart to selectionEnd
-                    if (selectionStart !== selectionEnd) {
-                      quill.formatText(selectionStart, selectionEnd, newSel[0], newSel[1])
-                    }
+                  }
+                  // create a selection from selectionStart to selectionEnd
+                  if (selectionStart !== selectionEnd) {
+                    quill.formatText(selectionStart, selectionEnd, newSel[0], newSel[1])
                   }
                 }
-              } else if (event.type === 'delete') {
-                // TODO: delete more than one value (not yet supported in yjs)
-                if (typeof event.values[0] === 'string') { // TODO: see button. add  || `event.length > 1`
-                  // only if these conditions are true, we have to actually check if we have to delete sth.
-                  // Then we have to check if between pos and pos + event.length are selections:
-                  // delete till pos + (event.length - number of selections)
+              }
+            } else if (event.type === 'delete') {
+              // sanitize events
+              var myEvents = []
+              for (var i = 0, _i = 0; i < event.length; i++) {
+                if (typeof event.values[i] !== 'string') {
+                  if (i !== _i) {
+                    myEvents.push({
+                      type: 'text',
+                      length: i - _i,
+                      index: event.index
+                    })
+                  }
+                  _i = i + 1
+                  myEvents.push({
+                    type: 'selection',
+                    val: event.values[i],
+                    index: event.index
+                  })
+                }
+              }
+              if (i !== _i) {
+                myEvents.push({
+                  type: 'text',
+                  length: i - _i,
+                  index: event.index
+                })
+              }
+              // ending sanitizing.. start brainfuck
+              myEvents.forEach(event => {
+                if (event.type === 'text') {
                   var pos = 0
                   for (var u = 0; u < event.index; u++) {
                     v = self._content[u].val
@@ -447,23 +475,15 @@ function extend (Y) {
                       pos++
                     }
                   }
-                  var delLength = event.length
-                  /* TODO!!
-                  they do not exist anymore.. so i can't query. you have to query over event.value(s) - but that not yet implemented
-                  for (; i < event.index + event.length; i++) {
-                    if (self._content[i].val.constructor === Array) {
-                      delLength--
-                    }
-                  }*/
-                  quill.deleteText(pos, pos + delLength)
-                } else if (event.values[0].constructor === Array) {
+                  quill.deleteText(pos, pos + event.length)
+                } else {
                   curSel = null
                   var from = 0
                   var x
                   for (x = event.index - 1; x >= 0; x--) {
                     v = self._content[x].val
                     if (v.constructor === Array) {
-                      if (v[0] === event.values[0][0]) {
+                      if (v[0] === event.val[0]) {
                         curSel = v[1]
                         break
                       }
@@ -481,18 +501,18 @@ function extend (Y) {
                   for (x = event.index; x < self._content.length; x++) {
                     v = self._content[x].val
                     if (v.constructor === Array) {
-                      if (v[0] === event.values[0][0]) {
+                      if (v[0] === event.val[0]) {
                         break
                       }
                     } else if (typeof v === 'string') {
                       to++
                     }
                   }
-                  if (curSel !== event.values[0][1] && from !== to) {
-                    quill.formatText(from, to, event.values[0][0], curSel)
+                  if (curSel !== event.val[1] && from !== to) {
+                    quill.formatText(from, to, event.val[0], curSel)
                   }
                 }
-              }
+              })
             }
             quill.editor.checkUpdate()
           })
