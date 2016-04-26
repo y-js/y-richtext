@@ -153,7 +153,7 @@ function extend (Y) {
               }
             } else if (typeof v === 'string') {
               var end = i + 1
-              while (i > 0) {
+              while (i > delStart) {
                 v = this._content[i - 1].val
                 if (typeof v === 'string') {
                   i--
@@ -536,10 +536,17 @@ function extend (Y) {
       class: YRichtext,
       struct: 'List',
       initType: function * YTextInitializer (os, model) {
-        var _content = yield* Y.Struct.List.map.call(this, model, function (c) {
-          return {
-            id: JSON.stringify(c.id),
-            val: c.content
+        var _content = []
+        yield* Y.Struct.List.map.call(this, model, function (op) {
+          if (op.hasOwnProperty('opContent')) {
+            throw new Error('Text must not contain types!')
+          } else {
+            op.content.forEach(function (c, i) {
+              _content.push({
+                id: [op.id[0], op.id[1] + i],
+                val: op.content[i]
+              })
+            })
           }
         })
         return new YRichtext(os, model.id, _content)
