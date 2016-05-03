@@ -277,6 +277,56 @@ function extend (Y) {
           }
         }
       }
+      /*
+        This method accepts a quill delta (http://quilljs.com/docs/deltas/)
+        The second parameter (_quill) is optional (it is only necessary when binding a quill instance)
+      */
+      insertDelta (delta, _quill) {
+        var pos = 0
+        var name // helper variable
+        for (var i = 0; i < delta.ops.length; i++) {
+          var op = delta.ops[i]
+          if (op.insert != null) {
+            var attrs = this.insert(pos, op.insert)
+            // create new selection
+            for (name in op.attributes) {
+              if (op.attributes[name] !== attrs[name]) {
+                this.select(pos, pos + op.insert.length, name, op.attributes[name])
+              }
+            }
+            // not-existence of an attribute in op.attributes denotes
+            // that we have to unselect (set to null)
+            for (name in attrs) {
+              if (op.attributes == null || attrs[name] !== op.attributes[name]) {
+                this.select(pos, pos + op.insert.length, name, null)
+              }
+            }
+            pos += op.insert.length
+          }
+          if (op.delete != null) {
+            this.delete(pos, op.delete)
+          }
+          if (op.retain != null && _quill != null) {
+            var afterRetain = pos + op.retain
+            if (afterRetain > this.length) {
+              let additionalContent = _quill.getText(this.length)
+              _quill.insertText(this.length, additionalContent)
+              // quill.deleteText(this.length + additionalContent.length, quill.getLength())
+              for (name in op.attributes) {
+                _quill.formatText(this.length + additionalContent.length, this.length + additionalContent.length * 2, name, null)
+                // quill.deleteText(this.length, this.length + op.retain)
+              }
+              this.insert(this.length, additionalContent)
+              // op.attributes = null
+            }
+            for (name in op.attributes) {
+              this.select(pos, pos + op.retain, name, op.attributes[name])
+              _quill.formatText(pos, pos + op.retain, name, op.attributes[name])
+            }
+            pos = afterRetain
+          }
+        }
+      }
       bind () {
         this.bindQuill.apply(this, arguments)
       }
@@ -314,50 +364,7 @@ function extend (Y) {
 
         function quillCallback (delta) {
           mutualExcluse(function () {
-            var pos = 0
-            var name // helper variable
-            for (var i = 0; i < delta.ops.length; i++) {
-              var op = delta.ops[i]
-              if (op.insert != null) {
-                var attrs = self.insert(pos, op.insert)
-                // create new selection
-                for (name in op.attributes) {
-                  if (op.attributes[name] !== attrs[name]) {
-                    self.select(pos, pos + op.insert.length, name, op.attributes[name])
-                  }
-                }
-                // not-existence of an attribute in op.attributes denotes
-                // that we have to unselect (set to null)
-                for (name in attrs) {
-                  if (op.attributes == null || attrs[name] !== op.attributes[name]) {
-                    self.select(pos, pos + op.insert.length, name, null)
-                  }
-                }
-                pos += op.insert.length
-              }
-              if (op.delete != null) {
-                self.delete(pos, op.delete)
-              }
-              if (op.retain != null) {
-                var afterRetain = pos + op.retain
-                if (afterRetain > self.length) {
-                  let additionalContent = quill.getText(self.length)
-                  quill.insertText(self.length, additionalContent)
-                  // quill.deleteText(self.length + additionalContent.length, quill.getLength())
-                  for (name in op.attributes) {
-                    quill.formatText(self.length + additionalContent.length, self.length + additionalContent.length * 2, name, null)
-                    // quill.deleteText(self.length, self.length + op.retain)
-                  }
-                  self.insert(self.length, additionalContent)
-                  // op.attributes = null
-                }
-                for (name in op.attributes) {
-                  self.select(pos, pos + op.retain, name, op.attributes[name])
-                  quill.formatText(pos, pos + op.retain, name, op.attributes[name])
-                }
-                pos = afterRetain
-              }
-            }
+            self.insertDelta(delta, quill)
           })
         }
         quill.on('text-change', quillCallback)
