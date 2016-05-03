@@ -31,7 +31,7 @@ function extend (Y) {
           }
         }).join('')
       }
-      toOTOps () {
+      toDelta () {
         var ops = []
         var op = {
           insert: [],
@@ -280,7 +280,7 @@ function extend (Y) {
         This method accepts a quill delta (http://quilljs.com/docs/deltas/)
         The second parameter (_quill) is optional (it is only necessary when binding a quill instance)
       */
-      insertDelta (delta, _quill) {
+      applyDelta (delta, _quill) {
         var pos = 0
         var name // helper variable
         for (var i = 0; i < delta.ops.length; i++) {
@@ -359,11 +359,11 @@ function extend (Y) {
           }
         }
 
-        quill.setContents(this.toOTOps())
+        quill.setContents(this.toDelta())
 
         function quillCallback (delta) {
           mutualExcluse(function () {
-            self.insertDelta(delta, quill)
+            self.applyDelta(delta, quill)
           })
         }
         quill.on('text-change', quillCallback)
