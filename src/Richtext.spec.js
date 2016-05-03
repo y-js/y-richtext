@@ -6,8 +6,8 @@ var Y = require('../../yjs/src/SpecHelper.js')
 require('./Richtext.js')(Y)
 var Quill = require('quill')
 
-var numberOfYRichtextTests = 15
-var repeatRichtextTests = 100
+var numberOfYRichtextTests = 150
+var repeatRichtextTests = 1
 
 if (typeof window !== 'undefined') {
   for (let database of databases) {
@@ -56,7 +56,6 @@ if (typeof window !== 'undefined') {
           for (var l of vals) {
             var e = l.instances[0].editor
             var content = e.getContents(0, l.length - 1)
-            console.log(e.getText(), l.length)
             if (firstContent == null) {
               firstContent = content
             } else {
