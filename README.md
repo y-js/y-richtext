@@ -48,6 +48,23 @@ Y({
 * .bind(editor)
   * Bind this type to an rich text editor. (Currently, only QuillJs is supported)
   * `.bind(editor)` does not preserve the existing value of the bound editor
+* .bindQuill(quill)
+  * Explicitely bind a Quill editor
+* unbindQuill(quill)
+  * Remove binding
+* .insert(position, string)
+  * Insert text at a position
+* .delete(position, length)
+  * Delete text
+* select(from, to, attrName, attrValue)
+  * Assign meaning to a selection of text (application depending to what you bind, this can assign text to be bold, italic, ..). Set null to remove selection.
+* toString()
+  * Get the string representation of this type (without selections)
+* toDelta()
+  * Convert internal structure to a Quill delta http://quilljs.com/docs/deltas/
+* applyDelta()
+  * Apply a Quill delta http://quilljs.com/docs/deltas/
+
 
 ## Contribution
 We thank [Veeting](https://www.veeting.com/) and [Linagora](https://www.linagora.com/) who sponsored this work, and agreed to publish it as Open Source.
