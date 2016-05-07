@@ -8,6 +8,12 @@ function extend (Y) {
       constructor (os, _model, _content) {
         super(os, _model, _content)
         this.instances = []
+        // append this utility function with which eventhandler can pull changes from quill
+        this.eventHandler._pullChanges = () => {
+          this.instances.forEach(function (instance) {
+            instance.editor.editor.checkUpdate()
+          })
+        }
       }
       _destroy () {
         for (var i = this.instances.length - 1; i >= 0; i--) {
@@ -533,9 +539,6 @@ function extend (Y) {
         })
       }
       * _changed () {
-        this.instances.forEach(function (instance) {
-          instance.editor.editor.checkUpdate()
-        })
         yield* Y.Array.typeDefinition['class'].prototype._changed.apply(this, arguments)
       }
     }
