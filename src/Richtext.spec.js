@@ -1,4 +1,4 @@
-/* global createUsers, databases, wait, compareAllUsers, getRandom, getRandomString, getRandomNumber, applyRandomTransactionsNoGCNoDisconnect, applyRandomTransactionsAllRejoinNoGC, applyRandomTransactionsWithGC, async, describeManyTimes */
+/* global createUsers, databases, wait, compareAllUsers, fixAwaitingInType, getRandom, getRandomString, getRandomNumber, applyRandomTransactionsNoGCNoDisconnect, applyRandomTransactionsAllRejoinNoGC, applyRandomTransactionsWithGC, async, describeManyTimes */
 /* eslint-env browser,jasmine */
 'use strict'
 
@@ -6,8 +6,8 @@ var Y = require('../../yjs/src/SpecHelper.js')
 require('./Richtext.js')(Y)
 var Quill = require('quill')
 
-var numberOfYRichtextTests = 150
-var repeatRichtextTests = 1
+var numberOfYRichtextTests = 15
+var repeatRichtextTests = 10
 
 if (typeof window !== 'undefined') {
   for (let database of databases) {
@@ -83,6 +83,7 @@ if (typeof window !== 'undefined') {
         it(`succeed after ${numberOfYRichtextTests} actions, no GC, no disconnect`, async(function * (done) {
           yield applyRandomTransactionsNoGCNoDisconnect(this.users, this.texts, randomTextTransactions, numberOfYRichtextTests)
           yield flushAll()
+          yield Promise.all(this.texts.map(fixAwaitingInType))
           yield compareValues(this.texts)
           yield compareAllUsers(this.users)
           done()
@@ -90,6 +91,7 @@ if (typeof window !== 'undefined') {
         it(`succeed after ${numberOfYRichtextTests} actions, no GC, all users disconnecting/reconnecting`, async(function * (done) {
           yield applyRandomTransactionsAllRejoinNoGC(this.users, this.texts, randomTextTransactions, numberOfYRichtextTests)
           yield flushAll()
+          yield Promise.all(this.texts.map(fixAwaitingInType))
           yield compareValues(this.texts)
           yield compareAllUsers(this.users)
           done()
@@ -97,6 +99,7 @@ if (typeof window !== 'undefined') {
         it(`succeed after ${numberOfYRichtextTests} actions, GC, user[0] is not disconnecting`, async(function * (done) {
           yield applyRandomTransactionsWithGC(this.users, this.texts, randomTextTransactions, numberOfYRichtextTests)
           yield flushAll()
+          yield Promise.all(this.texts.map(fixAwaitingInType))
           yield compareValues(this.texts)
           yield compareAllUsers(this.users)
           done()

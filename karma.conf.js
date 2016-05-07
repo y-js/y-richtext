@@ -16,7 +16,7 @@ module.exports = function (config) {
       transform: ['brfs']
     },
     reporters: ['kjhtml'],
-    port: 9876,
+    port: 9878,
     colors: true,
     // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
     logLevel: config.LOG_INFO,
