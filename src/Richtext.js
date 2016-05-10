@@ -10,7 +10,7 @@ function extend (Y) {
         // append this utility function with which eventhandler can pull changes from quill
         this.eventHandler._pullChanges = () => {
           this.instances.forEach(function (instance) {
-            instance.editor.editor.checkUpdate()
+            instance.editor.update()
           })
         }
       }
@@ -314,19 +314,21 @@ function extend (Y) {
           if (op.retain != null && _quill != null) {
             var afterRetain = pos + op.retain
             if (afterRetain > this.length) {
+              debugger
               let additionalContent = _quill.getText(this.length)
               _quill.insertText(this.length, additionalContent)
-              // quill.deleteText(this.length + additionalContent.length, quill.getLength())
+              // quill.deleteText(this.length + additionalContent.length, quill.getLength()) the api changed!
               for (name in op.attributes) {
-                _quill.formatText(this.length + additionalContent.length, this.length + additionalContent.length * 2, name, null)
-                // quill.deleteText(this.length, this.length + op.retain)
+                _quill.formatText(this.length + additionalContent.length, additionalContent.length, name, null)
+                // quill.deleteText(this.length, this.length + op.retain) the api changed!
               }
               this.insert(this.length, additionalContent)
               // op.attributes = null
             }
             for (name in op.attributes) {
+              debugger
               this.select(pos, pos + op.retain, name, op.attributes[name])
-              _quill.formatText(pos, pos + op.retain, name, op.attributes[name])
+              _quill.formatText(pos, op.retain, name, op.attributes[name])
             }
             pos = afterRetain
           }
@@ -447,7 +449,7 @@ function extend (Y) {
                   }
                   // create a selection from selectionStart to selectionEnd
                   if (selectionStart !== selectionEnd) {
-                    quill.formatText(selectionStart, selectionEnd, newSel[0], newSel[1])
+                    quill.formatText(selectionStart, selectionEnd - selectionStart, newSel[0], newSel[1])
                   }
                 }
               }
@@ -488,7 +490,7 @@ function extend (Y) {
                       pos++
                     }
                   }
-                  quill.deleteText(pos, pos + event.length)
+                  quill.deleteText(pos, event.length)
                 } else {
                   curSel = null
                   var from = 0
@@ -522,12 +524,12 @@ function extend (Y) {
                     }
                   }
                   if (curSel !== event.val[1] && from !== to) {
-                    quill.formatText(from, to, event.val[0], curSel)
+                    quill.formatText(from, to - from, event.val[0], curSel)
                   }
                 }
               })
             }
-            quill.editor.checkUpdate()
+            quill.update()
           })
         }
         this.observe(yCallback)

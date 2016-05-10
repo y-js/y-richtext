@@ -6,8 +6,8 @@ var Y = require('../../yjs/src/SpecHelper.js')
 require('./Richtext.js')(Y)
 var Quill = require('quill')
 
-var numberOfYRichtextTests = 15
-var repeatRichtextTests = 10
+var numberOfYRichtextTests = 50
+var repeatRichtextTests = 100
 
 if (typeof window !== 'undefined') {
   for (let database of databases) {
@@ -31,25 +31,24 @@ if (typeof window !== 'undefined') {
         var randomTextTransactions = [
           function insert (s) {
             var e = s.instances[0].editor
-            e.insertText(getRandomNumber(e.getText().length), getRandomString())
+            e.insertText(getRandomNumber(e.getLength()), getRandomString())
           },
           function _delete (s) {
             var q = s.instances[0].editor
-            var len = q.getText().length
+            var len = q.getLength()
             var from = getRandomNumber(len)
-            var delLength = getRandomNumber(len - from)
-            var to = from + Math.min(7, delLength)
-            q.deleteText(from, to)
-          },
+            var delLength = Math.min(7, getRandomNumber(len - from))
+            q.deleteText(from, delLength)
+          }/*,
           function select (s) {
             var q = s.instances[0].editor
-            var len = q.getText().length
+            var len = q.getLength()
             var from = getRandomNumber(len)
             var to = from + getRandomNumber(len - from)
             var attr = getRandom(['bold', 'italic', 'strike'])
             var val = getRandom([true, false])
             q.formatText(from, to, attr, val)
-          }
+          }*/
         ]
         function compareValues (vals) {
           var firstContent
@@ -80,10 +79,11 @@ if (typeof window !== 'undefined') {
           expect(this.texts.length).toEqual(this.users.length)
           done()
         }))
-        it(`succeed after ${numberOfYRichtextTests} actions, no GC, no disconnect`, async(function * (done) {
+        fit(`succeed after ${numberOfYRichtextTests} actions, no GC, no disconnect`, async(function * (done) {
           yield applyRandomTransactionsNoGCNoDisconnect(this.users, this.texts, randomTextTransactions, numberOfYRichtextTests)
           yield flushAll()
           yield Promise.all(this.texts.map(fixAwaitingInType))
+          yield wait(50) // TODO!!
           yield compareValues(this.texts)
           yield compareAllUsers(this.users)
           done()
