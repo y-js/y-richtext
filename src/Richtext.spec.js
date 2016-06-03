@@ -6,11 +6,13 @@ var Y = require('../../yjs/src/SpecHelper.js')
 require('./Richtext.js')(Y)
 var Quill = require('quill')
 
-var numberOfYRichtextTests = 50
-var repeatRichtextTests = 100
+var numberOfYRichtextTests = 20
+var repeatRichtextTests = 5000
 
 if (typeof window !== 'undefined') {
   for (let database of databases) {
+    if (database != 'memory') continue // TODO!!
+
     describe(`Richtext Type (DB: ${database})`, function () {
       var y1, y2, y3, yconfig1, yconfig2, yconfig3, flushAll // eslint-disable-line
 
@@ -25,6 +27,37 @@ if (typeof window !== 'undefined') {
       }))
       afterEach(async(function * (done) {
         yield compareAllUsers(this.users)
+        done()
+      }))
+      fit('Debug for Quill@1.0.0', async(function * (done) {
+        this.users[1].db.requestTransaction(function * asItShouldBe () {
+          yield* this.store.tryExecute.call(this,  {'id': ['_', 'Map_Map_root_'], 'map': {}, 'struct': 'Map', 'type': 'Map'})
+          yield* this.store.tryExecute.call(this,  {'start': null, 'end': null, 'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
+          yield* this.store.tryExecute.call(this,  {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'parentSub': 'Richtext', 'struct': 'Insert', 'opContent': ['249', 1]})
+          yield* this.store.tryExecute.call(this,  {'id': ['251', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['ü']})
+          yield* this.store.tryExecute.call(this,  {'target': ['250', 6], 'struct': 'Delete', 'length': 1})
+          yield* this.store.tryExecute.call(this,  {'id': ['250', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['R']})
+          yield* this.store.tryExecute.call(this,  {'id': ['250', 1], 'left': ['250', 0], 'right': null, 'origin': ['250', 0], 'parent': ['249', 1], 'struct': 'Insert', 'content': ['N', 'N', 'N', 'N', 'N', 'N']})
+          yield* this.store.tryExecute.call(this,  {'struct': 'Delete', 'target': ['250', 6]})
+        })
+
+        this.users[2].db.requestTransaction(function * () {
+          yield* this.store.tryExecute.call(this,  {'id': ['_', 'Map_Map_root_'], 'map': {}, 'struct': 'Map', 'type': 'Map'})
+          yield* this.store.tryExecute.call(this,  {'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
+          yield* this.store.tryExecute.call(this,  {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'struct': 'Insert', 'parentSub': 'Richtext', 'opContent': ['249', 1]})
+          yield* this.store.tryExecute.call(this,  {'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
+          yield* this.store.tryExecute.call(this,  {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'struct': 'Insert', 'parentSub': 'Richtext', 'opContent': ['249', 1]})
+          yield* this.store.tryExecute.call(this,  {'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
+          yield* this.store.tryExecute.call(this,  {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'struct': 'Insert', 'parentSub': 'Richtext', 'opContent': ['249', 1]})
+          yield* this.store.tryExecute.call(this,  {'left': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['R'], 'id': ['250', 0], 'right': null})
+          yield* this.store.tryExecute.call(this,  {'left': ['250', 0], 'origin': ['250', 0], 'parent': ['249', 1], 'struct': 'Insert', 'content': ['N', 'N', 'N', 'N', 'N', 'N'], 'id': ['250', 1], 'right': null})
+          yield* this.store.tryExecute.call(this,  {'target': ['250', 6], 'struct': 'Delete', 'length': 1})
+          yield* this.store.tryExecute.call(this,  {'id': ['251', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['ü']})
+        })
+
+        yield flushAll()
+
+        yield compareAllUsers([this.users[1], this.users[2]])
         done()
       }))
       describeManyTimes(repeatRichtextTests, `Random tests`, function () {

@@ -539,9 +539,6 @@ function extend (Y) {
           quillCallback: quillCallback
         })
       }
-      * _changed () {
-        yield* Y.Array.typeDefinition['class'].prototype._changed.apply(this, arguments)
-      }
     }
     Y.extend('Richtext', new Y.utils.CustomType({
       name: 'Richtext',
