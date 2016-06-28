@@ -38,6 +38,24 @@ function extend (Y) {
         }).join('')
       }
       toDelta () {
+        // check last character
+        // insert a newline as the last character, if neccessary
+        // (quill will do that automatically otherwise..)
+        var newLineCharacter = false
+        for (var i = this._content.length - 1; i >= 0; i--) {
+          var c = this._content[i]
+          if (typeof c.val === 'string') {
+            if (c.val === '\n') {
+              newLineCharacter = true
+            }
+            break
+          }
+        }
+        if (!newLineCharacter) {
+          this.push('\n')
+        }
+
+        // create the delta
         var ops = []
         var op = {
           insert: [],
@@ -58,6 +76,9 @@ function extend (Y) {
         for (; i < this._content.length; i++) {
           let v = this._content[i].val
           if (v.constructor === Array) {
+            if ((!op.attributes.hasOwnProperty(v[0]) && v[1] == null) || op.attributes[v[0]] === v[1]) {
+              continue
+            }
             if (op.insert.length > 0) {
               op.insert = op.insert.join('')
               ops.push(op)
@@ -76,6 +97,11 @@ function extend (Y) {
           op.insert = op.insert.join('')
           ops.push(op)
         }
+        ops.map(function (op) {
+          if (Object.keys(op.attributes).length === 0) {
+            delete op.attributes
+          }
+        })
         return ops
       }
       insert (pos, content) {
@@ -295,6 +321,7 @@ function extend (Y) {
             var attrs = this.insert(pos, op.insert)
             // create new selection
             for (name in op.attributes) {
+              debugger
               if (op.attributes[name] !== attrs[name]) {
                 this.select(pos, pos + op.insert.length, name, op.attributes[name])
               }
@@ -302,6 +329,7 @@ function extend (Y) {
             // not-existence of an attribute in op.attributes denotes
             // that we have to unselect (set to null)
             for (name in attrs) {
+              debugger
               if (op.attributes == null || attrs[name] !== op.attributes[name]) {
                 this.select(pos, pos + op.insert.length, name, null)
               }
@@ -326,7 +354,6 @@ function extend (Y) {
               // op.attributes = null
             }
             for (name in op.attributes) {
-              debugger
               this.select(pos, pos + op.retain, name, op.attributes[name])
               _quill.formatText(pos, op.retain, name, op.attributes[name])
             }
@@ -366,13 +393,19 @@ function extend (Y) {
             token = true
           }
         }
-
         quill.setContents(this.toDelta())
 
+        self._debugQuillEvents = [] // TODO: REMOVE!!!  
         function quillCallback (delta) {
           mutualExcluse(function () {
+            self._debugQuillEvents.push(JSON.parse(JSON.stringify(delta)))
             self.applyDelta(delta, quill)
           })
+          // TODO: REMOVE!! 
+          var yd = self.toDelta()
+          var qd = quill.getContents().ops
+          expect(yd).toEqual(qd)
+          // end TODO!! 
         }
         quill.on('text-change', quillCallback)
 
@@ -383,6 +416,10 @@ function extend (Y) {
             if (event.type === 'insert') {
               var _value_i = 0
               while (_value_i < event.values.length) {
+                if (_value_i > 0) {
+                  debugger
+                  // TODO: something is wrong.. at least the position can't be right in the second iteration!
+                }
                 var vals = []
                 while (_value_i < event.values.length && typeof event.values[_value_i] === 'string') {
                   vals.push(event.values[_value_i])
@@ -391,13 +428,28 @@ function extend (Y) {
                 if (vals.length > 0) {
                   var position = 0
                   var insertSel = {}
-                  for (var l = event.index - 1; l >= 0; l--) {
+                  for (var l = 0; l < event.index; l++) {
+                    // TODO: previous algorithm: for (var l = event.index - 1; l >= 0; l--) {
                     v = self._content[l].val
                     if (typeof v === 'string') {
                       position++
-                    } else if (v.constructor === Array && typeof insertSel[v[0]] === 'undefined') {
+                    } else if (v.constructor === Array) { //  TODO: remove the following? : && typeof insertSel[v[0]] === 'undefined'
                       insertSel[v[0]] = v[1]
                     }
+                  }
+                  // consider the case (this is markup): "hi *you*" & insert "d" at position 3
+                  // Quill may implicitely make "d" bold (dunno if thats true). Yjs, however, expects d not to be bold.
+                  // So we check future attributes and explicitely set them, if neccessary  
+                  while (l < self._content.length) {
+                    v = self._content[l].val
+                    if (v.constructor === Array) {
+                      if (!insertSel.hasOwnProperty(v[0])) {
+                        insertSel[v[0]] = null
+                      }
+                    } else {
+                      break
+                    }
+                    l++
                   }
                   quill.insertText(position, vals.join(''), insertSel)
                 } else { // Array, that denotes a selection
@@ -531,6 +583,11 @@ function extend (Y) {
             }
             quill.update()
           })
+          // TODO: REMOVE!! 
+          var yd = self.toDelta()
+          var qd = quill.getContents().ops
+          expect(yd).toEqual(qd)
+          // end TODO!! 
         }
         this.observe(yCallback)
         this.instances.push({
