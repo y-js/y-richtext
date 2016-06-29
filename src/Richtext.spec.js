@@ -87,7 +87,7 @@ if (typeof window !== 'undefined') {
           var firstContent
           for (var l of vals) {
             var e = l.instances[0].editor
-            var content = e.getContents(0, l.length - 1)
+            var content = e.getContents()
             if (firstContent == null) {
               firstContent = content
             } else {
