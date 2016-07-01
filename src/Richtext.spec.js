@@ -6,7 +6,7 @@ var Y = require('../../yjs/src/SpecHelper.js')
 require('./Richtext.js')(Y)
 var Quill = require('quill')
 
-var numberOfYRichtextTests = 5
+var numberOfYRichtextTests = 10
 var repeatRichtextTests = 5000
 
 if (typeof window !== 'undefined') {
@@ -87,7 +87,9 @@ if (typeof window !== 'undefined') {
           var firstContent
           for (var l of vals) {
             var e = l.instances[0].editor
-            var content = e.getContents()
+            var content = e.getContents().ops
+            var yDelta = l.toDelta()
+            expect(content).toEqual(yDelta)
             if (firstContent == null) {
               firstContent = content
             } else {

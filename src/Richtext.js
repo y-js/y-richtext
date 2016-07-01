@@ -321,7 +321,6 @@ function extend (Y) {
             var attrs = this.insert(pos, op.insert)
             // create new selection
             for (name in op.attributes) {
-              debugger
               if (op.attributes[name] !== attrs[name]) {
                 this.select(pos, pos + op.insert.length, name, op.attributes[name])
               }
@@ -329,7 +328,6 @@ function extend (Y) {
             // not-existence of an attribute in op.attributes denotes
             // that we have to unselect (set to null)
             for (name in attrs) {
-              debugger
               if (op.attributes == null || attrs[name] !== op.attributes[name]) {
                 this.select(pos, pos + op.insert.length, name, null)
               }
@@ -342,11 +340,12 @@ function extend (Y) {
           if (op.retain != null && _quill != null) {
             var afterRetain = pos + op.retain
             if (afterRetain > this.length) {
-              debugger
+              debugger // TODO: check why this is still called..
               let additionalContent = _quill.getText(this.length)
               _quill.insertText(this.length, additionalContent)
               // quill.deleteText(this.length + additionalContent.length, quill.getLength()) the api changed!
               for (name in op.attributes) {
+                // TODO: format expects falsy values now in order to remove formats
                 _quill.formatText(this.length + additionalContent.length, additionalContent.length, name, null)
                 // quill.deleteText(this.length, this.length + op.retain) the api changed!
               }
@@ -354,8 +353,10 @@ function extend (Y) {
               // op.attributes = null
             }
             for (name in op.attributes) {
-              this.select(pos, pos + op.retain, name, op.attributes[name])
-              _quill.formatText(pos, op.retain, name, op.attributes[name])
+              var attr = op.attributes[name]
+              this.select(pos, pos + op.retain, name, attr)
+              // TODO: check if attr is `false` sometimes.. (then you need to adapt the algorithm)
+              _quill.formatText(pos, op.retain, name, attr == null ? false : attr) // use correct values here (changed in quill@1.0)
             }
             pos = afterRetain
           }
@@ -401,11 +402,6 @@ function extend (Y) {
             self._debugQuillEvents.push(JSON.parse(JSON.stringify(delta)))
             self.applyDelta(delta, quill)
           })
-          // TODO: REMOVE!! 
-          var yd = self.toDelta()
-          var qd = quill.getContents().ops
-          expect(yd).toEqual(qd)
-          // end TODO!! 
         }
         quill.on('text-change', quillCallback)
 
@@ -439,7 +435,8 @@ function extend (Y) {
                   }
                   // consider the case (this is markup): "hi *you*" & insert "d" at position 3
                   // Quill may implicitely make "d" bold (dunno if thats true). Yjs, however, expects d not to be bold.
-                  // So we check future attributes and explicitely set them, if neccessary  
+                  // So we check future attributes and explicitely set them, if neccessary
+                  l = event.index + event.length
                   while (l < self._content.length) {
                     v = self._content[l].val
                     if (v.constructor === Array) {
@@ -450,6 +447,27 @@ function extend (Y) {
                       break
                     }
                     l++
+                  }
+                  // TODO: you definitely should exchange null with the new "false" approach..
+                  // Then remove the following! :
+                  for (var name in insertSel) {
+                    if (insertSel[name] == null) {
+                      insertSel[name] = false
+                    }
+                  }
+                  if (self.length == position + vals.length && vals[vals.length - 1] != '\n') {
+                    // always make sure that the last character is enter!
+                    var end = ['\n']
+                    var sel = {}
+                    // now we remove all selections
+                    for (var name in insertSel) {
+                      if (insertSel[name] != false) {
+                        end.unshift([name, false])
+                        sel[name] = false
+                      }
+                    }
+                    self.push('\n')
+                    quill.insertText(position, '\n', false)
                   }
                   quill.insertText(position, vals.join(''), insertSel)
                 } else { // Array, that denotes a selection
@@ -501,7 +519,8 @@ function extend (Y) {
                   }
                   // create a selection from selectionStart to selectionEnd
                   if (selectionStart !== selectionEnd) {
-                    quill.formatText(selectionStart, selectionEnd - selectionStart, newSel[0], newSel[1])
+                    // TODO: check if attr is `false` sometimes.. (then you need to adapt the algorithm)
+                    quill.formatText(selectionStart, selectionEnd - selectionStart, newSel[0], newSel[1] == null ? false : newSel[1])
                   }
                 }
               }
@@ -576,18 +595,14 @@ function extend (Y) {
                     }
                   }
                   if (curSel !== event.val[1] && from !== to) {
-                    quill.formatText(from, to - from, event.val[0], curSel)
+                    // TODO: check if attr is `false` sometimes.. (then you need to adapt the algorithm)
+                    quill.formatText(from, to - from, event.val[0], curSel == null ? false : curSel)
                   }
                 }
               })
             }
             quill.update()
           })
-          // TODO: REMOVE!! 
-          var yd = self.toDelta()
-          var qd = quill.getContents().ops
-          expect(yd).toEqual(qd)
-          // end TODO!! 
         }
         this.observe(yCallback)
         this.instances.push({
