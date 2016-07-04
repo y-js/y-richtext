@@ -44,7 +44,7 @@ function extend (Y) {
         var newLineCharacter = false
         for (var i = this._content.length - 1; i >= 0; i--) {
           var c = this._content[i]
-          if (typeof c.val === 'string') {
+          if (c.val.constructor !== Array) {
             if (c.val === '\n') {
               newLineCharacter = true
             }
@@ -89,8 +89,17 @@ function extend (Y) {
             } else {
               op.attributes[v[0]] = v[1]
             }
-          } else {
+          } else if (typeof v === 'string') {
             op.insert.push(v)
+          } else { // v is embed (Object)
+            if (op.insert.length > 0) {
+              op.insert = op.insert.join('')
+              ops.push(op)
+              createNewOp()
+            }
+            op.insert = v
+            ops.push(op)
+            createNewOp()
           }
         }
         if (op.insert.length > 0) {
@@ -112,9 +121,9 @@ function extend (Y) {
             break
           }
           var v = this._content[i].val
-          if (typeof v === 'string') {
+          if (v.constructor !== Array) {
             curPos++
-          } else if (v.constructor === Array) {
+          } else {
             if (v[1] === null) {
               delete selection[v[0]]
             } else {
@@ -150,15 +159,15 @@ function extend (Y) {
 
         for (delStart = 0; curPos < pos && delStart < this._content.length; delStart++) {
           v = this._content[delStart].val
-          if (typeof v === 'string') {
+          if (v.constructor !== Array) {
             curPos++
-          } else if (v.constructor === Array) {
+          } else {
             curSel[v[0]] = v[1]
           }
         }
         for (delEnd = delStart; curPos < endPos && delEnd < this._content.length; delEnd++) {
           v = this._content[delEnd].val
-          if (typeof v === 'string') {
+          if (v.constructor !== Array) {
             curPos++
           }
         }
@@ -166,7 +175,7 @@ function extend (Y) {
           // yay, you can delete everything without checking
           super.delete(delStart, delEnd - delStart)
         } else {
-          if (typeof v === 'string') {
+          if (v.constructor !== Array) {
             delEnd--
           }
           var rightSel = {}
@@ -183,11 +192,11 @@ function extend (Y) {
                 // case 2.
                 super.delete(i, 1)
               }
-            } else if (typeof v === 'string') {
+            } else {
               var end = i + 1
               while (i > delStart) {
                 v = this._content[i - 1].val
-                if (typeof v === 'string') {
+                if (v.constructor !== Array) {
                   i--
                 } else {
                   break
@@ -223,10 +232,12 @@ function extend (Y) {
               break
             }
             if (v.constructor === Array) {
+              // selection
               if (v[0] === attrName) {
                 antiAttrs[1] = v[1]
               }
-            } else if (typeof v === 'string') {
+            } else {
+              // embed or text
               curPos++
             }
           }
@@ -245,11 +256,13 @@ function extend (Y) {
               break
             }
             if (v.constructor === Array) {
+              // selection
               if (v[0] === attrName) {
                 antiAttrs[1] = v[1]
                 deletes.push(i)
               }
-            } else if (typeof v === 'string') {
+            } else {
+              // embed or text
               curPos++
             }
           }
@@ -317,22 +330,30 @@ function extend (Y) {
         var name // helper variable
         for (var i = 0; i < delta.ops.length; i++) {
           var op = delta.ops[i]
+          var attrs
+          var insLength
           if (op.insert != null) {
-            var attrs = this.insert(pos, op.insert)
+            if (typeof op.insert === 'string') {
+              attrs = this.insert(pos, op.insert)
+              insLength = op.insert.length
+            } else { // typeof is Object
+              attrs = this.insertEmbed(index, op.insert)
+              insLength = 1
+            }
             // create new selection
             for (name in op.attributes) {
               if (op.attributes[name] !== attrs[name]) {
-                this.select(pos, pos + op.insert.length, name, op.attributes[name])
+                this.select(pos, pos + insLength, name, op.attributes[name])
               }
             }
             // not-existence of an attribute in op.attributes denotes
             // that we have to unselect (set to null)
             for (name in attrs) {
               if (op.attributes == null || attrs[name] !== op.attributes[name]) {
-                this.select(pos, pos + op.insert.length, name, null)
+                this.select(pos, pos + insLength, name, null)
               }
             }
-            pos += op.insert.length
+            pos += insLength
           }
           if (op.delete != null) {
             this.delete(pos, op.delete)
@@ -417,19 +438,18 @@ function extend (Y) {
                   // TODO: something is wrong.. at least the position can't be right in the second iteration!
                 }
                 var vals = []
-                while (_value_i < event.values.length && typeof event.values[_value_i] === 'string') {
+                while (_value_i < event.values.length && typeof event.values[_value_i].constructor !== Array) {
                   vals.push(event.values[_value_i])
                   _value_i++
                 }
-                if (vals.length > 0) {
+                if (vals.length > 0) { // insert new content (text and embed)
                   var position = 0
                   var insertSel = {}
                   for (var l = 0; l < event.index; l++) {
-                    // TODO: previous algorithm: for (var l = event.index - 1; l >= 0; l--) {
                     v = self._content[l].val
-                    if (typeof v === 'string') {
+                    if (v.constructor !== Array) {
                       position++
-                    } else if (v.constructor === Array) { //  TODO: remove the following? : && typeof insertSel[v[0]] === 'undefined'
+                    } else {
                       insertSel[v[0]] = v[1]
                     }
                   }
@@ -466,11 +486,38 @@ function extend (Y) {
                         sel[name] = false
                       }
                     }
-                    self.push('\n')
-                    quill.insertText(position, '\n', false)
+                    Y.Array.typeDefinition.class.prototype.insert.call(self, position + vals.length, end)
+                    quill.insertText(position, '\n', sel)
                   }
-                  quill.insertText(position, vals.join(''), insertSel)
-                } else { // Array, that denotes a selection
+                  // create delta from vals
+                  var delta = [{ retain: position }]
+                  var currText = []
+                  vals.forEach(function (v) {
+                    if (typeof v === 'string') {
+                      currText.push(v)
+                    } else {
+                      if (currText.length > 0) {
+                        delta.push({
+                          insert: currText.join(''),
+                          attributes: insertSel
+                        })
+                        currText = []
+                      }
+                      insert.push({
+                        insert: v,
+                        attributes: insertSel
+                      })
+                    }
+                  })
+                  if (currText.length > 0) {
+                    delta.push({
+                      insert: currText.join(''),
+                      attributes: insertSel
+                    })
+                  }
+                  quill.updateContents(delta)
+                  // quill.insertText(position, vals.join(''), insertSel)
+                } else { // Array (selection)
                   // a new selection is created
                   // find left selection that matches newSel[0]
                   curSel = null
@@ -488,14 +535,14 @@ function extend (Y) {
                         curSel = v[1]
                         break
                       }
-                    } else if (typeof v === 'string') {
+                    } else {
                       selectionStart++
                     }
                   }
                   // make sure to decrement j, so we correctly compute selectionStart
                   for (; j >= 0; j--) {
                     v = self._content[j].val
-                    if (typeof v === 'string') {
+                    if (v.constructor !== Array) {
                       selectionStart++
                     }
                   }
@@ -513,7 +560,7 @@ function extend (Y) {
                         // found another selection with same attr name
                         break
                       }
-                    } else if (typeof v === 'string') {
+                    } else {
                       selectionEnd++
                     }
                   }
@@ -528,7 +575,7 @@ function extend (Y) {
               // sanitize events
               var myEvents = []
               for (var i = 0, _i = 0; i < event.length; i++) {
-                if (typeof event.values[i] !== 'string') {
+                if (event.values[i].constructor === Array) {
                   if (i !== _i) {
                     myEvents.push({
                       type: 'text',
@@ -557,7 +604,7 @@ function extend (Y) {
                   var pos = 0
                   for (var u = 0; u < event.index; u++) {
                     v = self._content[u].val
-                    if (typeof v === 'string') {
+                    if (v.constructor !== Array) {
                       pos++
                     }
                   }
@@ -573,13 +620,13 @@ function extend (Y) {
                         curSel = v[1]
                         break
                       }
-                    } else if (typeof v === 'string') {
+                    } else {
                       from++
                     }
                   }
                   for (; x >= 0; x--) {
                     v = self._content[x].val
-                    if (typeof v === 'string') {
+                    if (v.constructor !== Array) {
                       from++
                     }
                   }
@@ -590,7 +637,7 @@ function extend (Y) {
                       if (v[0] === event.val[0]) {
                         break
                       }
-                    } else if (typeof v === 'string') {
+                    } else {
                       to++
                     }
                   }
