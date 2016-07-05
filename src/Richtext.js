@@ -131,7 +131,15 @@ function extend (Y) {
             }
           }
         }
-        super.insert(i, content.split(''))
+        var ins
+        if (typeof content === 'string') {
+          ins = content.split('')
+        } else if (content.constructor === Object) {
+          ins = [content]
+        } else {
+          ins = content
+        }
+        super.insert(i, ins)
         return selection
       }
       delete (pos, length) {
@@ -337,7 +345,7 @@ function extend (Y) {
               attrs = this.insert(pos, op.insert)
               insLength = op.insert.length
             } else { // typeof is Object
-              attrs = this.insertEmbed(index, op.insert)
+              attrs = this.insert(pos, op.insert)
               insLength = 1
             }
             // create new selection
@@ -438,7 +446,7 @@ function extend (Y) {
                   // TODO: something is wrong.. at least the position can't be right in the second iteration!
                 }
                 var vals = []
-                while (_value_i < event.values.length && typeof event.values[_value_i].constructor !== Array) {
+                while (_value_i < event.values.length && event.values[_value_i].constructor !== Array) {
                   vals.push(event.values[_value_i])
                   _value_i++
                 }
@@ -490,7 +498,10 @@ function extend (Y) {
                     quill.insertText(position, '\n', sel)
                   }
                   // create delta from vals
-                  var delta = [{ retain: position }]
+                  var delta = []
+                  if (position > 0) {
+                    delta.push({ retain: position })
+                  }
                   var currText = []
                   vals.forEach(function (v) {
                     if (typeof v === 'string') {
@@ -503,7 +514,7 @@ function extend (Y) {
                         })
                         currText = []
                       }
-                      insert.push({
+                      delta.push({
                         insert: v,
                         attributes: insertSel
                       })
