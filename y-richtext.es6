@@ -11,7 +11,7 @@ function extend (Y) {
         // append this utility function with which eventhandler can pull changes from quill
         this.eventHandler._pullChanges = () => {
           this.instances.forEach(function (instance) {
-            instance.editor.editor.checkUpdate()
+            instance.editor.update()
           })
         }
       }
@@ -39,6 +39,24 @@ function extend (Y) {
         }).join('')
       }
       toDelta () {
+        // check last character
+        // insert a newline as the last character, if neccessary
+        // (quill will do that automatically otherwise..)
+        var newLineCharacter = false
+        for (var i = this._content.length - 1; i >= 0; i--) {
+          var c = this._content[i]
+          if (c.val.constructor !== Array) {
+            if (c.val === '\n') {
+              newLineCharacter = true
+            }
+            break
+          }
+        }
+        if (!newLineCharacter) {
+          this.push('\n')
+        }
+
+        // create the delta
         var ops = []
         var op = {
           insert: [],
@@ -55,10 +73,13 @@ function extend (Y) {
             attributes: attrs
           }
         }
-        var i = 0
+        i = 0
         for (; i < this._content.length; i++) {
           let v = this._content[i].val
           if (v.constructor === Array) {
+            if ((!op.attributes.hasOwnProperty(v[0]) && v[1] == null) || op.attributes[v[0]] === v[1]) {
+              continue
+            }
             if (op.insert.length > 0) {
               op.insert = op.insert.join('')
               ops.push(op)
@@ -69,14 +90,28 @@ function extend (Y) {
             } else {
               op.attributes[v[0]] = v[1]
             }
-          } else {
+          } else if (typeof v === 'string') {
             op.insert.push(v)
+          } else { // v is embed (Object)
+            if (op.insert.length > 0) {
+              op.insert = op.insert.join('')
+              ops.push(op)
+              createNewOp()
+            }
+            op.insert = v
+            ops.push(op)
+            createNewOp()
           }
         }
         if (op.insert.length > 0) {
           op.insert = op.insert.join('')
           ops.push(op)
         }
+        ops.map(function (op) {
+          if (Object.keys(op.attributes).length === 0) {
+            delete op.attributes
+          }
+        })
         return ops
       }
       insert (pos, content) {
@@ -87,9 +122,9 @@ function extend (Y) {
             break
           }
           var v = this._content[i].val
-          if (typeof v === 'string') {
+          if (v.constructor !== Array) {
             curPos++
-          } else if (v.constructor === Array) {
+          } else {
             if (v[1] === null) {
               delete selection[v[0]]
             } else {
@@ -97,7 +132,15 @@ function extend (Y) {
             }
           }
         }
-        super.insert(i, content.split(''))
+        var ins
+        if (typeof content === 'string') {
+          ins = content.split('')
+        } else if (content.constructor === Object) {
+          ins = [content]
+        } else {
+          ins = content
+        }
+        super.insert(i, ins)
         return selection
       }
       delete (pos, length) {
@@ -125,15 +168,15 @@ function extend (Y) {
 
         for (delStart = 0; curPos < pos && delStart < this._content.length; delStart++) {
           v = this._content[delStart].val
-          if (typeof v === 'string') {
+          if (v.constructor !== Array) {
             curPos++
-          } else if (v.constructor === Array) {
+          } else {
             curSel[v[0]] = v[1]
           }
         }
         for (delEnd = delStart; curPos < endPos && delEnd < this._content.length; delEnd++) {
           v = this._content[delEnd].val
-          if (typeof v === 'string') {
+          if (v.constructor !== Array) {
             curPos++
           }
         }
@@ -141,7 +184,7 @@ function extend (Y) {
           // yay, you can delete everything without checking
           super.delete(delStart, delEnd - delStart)
         } else {
-          if (typeof v === 'string') {
+          if (v.constructor !== Array) {
             delEnd--
           }
           var rightSel = {}
@@ -158,11 +201,11 @@ function extend (Y) {
                 // case 2.
                 super.delete(i, 1)
               }
-            } else if (typeof v === 'string') {
+            } else {
               var end = i + 1
               while (i > delStart) {
                 v = this._content[i - 1].val
-                if (typeof v === 'string') {
+                if (v.constructor !== Array) {
                   i--
                 } else {
                   break
@@ -198,10 +241,12 @@ function extend (Y) {
               break
             }
             if (v.constructor === Array) {
+              // selection
               if (v[0] === attrName) {
                 antiAttrs[1] = v[1]
               }
-            } else if (typeof v === 'string') {
+            } else {
+              // embed or text
               curPos++
             }
           }
@@ -220,11 +265,13 @@ function extend (Y) {
               break
             }
             if (v.constructor === Array) {
+              // selection
               if (v[0] === attrName) {
                 antiAttrs[1] = v[1]
                 deletes.push(i)
               }
-            } else if (typeof v === 'string') {
+            } else {
+              // embed or text
               curPos++
             }
           }
@@ -292,22 +339,30 @@ function extend (Y) {
         var name // helper variable
         for (var i = 0; i < delta.ops.length; i++) {
           var op = delta.ops[i]
+          var attrs
+          var insLength
           if (op.insert != null) {
-            var attrs = this.insert(pos, op.insert)
+            if (typeof op.insert === 'string') {
+              attrs = this.insert(pos, op.insert)
+              insLength = op.insert.length
+            } else { // typeof is Object
+              attrs = this.insert(pos, op.insert)
+              insLength = 1
+            }
             // create new selection
             for (name in op.attributes) {
               if (op.attributes[name] !== attrs[name]) {
-                this.select(pos, pos + op.insert.length, name, op.attributes[name])
+                this.select(pos, pos + insLength, name, op.attributes[name])
               }
             }
             // not-existence of an attribute in op.attributes denotes
             // that we have to unselect (set to null)
             for (name in attrs) {
               if (op.attributes == null || attrs[name] !== op.attributes[name]) {
-                this.select(pos, pos + op.insert.length, name, null)
+                this.select(pos, pos + insLength, name, null)
               }
             }
-            pos += op.insert.length
+            pos += insLength
           }
           if (op.delete != null) {
             this.delete(pos, op.delete)
@@ -315,19 +370,23 @@ function extend (Y) {
           if (op.retain != null && _quill != null) {
             var afterRetain = pos + op.retain
             if (afterRetain > this.length) {
+              // debugger // TODO: check why this is still called..
               let additionalContent = _quill.getText(this.length)
               _quill.insertText(this.length, additionalContent)
-              // quill.deleteText(this.length + additionalContent.length, quill.getLength())
+              // quill.deleteText(this.length + additionalContent.length, quill.getLength()) the api changed!
               for (name in op.attributes) {
-                _quill.formatText(this.length + additionalContent.length, this.length + additionalContent.length * 2, name, null)
-                // quill.deleteText(this.length, this.length + op.retain)
+                // TODO: format expects falsy values now in order to remove formats
+                _quill.formatText(this.length + additionalContent.length, additionalContent.length, name, null)
+                // quill.deleteText(this.length, this.length + op.retain) the api changed!
               }
               this.insert(this.length, additionalContent)
               // op.attributes = null
             }
             for (name in op.attributes) {
-              this.select(pos, pos + op.retain, name, op.attributes[name])
-              _quill.formatText(pos, pos + op.retain, name, op.attributes[name])
+              var attr = op.attributes[name]
+              this.select(pos, pos + op.retain, name, attr)
+              // TODO: check if attr is `false` sometimes.. (then you need to adapt the algorithm)
+              _quill.formatText(pos, op.retain, name, attr == null ? false : attr) // use correct values here (changed in quill@1.0)
             }
             pos = afterRetain
           }
@@ -365,7 +424,6 @@ function extend (Y) {
             token = true
           }
         }
-
         quill.setContents(this.toDelta())
 
         function quillCallback (delta) {
@@ -383,23 +441,89 @@ function extend (Y) {
               var _value_i = 0
               while (_value_i < event.values.length) {
                 var vals = []
-                while (_value_i < event.values.length && typeof event.values[_value_i] === 'string') {
+                while (_value_i < event.values.length && event.values[_value_i].constructor !== Array) {
                   vals.push(event.values[_value_i])
                   _value_i++
                 }
-                if (vals.length > 0) {
+                if (vals.length > 0) { // insert new content (text and embed)
                   var position = 0
                   var insertSel = {}
-                  for (var l = event.index - 1; l >= 0; l--) {
+                  for (var l = 0; l < event.index; l++) {
                     v = self._content[l].val
-                    if (typeof v === 'string') {
+                    if (v.constructor !== Array) {
                       position++
-                    } else if (v.constructor === Array && typeof insertSel[v[0]] === 'undefined') {
+                    } else {
                       insertSel[v[0]] = v[1]
                     }
                   }
-                  quill.insertText(position, vals.join(''), insertSel)
-                } else { // Array, that denotes a selection
+                  // consider the case (this is markup): "hi *you*" & insert "d" at position 3
+                  // Quill may implicitely make "d" bold (dunno if thats true). Yjs, however, expects d not to be bold.
+                  // So we check future attributes and explicitely set them, if neccessary
+                  l = event.index + event.length
+                  while (l < self._content.length) {
+                    v = self._content[l].val
+                    if (v.constructor === Array) {
+                      if (!insertSel.hasOwnProperty(v[0])) {
+                        insertSel[v[0]] = null
+                      }
+                    } else {
+                      break
+                    }
+                    l++
+                  }
+                  // TODO: you definitely should exchange null with the new "false" approach..
+                  // Then remove the following! :
+                  for (var name in insertSel) {
+                    if (insertSel[name] == null) {
+                      insertSel[name] = false
+                    }
+                  }
+                  if (self.length === position + vals.length && vals[vals.length - 1] !== '\n') {
+                    // always make sure that the last character is enter!
+                    var end = ['\n']
+                    var sel = {}
+                    // now we remove all selections
+                    for (name in insertSel) {
+                      if (insertSel[name] !== false) {
+                        end.unshift([name, false])
+                        sel[name] = false
+                      }
+                    }
+                    Y.Array.typeDefinition.class.prototype.insert.call(self, position + vals.length, end)
+                    quill.insertText(position, '\n', sel)
+                  }
+                  // create delta from vals
+                  var delta = []
+                  if (position > 0) {
+                    delta.push({ retain: position })
+                  }
+                  var currText = []
+                  vals.forEach(function (v) {
+                    if (typeof v === 'string') {
+                      currText.push(v)
+                    } else {
+                      if (currText.length > 0) {
+                        delta.push({
+                          insert: currText.join(''),
+                          attributes: insertSel
+                        })
+                        currText = []
+                      }
+                      delta.push({
+                        insert: v,
+                        attributes: insertSel
+                      })
+                    }
+                  })
+                  if (currText.length > 0) {
+                    delta.push({
+                      insert: currText.join(''),
+                      attributes: insertSel
+                    })
+                  }
+                  quill.updateContents(delta)
+                  // quill.insertText(position, vals.join(''), insertSel)
+                } else { // Array (selection)
                   // a new selection is created
                   // find left selection that matches newSel[0]
                   curSel = null
@@ -417,14 +541,14 @@ function extend (Y) {
                         curSel = v[1]
                         break
                       }
-                    } else if (typeof v === 'string') {
+                    } else {
                       selectionStart++
                     }
                   }
                   // make sure to decrement j, so we correctly compute selectionStart
                   for (; j >= 0; j--) {
                     v = self._content[j].val
-                    if (typeof v === 'string') {
+                    if (v.constructor !== Array) {
                       selectionStart++
                     }
                   }
@@ -442,13 +566,14 @@ function extend (Y) {
                         // found another selection with same attr name
                         break
                       }
-                    } else if (typeof v === 'string') {
+                    } else {
                       selectionEnd++
                     }
                   }
                   // create a selection from selectionStart to selectionEnd
                   if (selectionStart !== selectionEnd) {
-                    quill.formatText(selectionStart, selectionEnd, newSel[0], newSel[1])
+                    // TODO: check if attr is `false` sometimes.. (then you need to adapt the algorithm)
+                    quill.formatText(selectionStart, selectionEnd - selectionStart, newSel[0], newSel[1] == null ? false : newSel[1])
                   }
                 }
               }
@@ -456,7 +581,7 @@ function extend (Y) {
               // sanitize events
               var myEvents = []
               for (var i = 0, _i = 0; i < event.length; i++) {
-                if (typeof event.values[i] !== 'string') {
+                if (event.values[i].constructor === Array) {
                   if (i !== _i) {
                     myEvents.push({
                       type: 'text',
@@ -485,11 +610,11 @@ function extend (Y) {
                   var pos = 0
                   for (var u = 0; u < event.index; u++) {
                     v = self._content[u].val
-                    if (typeof v === 'string') {
+                    if (v.constructor !== Array) {
                       pos++
                     }
                   }
-                  quill.deleteText(pos, pos + event.length)
+                  quill.deleteText(pos, event.length)
                 } else {
                   curSel = null
                   var from = 0
@@ -501,13 +626,13 @@ function extend (Y) {
                         curSel = v[1]
                         break
                       }
-                    } else if (typeof v === 'string') {
+                    } else {
                       from++
                     }
                   }
                   for (; x >= 0; x--) {
                     v = self._content[x].val
-                    if (typeof v === 'string') {
+                    if (v.constructor !== Array) {
                       from++
                     }
                   }
@@ -518,17 +643,18 @@ function extend (Y) {
                       if (v[0] === event.val[0]) {
                         break
                       }
-                    } else if (typeof v === 'string') {
+                    } else {
                       to++
                     }
                   }
                   if (curSel !== event.val[1] && from !== to) {
-                    quill.formatText(from, to, event.val[0], curSel)
+                    // TODO: check if attr is `false` sometimes.. (then you need to adapt the algorithm)
+                    quill.formatText(from, to - from, event.val[0], curSel == null ? false : curSel)
                   }
                 }
               })
             }
-            quill.editor.checkUpdate()
+            quill.update()
           })
         }
         this.observe(yCallback)
@@ -537,9 +663,6 @@ function extend (Y) {
           yCallback: yCallback,
           quillCallback: quillCallback
         })
-      }
-      * _changed () {
-        yield* Y.Array.typeDefinition['class'].prototype._changed.apply(this, arguments)
       }
     }
     Y.extend('Richtext', new Y.utils.CustomType({
