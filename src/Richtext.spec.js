@@ -7,7 +7,7 @@ var Y = require('../../yjs/src/SpecHelper.js')
 require('./Richtext.js')(Y)
 var Quill = require('quill')
 
-var numberOfYRichtextTests = 400
+var numberOfYRichtextTests = 10
 var repeatRichtextTests = 5000
 
 if (typeof window !== 'undefined') {
@@ -69,23 +69,47 @@ if (typeof window !== 'undefined') {
         var randomTextTransactions = [
           function insert (s) {
             var e = s.instances[0].editor
-            e.insertText(getRandomNumber(computeLengthWithoutLineEndings(e)), getRandomString())
-          },/*
+            e.insertText(getRandomNumber(computeLengthWithoutLineEndings(e)), getRandom([getRandomString(), '\n']))
+          },
           function _delete (s) {
             var q = s.instances[0].editor
             var len = computeLengthWithoutLineEndings(q)
             var from = getRandomNumber(len)
             var delLength = Math.min(7, getRandomNumber(len - from))
             q.deleteText(from, delLength)
-          },*/
+          },
           function select (s) {
             var q = s.instances[0].editor
             var len = computeLengthWithoutLineEndings(q)
             var from = getRandomNumber(len)
             var to = from + getRandomNumber(len - from)
-            var attr = getRandom(['bold', 'italic', 'strike'])
-            var val = getRandom([true, false])
+            var attr, val
+            if (getRandomNumber(2) === 1) {
+              attr = getRandom(['bold', 'italic', 'strike'])
+              val = getRandom([true, false])
+            } else {
+              attr = 'color'
+              val = getRandom(['red', 'blue', 'green', false])
+            }
             q.formatText(from, to, attr, val)
+          }, function formatAlign (s) {
+            var q = s.instances[0].editor
+            var lines = q.getText().split('\n')
+            // get random position for line format (compute random line -> compute index)
+            var start = lines.slice(0, getRandomNumber(lines.length)).join('\n').length
+            var length = Math.random(lines.join('\n').length - start - 1) + 1 // length is min 1
+            var attr, val
+            var choice = getRandomNumber(2)
+            switch (choice) {
+              case 0:
+                attr = 'align'
+                val = getRandom([false, 'right', 'center'])
+                break
+              case 1:
+                attr = 'code-block'
+                val = getRandom([true, false])
+            }
+            q.formatLine(start, length, attr, val)
           }
         ]
         function compareValues (vals) {
@@ -120,7 +144,7 @@ if (typeof window !== 'undefined') {
           expect(this.texts.length).toEqual(this.users.length)
           done()
         }))
-        it(`succeed after ${numberOfYRichtextTests} actions, no GC, no disconnect`, async(function * (done) {
+        fit(`succeed after ${numberOfYRichtextTests} actions, no GC, no disconnect`, async(function * (done) {
           yield applyRandomTransactionsNoGCNoDisconnect(this.users, this.texts, randomTextTransactions, numberOfYRichtextTests)
           yield flushAll()
           yield Promise.all(this.texts.map(fixAwaitingInType))
