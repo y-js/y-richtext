@@ -72,7 +72,7 @@ function extend (Y) {
             attributes: attrs
           }
         }
-        var i = 0
+        i = 0
         for (; i < this._content.length; i++) {
           let v = this._content[i].val
           if (v.constructor === Array) {
@@ -369,7 +369,7 @@ function extend (Y) {
           if (op.retain != null && _quill != null) {
             var afterRetain = pos + op.retain
             if (afterRetain > this.length) {
-              debugger // TODO: check why this is still called..
+              // debugger // TODO: check why this is still called..
               let additionalContent = _quill.getText(this.length)
               _quill.insertText(this.length, additionalContent)
               // quill.deleteText(this.length + additionalContent.length, quill.getLength()) the api changed!
@@ -425,10 +425,8 @@ function extend (Y) {
         }
         quill.setContents(this.toDelta())
 
-        self._debugQuillEvents = [] // TODO: REMOVE!!!  
         function quillCallback (delta) {
           mutualExcluse(function () {
-            self._debugQuillEvents.push(JSON.parse(JSON.stringify(delta)))
             self.applyDelta(delta, quill)
           })
         }
@@ -441,10 +439,6 @@ function extend (Y) {
             if (event.type === 'insert') {
               var _value_i = 0
               while (_value_i < event.values.length) {
-                if (_value_i > 0) {
-                  debugger
-                  // TODO: something is wrong.. at least the position can't be right in the second iteration!
-                }
                 var vals = []
                 while (_value_i < event.values.length && event.values[_value_i].constructor !== Array) {
                   vals.push(event.values[_value_i])
@@ -483,13 +477,13 @@ function extend (Y) {
                       insertSel[name] = false
                     }
                   }
-                  if (self.length == position + vals.length && vals[vals.length - 1] != '\n') {
+                  if (self.length === position + vals.length && vals[vals.length - 1] !== '\n') {
                     // always make sure that the last character is enter!
                     var end = ['\n']
                     var sel = {}
                     // now we remove all selections
-                    for (var name in insertSel) {
-                      if (insertSel[name] != false) {
+                    for (name in insertSel) {
+                      if (insertSel[name] !== false) {
                         end.unshift([name, false])
                         sel[name] = false
                       }

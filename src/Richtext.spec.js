@@ -3,15 +3,16 @@
 'use strict'
 
 var Y = require('../../yjs/src/SpecHelper.js')
+
 require('./Richtext.js')(Y)
 var Quill = require('quill')
 
-var numberOfYRichtextTests = 10
+var numberOfYRichtextTests = 400
 var repeatRichtextTests = 5000
 
 if (typeof window !== 'undefined') {
   for (let database of databases) {
-    if (database != 'memory') continue // TODO!!
+    // if (database != 'memory') continue // TODO!!
 
     describe(`Richtext Type (DB: ${database})`, function () {
       var y1, y2, y3, yconfig1, yconfig2, yconfig3, flushAll // eslint-disable-line
@@ -31,28 +32,28 @@ if (typeof window !== 'undefined') {
       }))
       it('Debug for Quill@1.0.0', async(function * (done) {
         this.users[1].db.requestTransaction(function * asItShouldBe () {
-          yield* this.store.tryExecute.call(this,  {'id': ['_', 'Map_Map_root_'], 'map': {}, 'struct': 'Map', 'type': 'Map'})
-          yield* this.store.tryExecute.call(this,  {'start': null, 'end': null, 'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
-          yield* this.store.tryExecute.call(this,  {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'parentSub': 'Richtext', 'struct': 'Insert', 'opContent': ['249', 1]})
-          yield* this.store.tryExecute.call(this,  {'id': ['251', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['ü']})
-          yield* this.store.tryExecute.call(this,  {'target': ['250', 6], 'struct': 'Delete', 'length': 1})
-          yield* this.store.tryExecute.call(this,  {'id': ['250', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['R']})
-          yield* this.store.tryExecute.call(this,  {'id': ['250', 1], 'left': ['250', 0], 'right': null, 'origin': ['250', 0], 'parent': ['249', 1], 'struct': 'Insert', 'content': ['N', 'N', 'N', 'N', 'N', 'N']})
-          yield* this.store.tryExecute.call(this,  {'struct': 'Delete', 'target': ['250', 6]})
+          yield* this.store.tryExecute.call(this, {'id': ['_', 'Map_Map_root_'], 'map': {}, 'struct': 'Map', 'type': 'Map'})
+          yield* this.store.tryExecute.call(this, {'start': null, 'end': null, 'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
+          yield* this.store.tryExecute.call(this, {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'parentSub': 'Richtext', 'struct': 'Insert', 'opContent': ['249', 1]})
+          yield* this.store.tryExecute.call(this, {'id': ['251', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['ü']})
+          yield* this.store.tryExecute.call(this, {'target': ['250', 6], 'struct': 'Delete', 'length': 1})
+          yield* this.store.tryExecute.call(this, {'id': ['250', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['R']})
+          yield* this.store.tryExecute.call(this, {'id': ['250', 1], 'left': ['250', 0], 'right': null, 'origin': ['250', 0], 'parent': ['249', 1], 'struct': 'Insert', 'content': ['N', 'N', 'N', 'N', 'N', 'N']})
+          yield* this.store.tryExecute.call(this, {'struct': 'Delete', 'target': ['250', 6]})
         })
 
         this.users[2].db.requestTransaction(function * () {
-          yield* this.store.tryExecute.call(this,  {'id': ['_', 'Map_Map_root_'], 'map': {}, 'struct': 'Map', 'type': 'Map'})
-          yield* this.store.tryExecute.call(this,  {'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
-          yield* this.store.tryExecute.call(this,  {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'struct': 'Insert', 'parentSub': 'Richtext', 'opContent': ['249', 1]})
-          yield* this.store.tryExecute.call(this,  {'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
-          yield* this.store.tryExecute.call(this,  {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'struct': 'Insert', 'parentSub': 'Richtext', 'opContent': ['249', 1]})
-          yield* this.store.tryExecute.call(this,  {'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
-          yield* this.store.tryExecute.call(this,  {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'struct': 'Insert', 'parentSub': 'Richtext', 'opContent': ['249', 1]})
-          yield* this.store.tryExecute.call(this,  {'left': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['R'], 'id': ['250', 0], 'right': null})
-          yield* this.store.tryExecute.call(this,  {'left': ['250', 0], 'origin': ['250', 0], 'parent': ['249', 1], 'struct': 'Insert', 'content': ['N', 'N', 'N', 'N', 'N', 'N'], 'id': ['250', 1], 'right': null})
-          yield* this.store.tryExecute.call(this,  {'target': ['250', 6], 'struct': 'Delete', 'length': 1})
-          yield* this.store.tryExecute.call(this,  {'id': ['251', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['ü']})
+          yield* this.store.tryExecute.call(this, {'id': ['_', 'Map_Map_root_'], 'map': {}, 'struct': 'Map', 'type': 'Map'})
+          yield* this.store.tryExecute.call(this, {'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
+          yield* this.store.tryExecute.call(this, {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'struct': 'Insert', 'parentSub': 'Richtext', 'opContent': ['249', 1]})
+          yield* this.store.tryExecute.call(this, {'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
+          yield* this.store.tryExecute.call(this, {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'struct': 'Insert', 'parentSub': 'Richtext', 'opContent': ['249', 1]})
+          yield* this.store.tryExecute.call(this, {'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
+          yield* this.store.tryExecute.call(this, {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'struct': 'Insert', 'parentSub': 'Richtext', 'opContent': ['249', 1]})
+          yield* this.store.tryExecute.call(this, {'left': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['R'], 'id': ['250', 0], 'right': null})
+          yield* this.store.tryExecute.call(this, {'left': ['250', 0], 'origin': ['250', 0], 'parent': ['249', 1], 'struct': 'Insert', 'content': ['N', 'N', 'N', 'N', 'N', 'N'], 'id': ['250', 1], 'right': null})
+          yield* this.store.tryExecute.call(this, {'target': ['250', 6], 'struct': 'Delete', 'length': 1})
+          yield* this.store.tryExecute.call(this, {'id': ['251', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['ü']})
         })
 
         yield flushAll()
@@ -61,7 +62,7 @@ if (typeof window !== 'undefined') {
         done()
       }))
       describeManyTimes(repeatRichtextTests, `Random tests`, function () {
-        function computeLengthWithoutLineEndings(e) {
+        function computeLengthWithoutLineEndings (e) {
           // TODO: remove this test, and just check if all quill-deltas are equal..
           return e.getText().split('\n')[0].length
         }
@@ -92,7 +93,7 @@ if (typeof window !== 'undefined') {
           for (var l of vals) {
             var e = l.instances[0].editor
             var content = e.getContents().ops
-            var yDelta = l.toDelta()
+            // var yDelta = l.toDelta()
             // expect(content).toEqual(yDelta)
             if (firstContent == null) {
               firstContent = content
@@ -119,7 +120,7 @@ if (typeof window !== 'undefined') {
           expect(this.texts.length).toEqual(this.users.length)
           done()
         }))
-        fit(`succeed after ${numberOfYRichtextTests} actions, no GC, no disconnect`, async(function * (done) {
+        it(`succeed after ${numberOfYRichtextTests} actions, no GC, no disconnect`, async(function * (done) {
           yield applyRandomTransactionsNoGCNoDisconnect(this.users, this.texts, randomTextTransactions, numberOfYRichtextTests)
           yield flushAll()
           yield Promise.all(this.texts.map(fixAwaitingInType))
@@ -139,8 +140,8 @@ if (typeof window !== 'undefined') {
           yield applyRandomTransactionsWithGC(this.users, this.texts, randomTextTransactions, numberOfYRichtextTests)
           yield flushAll()
           yield Promise.all(this.texts.map(fixAwaitingInType))
-          yield compareValues(this.texts)
           yield compareAllUsers(this.users)
+          yield compareValues(this.texts)
           done()
         }))
       })
