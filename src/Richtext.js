@@ -664,7 +664,7 @@ function extend (Y) {
         })
       }
     }
-    Y.extend('Richtext', new Y.utils.CustomType({
+    Y.extend('Richtext', new Y.utils.CustomTypeDefinition({
       name: 'Richtext',
       class: YRichtext,
       struct: 'List',
@@ -683,6 +683,9 @@ function extend (Y) {
           }
         })
         return new YRichtext(os, model.id, _content)
+      },
+      createType: function YRichtextCreator (os, model) {
+        return new YRichtext(os, model.id, [])
       }
     }))
   })
