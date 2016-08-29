@@ -18,11 +18,8 @@ Y({
   },
   connector: {
     name: 'websockets-client',
-    room: 'richtext-example18',
-    debug: true
-    //url: 'http://127.0.0.1:1234'
+    room: 'richtext-example'
   },
-  sourceDir: '/bower_components',
   share: {
     richtext: 'Richtext' // y.share.richtext is of type Y.Richtext
   }
@@ -68,6 +65,12 @@ Y({
 
 ## Contribution
 We thank [Veeting](https://www.veeting.com/) and [Linagora](https://www.linagora.com/) who sponsored this work, and agreed to publish it as Open Source.
+
+## Changelog
+
+### 8.2.1
+* support for Quill@^1.0.0-rc.2
+* relies on Yjs@^12.0.0 
 
 ## License
 Yjs and the RichText type are licensed under the [MIT License](./LICENSE).
