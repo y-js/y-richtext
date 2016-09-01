@@ -7,8 +7,8 @@ var Y = require('../../yjs/src/SpecHelper.js')
 require('./Richtext.js')(Y)
 var Quill = require('quill')
 
-var numberOfYRichtextTests = 10
-var repeatRichtextTests = 5000
+var numberOfYRichtextTests = 50
+var repeatRichtextTests = 3
 
 if (typeof window !== 'undefined') {
   for (let database of databases) {
@@ -106,8 +106,8 @@ if (typeof window !== 'undefined') {
                 val = getRandom([false, 'right', 'center'])
                 break
               case 1:
-                attr = 'code-block'
-                val = getRandom([true, false])
+                attr = 'list'
+                val = getRandom(['ordered', 'bullet'])
             }
             q.formatLine(start, length, attr, val)
           }
@@ -144,7 +144,7 @@ if (typeof window !== 'undefined') {
           expect(this.texts.length).toEqual(this.users.length)
           done()
         }))
-        fit(`succeed after ${numberOfYRichtextTests} actions, no GC, no disconnect`, async(function * (done) {
+        it(`succeed after ${numberOfYRichtextTests} actions, no GC, no disconnect`, async(function * (done) {
           yield applyRandomTransactionsNoGCNoDisconnect(this.users, this.texts, randomTextTransactions, numberOfYRichtextTests)
           yield flushAll()
           yield Promise.all(this.texts.map(fixAwaitingInType))

@@ -235,10 +235,10 @@ function extend (Y) {
           var i = 0
           // 1. compute antiAttrs
           for (; i < this._content.length; i++) {
-            let v = this._content[i].val
             if (curPos === from) {
               break
             }
+            let v = this._content[i].val
             if (v.constructor === Array) {
               // selection
               if (v[0] === attrName) {
@@ -259,10 +259,10 @@ function extend (Y) {
           // 3. update antiAttrs, modify selection
           var deletes = []
           for (; i < this._content.length; i++) {
-            let v = this._content[i].val
             if (curPos === to) {
               break
             }
+            let v = this._content[i].val
             if (v.constructor === Array) {
               // selection
               if (v[0] === attrName) {
@@ -375,7 +375,7 @@ function extend (Y) {
               // quill.deleteText(this.length + additionalContent.length, quill.getLength()) the api changed!
               for (name in op.attributes) {
                 // TODO: format expects falsy values now in order to remove formats
-                _quill.formatText(this.length + additionalContent.length, additionalContent.length, name, null)
+                _quill.formatText(this.length + additionalContent.length, additionalContent.length, name, false)
                 // quill.deleteText(this.length, this.length + op.retain) the api changed!
               }
               this.insert(this.length, additionalContent)
