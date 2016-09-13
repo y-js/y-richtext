@@ -7,8 +7,12 @@ var Y = require('../../yjs/src/SpecHelper.js')
 require('./Richtext.js')(Y)
 var Quill = require('quill')
 
-var numberOfYRichtextTests = 50
-var repeatRichtextTests = 3
+/* remaining issues:
+  * 0.03904764924295961 - (codeblock does not support italic) - remember to remove todo for code-block
+*/
+
+var numberOfYRichtextTests = 100
+var repeatRichtextTests = 5
 
 if (typeof window !== 'undefined') {
   for (let database of databases) {
@@ -30,30 +34,30 @@ if (typeof window !== 'undefined') {
         yield compareAllUsers(this.users)
         done()
       }))
-      it('Debug for Quill@1.0.0', async(function * (done) {
+      it('Debug for Quill@^1.0.0', async(function * (done) {
         this.users[1].db.requestTransaction(function * asItShouldBe () {
-          yield* this.store.tryExecute.call(this, {'id': ['_', 'Map_Map_root_'], 'map': {}, 'struct': 'Map', 'type': 'Map'})
-          yield* this.store.tryExecute.call(this, {'start': null, 'end': null, 'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
-          yield* this.store.tryExecute.call(this, {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'parentSub': 'Richtext', 'struct': 'Insert', 'opContent': ['249', 1]})
-          yield* this.store.tryExecute.call(this, {'id': ['251', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['ü']})
-          yield* this.store.tryExecute.call(this, {'target': ['250', 6], 'struct': 'Delete', 'length': 1})
-          yield* this.store.tryExecute.call(this, {'id': ['250', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['R']})
-          yield* this.store.tryExecute.call(this, {'id': ['250', 1], 'left': ['250', 0], 'right': null, 'origin': ['250', 0], 'parent': ['249', 1], 'struct': 'Insert', 'content': ['N', 'N', 'N', 'N', 'N', 'N']})
-          yield* this.store.tryExecute.call(this, {'struct': 'Delete', 'target': ['250', 6]})
+          yield * this.store.tryExecute.call(this, {'id': ['_', 'Map_Map_root_'], 'map': {}, 'struct': 'Map', 'type': 'Map'})
+          yield * this.store.tryExecute.call(this, {'start': null, 'end': null, 'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
+          yield * this.store.tryExecute.call(this, {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'parentSub': 'Richtext', 'struct': 'Insert', 'opContent': ['249', 1]})
+          yield * this.store.tryExecute.call(this, {'id': ['251', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['ü']})
+          yield * this.store.tryExecute.call(this, {'target': ['250', 6], 'struct': 'Delete', 'length': 1})
+          yield * this.store.tryExecute.call(this, {'id': ['250', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['R']})
+          yield * this.store.tryExecute.call(this, {'id': ['250', 1], 'left': ['250', 0], 'right': null, 'origin': ['250', 0], 'parent': ['249', 1], 'struct': 'Insert', 'content': ['N', 'N', 'N', 'N', 'N', 'N']})
+          yield * this.store.tryExecute.call(this, {'struct': 'Delete', 'target': ['250', 6]})
         })
 
         this.users[2].db.requestTransaction(function * () {
-          yield* this.store.tryExecute.call(this, {'id': ['_', 'Map_Map_root_'], 'map': {}, 'struct': 'Map', 'type': 'Map'})
-          yield* this.store.tryExecute.call(this, {'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
-          yield* this.store.tryExecute.call(this, {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'struct': 'Insert', 'parentSub': 'Richtext', 'opContent': ['249', 1]})
-          yield* this.store.tryExecute.call(this, {'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
-          yield* this.store.tryExecute.call(this, {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'struct': 'Insert', 'parentSub': 'Richtext', 'opContent': ['249', 1]})
-          yield* this.store.tryExecute.call(this, {'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
-          yield* this.store.tryExecute.call(this, {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'struct': 'Insert', 'parentSub': 'Richtext', 'opContent': ['249', 1]})
-          yield* this.store.tryExecute.call(this, {'left': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['R'], 'id': ['250', 0], 'right': null})
-          yield* this.store.tryExecute.call(this, {'left': ['250', 0], 'origin': ['250', 0], 'parent': ['249', 1], 'struct': 'Insert', 'content': ['N', 'N', 'N', 'N', 'N', 'N'], 'id': ['250', 1], 'right': null})
-          yield* this.store.tryExecute.call(this, {'target': ['250', 6], 'struct': 'Delete', 'length': 1})
-          yield* this.store.tryExecute.call(this, {'id': ['251', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['ü']})
+          yield * this.store.tryExecute.call(this, {'id': ['_', 'Map_Map_root_'], 'map': {}, 'struct': 'Map', 'type': 'Map'})
+          yield * this.store.tryExecute.call(this, {'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
+          yield * this.store.tryExecute.call(this, {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'struct': 'Insert', 'parentSub': 'Richtext', 'opContent': ['249', 1]})
+          yield * this.store.tryExecute.call(this, {'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
+          yield * this.store.tryExecute.call(this, {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'struct': 'Insert', 'parentSub': 'Richtext', 'opContent': ['249', 1]})
+          yield * this.store.tryExecute.call(this, {'struct': 'List', 'id': ['249', 1], 'type': 'Richtext'})
+          yield * this.store.tryExecute.call(this, {'id': ['249', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['_', 'Map_Map_root_'], 'struct': 'Insert', 'parentSub': 'Richtext', 'opContent': ['249', 1]})
+          yield * this.store.tryExecute.call(this, {'left': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['R'], 'id': ['250', 0], 'right': null})
+          yield * this.store.tryExecute.call(this, {'left': ['250', 0], 'origin': ['250', 0], 'parent': ['249', 1], 'struct': 'Insert', 'content': ['N', 'N', 'N', 'N', 'N', 'N'], 'id': ['250', 1], 'right': null})
+          yield * this.store.tryExecute.call(this, {'target': ['250', 6], 'struct': 'Delete', 'length': 1})
+          yield * this.store.tryExecute.call(this, {'id': ['251', 0], 'left': null, 'right': null, 'origin': null, 'parent': ['249', 1], 'struct': 'Insert', 'content': ['ü']})
         })
 
         yield flushAll()
@@ -99,7 +103,7 @@ if (typeof window !== 'undefined') {
             var start = lines.slice(0, getRandomNumber(lines.length)).join('\n').length
             var length = Math.random(lines.join('\n').length - start - 1) + 1 // length is min 1
             var attr, val
-            var choice = getRandomNumber(2)
+            var choice = getRandomNumber(2) // TODO: 3
             switch (choice) {
               case 0:
                 attr = 'align'
@@ -108,6 +112,11 @@ if (typeof window !== 'undefined') {
               case 1:
                 attr = 'list'
                 val = getRandom(['ordered', 'bullet'])
+                break
+              case 2:
+                attr = 'code-block'
+                val = getRandom([true, false])
+                break
             }
             q.formatLine(start, length, attr, val)
           }
