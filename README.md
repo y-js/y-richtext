@@ -64,7 +64,7 @@ Y({
 
 
 ## Contribution
-We thank [Veeting](https://www.veeting.com/) and [Linagora](https://www.linagora.com/) who sponsored this work, and agreed to publish it as Open Source.
+We thank [Linagora](https://www.linagora.com/) who sponsored this work, and agreed to publish it as Open Source.
 
 ## Changelog
 
