@@ -3,6 +3,16 @@
 'use strict'
 
 function extend (Y) {
+  function compareAttributes (a, b) {
+    return a === b || (a == null && b == null) || (a != null && b != null && a.constructor === Array && a[0] === b[0] && a[1] === b[1])
+    /* the same as..
+    if (typeof a === 'string' || a == null) {
+      return a === b || a == null && b == null // consider undefined
+    } else {
+      return a[0] === b[0] && a[1] === b[1]
+    }
+    */
+  }
   Y.requestModules(['Array']).then(function () {
     class YRichtext extends Y.Array.typeDefinition['class'] {
       constructor (os, _model, _content) {
@@ -14,6 +24,68 @@ function extend (Y) {
             instance.editor.update()
           })
         }
+        /*
+          According to Quills documentation, these are all block-formats.
+          If someone creates a custom format, it must be added here!
+            Blockquote - blockquote
+            Header - header
+            Indent - indent
+            List - list
+            Text Alignment - align
+            Text Direction - direction
+            Code Block - code-block
+        */
+        this._quillBlockFormats = [
+          'blockquote',
+          'header',
+          'indent',
+          'list',
+          'align',
+          'direction',
+          'code-block'
+        ]
+      }
+
+      _sanitizeOpAttributes (attrs) {
+        // return attrs
+        if (attrs == null || Object.keys(attrs).length === 0) {
+          return null
+        } else {
+          var opAttributes = {}
+          for (var name in attrs) {
+            if (this._quillBlockFormats.some(function (attr) { return attr === name })) {
+              opAttributes['_block'] = [name, attrs[name]]
+            } else {
+              opAttributes[name] = attrs[name]
+            }
+          }
+          return opAttributes
+        }
+      }
+      /*
+        Call this method before applying a format to quill.formatText()!
+      */
+      _formatAttributesForQuill (attrs) {
+        // sreturn attrs
+        var q = {}
+        for (var name in attrs) {
+          var val = attrs[name]
+          if (name === '_block') {
+            /*
+            // remove all existing block formats
+            this._quillBlockFormats.forEach(function (f) {
+              q[f] = false
+            })
+            */
+            if (val) {
+              // add format if val is truthy
+              q[attrs[name][0]] = attrs[name][1]
+            }
+          } else {
+            q[name] = val
+          }
+        }
+        return q
       }
       _destroy () {
         for (var i = this.instances.length - 1; i >= 0; i--) {
@@ -107,9 +179,11 @@ function extend (Y) {
           op.insert = op.insert.join('')
           ops.push(op)
         }
-        ops.map(function (op) {
+        ops.forEach((op) => {
           if (Object.keys(op.attributes).length === 0) {
             delete op.attributes
+          } else {
+            op.attributes = this._formatAttributesForQuill(op.attributes)
           }
         })
         return ops
@@ -192,7 +266,7 @@ function extend (Y) {
             v = this._content[i].val
             if (v.constructor === Array) {
               if (rightSel[v[0]] === undefined) {
-                if (v[1] === curSel[v[0]]) {
+                if (compareAttributes(v[1], curSel[v[0]])) {
                   // case 1.
                   super.delete(i, 1)
                 }
@@ -224,6 +298,18 @@ function extend (Y) {
       3. Between from and to, we'll delete all selections that do not match $attr.
          Furthermore, we'll update antiAttrs, if necessary
       4. In the end well insert a selection that makes sure that selection($to) ends in antiAttrs
+
+      Special case (which is quill related): There may only be one format on \n.
+      If a user inserts a format on a newline character, all existing formats are deleted.
+      Quill denotes to these types of formats as block formats. The following block formats are defined:
+          Blockquote - blockquote
+          Header - header
+          Indent - indent
+          List - list
+          Text Alignment - align
+          Text Direction - direction
+          Code Block - code-block
+
       */
       select (from, to, attrName, attrValue) {
         if (from == null || to == null || attrName == null || attrValue === undefined) {
@@ -236,13 +322,13 @@ function extend (Y) {
           var i = 0
           // 1. compute antiAttrs
           for (; i < this._content.length; i++) {
-            let v = this._content[i].val
             if (curPos === from) {
               break
             }
+            let v = this._content[i].val
             if (v.constructor === Array) {
               // selection
-              if (v[0] === attrName) {
+              if (v[0] === attrName) { // compare names
                 antiAttrs[1] = v[1]
               }
             } else {
@@ -251,7 +337,7 @@ function extend (Y) {
             }
           }
           // 2. Insert attr
-          if (antiAttrs[1] !== attrValue) {
+          if (!compareAttributes(antiAttrs[1], attrValue)) {
             // we'll execute this later
             step2i = i
             step2sel = [attrName, attrValue]
@@ -260,13 +346,13 @@ function extend (Y) {
           // 3. update antiAttrs, modify selection
           var deletes = []
           for (; i < this._content.length; i++) {
-            let v = this._content[i].val
             if (curPos === to) {
               break
             }
+            let v = this._content[i].val
             if (v.constructor === Array) {
               // selection
-              if (v[0] === attrName) {
+              if (v[0] === attrName) { // compare names
                 antiAttrs[1] = v[1]
                 deletes.push(i)
               }
@@ -292,7 +378,7 @@ function extend (Y) {
           // never insert, if not necessary
           //  1. when it is the last position ~ i < _content.length)
           //  2. when a similar attrName already exists between i and the next character
-          if (antiAttrs[1] !== attrValue && i < this._content.length) { // check 1.
+          if (!compareAttributes(antiAttrs[1], attrValue) && i < this._content.length) { // check 1.
             var performStep4 = true
             var v
             for (j = i; j < this._content.length; j++) {
@@ -300,9 +386,9 @@ function extend (Y) {
               if (v.constructor !== Array) {
                 break
               }
-              if (v[0] === attrName) {
+              if (v[0] === attrName) { // compare names
                 performStep4 = false // check 2.
-                if (v[1] === attrValue) {
+                if (compareAttributes(v[1], attrValue)) {
                   super.delete(j, 1)
                 }
                 break
@@ -339,6 +425,7 @@ function extend (Y) {
         var name // helper variable
         for (var i = 0; i < delta.ops.length; i++) {
           var op = delta.ops[i]
+          var opAttributes = this._sanitizeOpAttributes(op.attributes)
           var attrs
           var insLength
           if (op.insert != null) {
@@ -350,15 +437,15 @@ function extend (Y) {
               insLength = 1
             }
             // create new selection
-            for (name in op.attributes) {
-              if (op.attributes[name] !== attrs[name]) {
-                this.select(pos, pos + insLength, name, op.attributes[name])
+            for (name in opAttributes) {
+              if (!compareAttributes(opAttributes[name], attrs[name])) {
+                this.select(pos, pos + insLength, name, opAttributes[name])
               }
             }
-            // not-existence of an attribute in op.attributes denotes
+            // not-existence of an attribute in opAttributes denotes
             // that we have to unselect (set to null)
             for (name in attrs) {
-              if (op.attributes == null || attrs[name] !== op.attributes[name]) {
+              if (opAttributes == null || opAttributes[name] == null) {
                 this.select(pos, pos + insLength, name, null)
               }
             }
@@ -374,19 +461,29 @@ function extend (Y) {
               let additionalContent = _quill.getText(this.length)
               _quill.insertText(this.length, additionalContent)
               // quill.deleteText(this.length + additionalContent.length, quill.getLength()) the api changed!
-              for (name in op.attributes) {
+              for (name in opAttributes) {
+                let format = {}
+                format[name] = false
+                format = this._formatAttributesForQuill(format)
                 // TODO: format expects falsy values now in order to remove formats
-                _quill.formatText(this.length + additionalContent.length, additionalContent.length, name, null)
+                _quill.formatText(this.length + additionalContent.length, additionalContent.length, format)
                 // quill.deleteText(this.length, this.length + op.retain) the api changed!
               }
               this.insert(this.length, additionalContent)
-              // op.attributes = null
+              // opAttributes = null
             }
-            for (name in op.attributes) {
-              var attr = op.attributes[name]
-              this.select(pos, pos + op.retain, name, attr)
-              // TODO: check if attr is `false` sometimes.. (then you need to adapt the algorithm)
-              _quill.formatText(pos, op.retain, name, attr == null ? false : attr) // use correct values here (changed in quill@1.0)
+            for (name in opAttributes) {
+              var attr = opAttributes[name]
+              this.select(pos, afterRetain, name, attr)
+              let format = {}
+              format[name] = attr == null ? false : attr
+              format = this._formatAttributesForQuill(format)
+              if (name === '_block') {
+                var removeFormat = {}
+                this._quillBlockFormats.forEach((f) => { removeFormat[f] = false })
+                _quill.formatText(pos, op.retain, removeFormat)
+              }
+              _quill.formatText(pos, op.retain, format)
             }
             pos = afterRetain
           }
@@ -438,12 +535,12 @@ function extend (Y) {
             var v // helper variable
             var curSel // helper variable (current selection)
             if (event.type === 'insert') {
-              var _value_i = 0
-              while (_value_i < event.values.length) {
+              var valuePointer = 0
+              while (valuePointer < event.values.length) {
                 var vals = []
-                while (_value_i < event.values.length && event.values[_value_i].constructor !== Array) {
-                  vals.push(event.values[_value_i])
-                  _value_i++
+                while (valuePointer < event.values.length && event.values[valuePointer].constructor !== Array) {
+                  vals.push(event.values[valuePointer])
+                  valuePointer++
                 }
                 if (vals.length > 0) { // insert new content (text and embed)
                   var position = 0
@@ -490,7 +587,8 @@ function extend (Y) {
                       }
                     }
                     Y.Array.typeDefinition.class.prototype.insert.call(self, position + vals.length, end)
-                    quill.insertText(position, '\n', sel)
+                    // format attributes before pushing to quill!
+                    quill.insertText(position, '\n', self._formatAttributesForQuill(sel))
                   }
                   // create delta from vals
                   var delta = []
@@ -521,21 +619,29 @@ function extend (Y) {
                       attributes: insertSel
                     })
                   }
+                  // format attributes before pushing to quill!
+                  delta.forEach(d => {
+                    if (d.attributes != null && Object.keys(d.attributes).length > 0) {
+                      d.attributes = self._formatAttributesForQuill(d.attributes)
+                    } else {
+                      delete d.attributes
+                    }
+                  })
                   quill.updateContents(delta)
                   // quill.insertText(position, vals.join(''), insertSel)
                 } else { // Array (selection)
                   // a new selection is created
                   // find left selection that matches newSel[0]
                   curSel = null
-                  var newSel = event.values[_value_i++] // get selection, increment counter
+                  var newSel = event.values[valuePointer++] // get selection, increment counter
                   // denotes the start position of the selection
                   // (without the selection objects)
                   var selectionStart = 0
-                  for (var j = event.index + _value_i - 2/* -1 for index, -1 for incremented _value_i*/; j >= 0; j--) {
+                  for (var j = event.index + valuePointer - 2/* -1 for index, -1 for incremented valuePointer */; j >= 0; j--) {
                     v = self._content[j].val
                     if (v.constructor === Array) {
                       // check if v matches newSel
-                      if (newSel[0] === v[0]) {
+                      if (newSel[0] === v[0]) { // compare names
                         // found a selection
                         // update curSel and go to next step
                         curSel = v[1]
@@ -553,16 +659,16 @@ function extend (Y) {
                     }
                   }
                   // either a selection was found {then curSel was updated}, or not (then curSel = null)
-                  if (newSel[1] === curSel) {
+                  if (compareAttributes(newSel[1], curSel)) {
                     // both are the same. not necessary to do anything
                     continue
                   }
                   // now find out the range over which newSel has to be created
                   var selectionEnd = selectionStart
-                  for (var k = event.index + _value_i/* -1 for incremented _value_i, +1 for algorithm */; k < self._content.length; k++) {
+                  for (var k = event.index + valuePointer/* -1 for incremented valuePointer, +1 for algorithm */; k < self._content.length; k++) {
                     v = self._content[k].val
                     if (v.constructor === Array) {
-                      if (v[0] === newSel[0]) {
+                      if (v[0] === newSel[0]) { // compare names
                         // found another selection with same attr name
                         break
                       }
@@ -572,8 +678,16 @@ function extend (Y) {
                   }
                   // create a selection from selectionStart to selectionEnd
                   if (selectionStart !== selectionEnd) {
-                    // TODO: check if attr is `false` sometimes.. (then you need to adapt the algorithm)
-                    quill.formatText(selectionStart, selectionEnd - selectionStart, newSel[0], newSel[1] == null ? false : newSel[1])
+                    // format attributes before pushing to quill!!
+                    var format = {}
+                    format[newSel[0]] = newSel[1] == null ? false : newSel[1]
+                    format = self._formatAttributesForQuill(format)
+                    if (newSel[0] === '_block') {
+                      var removeFormat = {}
+                      self._quillBlockFormats.forEach((f) => { removeFormat[f] = false })
+                      quill.formatText(selectionStart, selectionEnd - selectionStart, removeFormat)
+                    }
+                    quill.formatText(selectionStart, selectionEnd - selectionStart, format)
                   }
                 }
               }
@@ -605,7 +719,7 @@ function extend (Y) {
                 })
               }
               // ending sanitizing.. start brainfuck
-              myEvents.forEach(event => {
+              myEvents.forEach(function (event) {
                 if (event.type === 'text') {
                   var pos = 0
                   for (var u = 0; u < event.index; u++) {
@@ -622,7 +736,7 @@ function extend (Y) {
                   for (x = event.index - 1; x >= 0; x--) {
                     v = self._content[x].val
                     if (v.constructor === Array) {
-                      if (v[0] === event.val[0]) {
+                      if (v[0] === event.val[0]) { // compare names
                         curSel = v[1]
                         break
                       }
@@ -640,16 +754,24 @@ function extend (Y) {
                   for (x = event.index; x < self._content.length; x++) {
                     v = self._content[x].val
                     if (v.constructor === Array) {
-                      if (v[0] === event.val[0]) {
+                      if (v[0] === event.val[0]) { // compare names
                         break
                       }
                     } else {
                       to++
                     }
                   }
-                  if (curSel !== event.val[1] && from !== to) {
-                    // TODO: check if attr is `false` sometimes.. (then you need to adapt the algorithm)
-                    quill.formatText(from, to - from, event.val[0], curSel == null ? false : curSel)
+                  if (!compareAttributes(curSel, event.val[1]) && from !== to) {
+                    // format attributes before pushing to quill!!
+                    var format = {}
+                    format[event.val[0]] = curSel == null ? false : curSel
+                    format = self._formatAttributesForQuill(format)
+                    if (event.val[0] === '_block') {
+                      var removeFormat = {}
+                      self._quillBlockFormats.forEach((f) => { removeFormat[f] = false })
+                      quill.formatText(from, to - from, removeFormat)
+                    }
+                    quill.formatText(from, to - from, format)
                   }
                 }
               })
@@ -665,13 +787,13 @@ function extend (Y) {
         })
       }
     }
-    Y.extend('Richtext', new Y.utils.CustomType({
+    Y.extend('Richtext', new Y.utils.CustomTypeDefinition({
       name: 'Richtext',
       class: YRichtext,
       struct: 'List',
       initType: function * YTextInitializer (os, model) {
         var _content = []
-        yield* Y.Struct.List.map.call(this, model, function (op) {
+        yield * Y.Struct.List.map.call(this, model, function (op) {
           if (op.hasOwnProperty('opContent')) {
             throw new Error('Text must not contain types!')
           } else {
@@ -684,6 +806,9 @@ function extend (Y) {
           }
         })
         return new YRichtext(os, model.id, _content)
+      },
+      createType: function YRichtextCreator (os, model) {
+        return new YRichtext(os, model.id, [])
       }
     }))
   })
