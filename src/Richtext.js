@@ -527,6 +527,7 @@ function extend (Y) {
             self.applyDelta(delta, quill)
           })
         }
+        // TODO: Investigate if 'editor-change' is more appropriate!
         quill.on('text-change', quillCallback)
 
         function yCallback (event) {
