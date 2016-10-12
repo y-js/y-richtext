@@ -1,6 +1,6 @@
 {
   "name": "y-richtext",
-  "version": "9.0.1",
+  "version": "9.0.2",
   "description": "RichText Type for Yjs",
   "main": "./src/Richtext.js",
   "scripts": {
@@ -60,8 +60,7 @@
     "standard": "^5.3.1",
     "watchify": "^3.7.0"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "peerDependencies": {
     "yjs": "^12.0.0",
     "y-array": "^10.0.0"
