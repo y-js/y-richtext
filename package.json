@@ -61,7 +61,6 @@
     "watchify": "^3.7.0"
   },
   "dependencies": {
-    "quill": "^1.0.3"
   },
   "peerDependencies": {
     "yjs": "^12.0.0",
