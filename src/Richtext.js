@@ -491,6 +491,11 @@ function extend (Y) {
       bind () {
         this.bindQuill.apply(this, arguments)
       }
+      unbindQuillAll () {
+        for (var i = this.instances.length - 1; i >= 0; i--) {
+          this.unbindQuill(this.instances[i].editor)
+        }
+      }
       unbindQuill (quill) {
         var i = this.instances.findIndex(function (binding) {
           return binding.editor === quill
