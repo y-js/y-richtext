@@ -1,6 +1,6 @@
 {
   "name": "y-richtext",
-  "version": "9.0.2",
+  "version": "9.0.3",
   "homepage": "http://y-js.org",
   "authors": [
     "corentin.cadiou@linagora.com",
@@ -21,7 +21,6 @@
   "ignore": [],
   "dependencies": {
     "yjs": "^12.0.0",
-    "y-array": "^10.0.0",
-    "quill": "^1.0.3"
+    "y-array": "^10.0.0"
   }
 }
