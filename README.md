@@ -1,17 +1,32 @@
 
 # Rich Text type for [Yjs](https://github.com/y-js/yjs)
+The fabolous feature of y-richtext is that you can bind it to a [Quill](quilljs.com) instance (> v1.0.0) in order to enable collaborative richtext editing.
 
 ## Use it!
-Retrieve y-richtext and [Quill](quilljs.com) Editor with bower
+
+### Bower
+Retrieve y-richtext and [Quill](quilljs.com) Editor with bower.
 
 ```
 bower install y-richtext quill --save
 ```
 
-You can bind the richtext type to any [Quill](quilljs.com) instance. Look on their homepage on how to extend [Quill](quilljs.com).
+### NPM
+
+```
+npm install y-richtext y-array quill --save
+```
+
+This type depends on [y-array](https://github.com/y-js/y-array). So you have to extend Yjs in the right order:
+
+```javascript
+var Y = require('yjs')
+require('y-array')(Y)
+require('y-richtext')(Y)
+```
 
 ## Example
-```
+```javascript
 Y({
   db: {
     name: 'memory'
@@ -35,7 +50,7 @@ Y({
     theme: 'snow'
   })
   // bind quill to richtext type
-  y.share.richtext.bind(window.quill)
+  y.share.richtext.bindQuill(window.quill)
 })
 ```
 
@@ -49,6 +64,8 @@ Y({
   * Explicitely bind a Quill editor
 * unbindQuill(quill)
   * Remove binding
+* unbindQuillAll()
+  * Remove all quill bindings
 * .insert(position, string)
   * Insert text at a position
 * .delete(position, length)

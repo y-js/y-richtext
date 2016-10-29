@@ -503,6 +503,7 @@ function extend (Y) {
         })
         if (i >= 0) {
           var binding = this.instances[i]
+          binding.editor.yRichtextBinding = null
           this.unobserve(binding.yCallback)
           binding.editor.off('text-change', binding.quillCallback)
           this.instances.splice(i, 1)
@@ -526,7 +527,11 @@ function extend (Y) {
             token = true
           }
         }
+        if (quill.yRichtextBinding != null) {
+          quill.yRichtextBinding.unbindQuill(quill)
+        }
         quill.setContents(this.toDelta())
+        quill.update()
 
         function quillCallback (delta) {
           mutualExcluse(function () {
@@ -791,6 +796,7 @@ function extend (Y) {
           yCallback: yCallback,
           quillCallback: quillCallback
         })
+        quill.yRichtextBinding = this
       }
     }
     Y.extend('Richtext', new Y.utils.CustomTypeDefinition({
