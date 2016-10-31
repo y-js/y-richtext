@@ -87,9 +87,7 @@ function extend (Y) {
         return q
       }
       _destroy () {
-        for (var i = this.instances.length - 1; i >= 0; i--) {
-          this.unbindQuill(this.instances[i].editor)
-        }
+        this.unbindQuillAll()
         super._destroy()
       }
       get length () {
