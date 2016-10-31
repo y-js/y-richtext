@@ -1,6 +1,6 @@
 {
   "name": "y-richtext",
-  "version": "9.0.4",
+  "version": "9.0.5",
   "description": "RichText Type for Yjs",
   "main": "./src/Richtext.js",
   "scripts": {
