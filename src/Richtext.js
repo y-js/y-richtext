@@ -455,6 +455,7 @@ function extend (Y) {
             var afterRetain = pos + op.retain
             if (afterRetain > this.length) {
               // debugger // TODO: check why this is still called..
+              // console.warn('Yjs internal: This should not happen')
               let additionalContent = _quill.getText(this.length)
               _quill.insertText(this.length, additionalContent)
               // quill.deleteText(this.length + additionalContent.length, quill.getLength()) the api changed!
@@ -472,6 +473,7 @@ function extend (Y) {
             for (name in opAttributes) {
               var attr = opAttributes[name]
               this.select(pos, afterRetain, name, attr)
+              /*
               let format = {}
               format[name] = attr == null ? false : attr
               format = this._formatAttributesForQuill(format)
@@ -481,6 +483,7 @@ function extend (Y) {
                 _quill.formatText(pos, op.retain, removeFormat)
               }
               _quill.formatText(pos, op.retain, format)
+              */
             }
             pos = afterRetain
           }
