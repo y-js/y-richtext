@@ -518,9 +518,11 @@ function extend (Y) {
             try {
               f()
             } catch (e) {
+              quill.update()
               token = true
               throw new Error(e)
             }
+            quill.update()
             token = true
           }
         }
