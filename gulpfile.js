@@ -8,7 +8,7 @@ require('../yjs/gulpfile.helper.js')(gulp, {
   polyfills: [],
   entry: './src/Richtext.js',
   targetName: 'y-richtext.js',
-  moduleName: 'y-richtext',
+  moduleName: 'yRichtext',
   specs: ['./src/Richtext.spec.js']
 })
 
