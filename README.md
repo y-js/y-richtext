@@ -1,11 +1,11 @@
 
 # Rich Text type for [Yjs](https://github.com/y-js/yjs)
-The fabolous feature of y-richtext is that you can bind it to a [Quill](quilljs.com) instance (> v1.0.0) in order to enable collaborative richtext editing.
+The fabolous feature of y-richtext is that you can bind it to a [Quill](https://quilljs.com) instance (> v1.0.0) in order to enable collaborative richtext editing.
 
 ## Use it!
 
 ### Bower
-Retrieve y-richtext and [Quill](quilljs.com) Editor with bower.
+Retrieve y-richtext and [Quill](https://quilljs.com) Editor with bower.
 
 ```
 bower install y-richtext quill --save
@@ -75,9 +75,9 @@ Y({
 * toString()
   * Get the string representation of this type (without selections)
 * toDelta()
-  * Convert internal structure to a Quill delta http://quilljs.com/docs/deltas/
+  * Convert internal structure to a Quill delta https://quilljs.com/docs/delta/
 * applyDelta()
-  * Apply a Quill delta http://quilljs.com/docs/deltas/
+  * Apply a Quill delta https://quilljs.com/docs/delta/
 
 
 ## Contribution
