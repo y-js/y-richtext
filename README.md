@@ -1,6 +1,6 @@
 
 # Rich Text type for [Yjs](https://github.com/y-js/yjs)
-The fabolous feature of y-richtext is that you can bind it to a [Quill](https://quilljs.com) instance (> v1.0.0) in order to enable collaborative richtext editing.
+The fabulous feature of y-richtext is that you can bind it to a [Quill](https://quilljs.com) instance (> v1.0.0) in order to enable collaborative richtext editing.
 
 ## Use it!
 
