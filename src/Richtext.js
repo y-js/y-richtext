@@ -456,7 +456,7 @@ function extend (Y) {
             if (afterRetain > this.length) {
               // debugger // TODO: check why this is still called..
               // console.warn('Yjs internal: This should not happen')
-              let additionalContent = _quill.getText(this.length)
+              /* let additionalContent = _quill.getText(this.length)
               _quill.insertText(this.length, additionalContent)
               // quill.deleteText(this.length + additionalContent.length, quill.getLength()) the api changed!
               for (name in opAttributes) {
@@ -469,6 +469,7 @@ function extend (Y) {
               }
               this.insert(this.length, additionalContent)
               // opAttributes = null
+              */
             }
             for (name in opAttributes) {
               var attr = opAttributes[name]
